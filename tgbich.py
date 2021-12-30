@@ -17,6 +17,9 @@ class TgBich(BichBot):
         print(f"{self}: completed asyncio.run(self.main())");
 
 
+    def needs_irc_markup(self):
+        return False
+
     async def on_message(self, message: types.Message):
         text = message.text
         ticker_str = str(text).strip().upper()

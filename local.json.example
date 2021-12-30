@@ -1,0 +1,76 @@
+{
+    "connections": {
+      "tg":{
+        "LibreLifeBotTelegram": {
+            "BOT_TOKEN": "..."
+            ,"onlycmc":true
+        }
+      },
+      "irc":{
+        "ilitka":{
+             "irc_server_hostname":"127.0.0.1"
+            ,"port":12444
+            ,"channelsProps":{
+                "#KATAKOMBYNNNN":{"news_count":6, "modes": {"compact":false} },
+                "#ru":{"news_count":5, "modes": {"compact":true} },
+                "#en":{"news_count":5, "modes": {"compact":true} },
+                "#shitposter":{"news_count":10, "modes": {"compact":false}},
+                "#dev":{"news_count":0, "modes": {"compact":true}},
+                "#gostcoin_ru":{"news_count":1, "modes": {"compact":true}},
+                "#zashekan":{"news_count":3, "modes": {"compact":true}},
+                "#barada-home":{"news_count":10, "modes": {"compact":false}}
+            }
+            ,"password": "x"
+            ,"titleEnabled":true
+            ,"onlycmc":false
+            ,"enable_krako_translation":true
+            ,"enable_hextoip":true
+            ,"enable_price":true
+            
+            ,"InitialBotNick":"ExampleLibreLifeBot"
+        }
+        ,
+        "rusnetirc":{
+             "irc_server_hostname":"irc.meganet.ru"
+            ,"port":6660
+            ,"channelsProps":{
+                "#magi":{"news_count":1, "modes": {"compact":true}},
+                "#green_meadow":{"news_count":30, "modes": {"compact":false}},
+                "#psycho":{"news_count":1, "modes": {"compact":true}},
+                "#Reykjavik": {"news_count":10, "modes": {"compact":true}}
+            }
+            ,"password": "x"
+            ,"titleEnabled":false
+            ,"onlycmc":true
+            ,"enable_krako_translation":true
+            ,"enable_hextoip":true
+            ,"enable_price":true
+
+            ,"rem_socks5_host":"example.org"
+            ,"rem_socks5_port":12345
+            ,"rem_socks5_username":"someuser"
+            ,"rem_socks5_password":"secretpassword"
+            
+            ,"InitialBotNick":"ExampleLibreLifeBot"
+        }
+      }
+    }
+    ,"coinmarketcap_apikey": "..."
+    ,"rapidapi_appkey":"..."
+    ,"rem__rapidapi_appkey":"..."
+    ,"rapidapi_ctxwebsearch_X-RapidAPI-Host":"contextualwebsearch-websearch-v1.p.rapidapi.com"
+    ,"dataforseo_api_login":"someusername"
+    ,"dataforseo_api_password":"secretpassword"
+    ,"newsapi_apikey":"..."
+    ,"gnome1_rur_float":1001.0
+    ,"gnome_btc_transaction1_BTC_float": 1001.0
+    ,"gnome_btc_amount2_BTC_float": 1001.0
+    ,"master_secret":"secretpassword"
+    ,"rem_nickserv_password": ""
+    ,"list_floodfree":["Батый", "Батый_"]
+    ,"list_bot_not_work":["iphone.telenet.ru", "ec2-54-211-164-67.compute-1.amazonaws.com"]
+    ,"spglobal_sampleurl":"https://www.spglobal.com/spdji/en/idsexport/file.xls?hostIdentifier=putyourhostidhere&redesignExport=true&languageId=1&selectedModule=PerformanceTableView&selectedSubModule=Daily&indexId=340"
+    ,"spglobal_hostid":"..."
+    ,"hook_after_quotes_json_saved_shell_command_line": "echo \"begin...\" && /bin/true && echo \"exit status: $?\" && echo \"done.\""
+}
+    

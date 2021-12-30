@@ -23,7 +23,8 @@ import settings
 import translate_krzb
 from settings import settings as option
 from settings import getconfig
-from helpers import get_pretty_json_string, shell, LOG_TRACE, TOTAL_WORLD_CAP_TRILLIONS_USD
+from helpers import get_pretty_json_string, shell, LOG_TRACE, TOTAL_WORLD_CAP_TRILLIONS_USD, fetch_and_compose_gostcoin_price_rur_report
+from helpers import format_currency
 
 from requests import Request, Session
 from requests.exceptions import ConnectionError, Timeout, TooManyRedirects
@@ -71,6 +72,9 @@ class BichBot:
 
     def getconfig(self):
         return self.config
+
+    def needs_irc_markup(self):
+        raise Exception("abstract method")
 
     def fetch_sp500_index(self, irc_markup_bool):
         spglobal_hostid = settings.settings('spglobal_hostid')
@@ -243,7 +247,7 @@ class BichBot:
 
     @staticmethod
     def format_currency(value):
-        return "{:0,.2f}".format(float(value))
+        return format_currency(value)
 
     @staticmethod
     def format_total_cap(total_market_cap_usd):
@@ -835,33 +839,36 @@ class BichBot:
 
 """
         try:
-            url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
-            parameters = {
-                'symbol': ticker_str,
-                'convert': 'USD'
-            }
-            headers = {
-                'Accepts': 'application/json',
-                'X-CMC_PRO_API_KEY': self.coinmarketcap_apikey,
-            }
+            if ticker_str == 'GST':
+                reply_str = f'''{fetch_and_compose_gostcoin_price_rur_report(self.needs_irc_markup(),self.coinmarketcap_apikey)}'''
+            else:
+                url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
+                parameters = {
+                    'symbol': ticker_str,
+                    'convert': 'USD'
+                }
+                headers = {
+                    'Accepts': 'application/json',
+                    'X-CMC_PRO_API_KEY': self.coinmarketcap_apikey,
+                }
 
-            session = Session()
-            session.headers.update(headers)
+                session = Session()
+                session.headers.update(headers)
 
-            reply_str = f""
-            
-            print('!курс session.get url=' + url)
-            response = session.get(url, params=parameters)
-            if LOG_TRACE: print("cmc.text:", response.text)
-            cmc = json.loads(response.text)
-            # if LOG_TRACE: print(f"cmc.json: {get_pretty_json_string(cmc)}")
-            symbol_price_usd = cmc["data"][ticker_str]["quote"]["USD"]["price"]
-            symbol_price_usd_str = str(self.format_currency(symbol_price_usd))
+                reply_str = f""
+                
+                print('!курс session.get url=' + url)
+                response = session.get(url, params=parameters)
+                if LOG_TRACE: print("cmc.text:", response.text)
+                cmc = json.loads(response.text)
+                # if LOG_TRACE: print(f"cmc.json: {get_pretty_json_string(cmc)}")
+                symbol_price_usd = cmc["data"][ticker_str]["quote"]["USD"]["price"]
+                symbol_price_usd_str = str(self.format_currency(symbol_price_usd))
 
-            reply_str += f'{boldon}{ticker_str}/USD:{boldoff} {symbol_price_usd_str}'
+                reply_str += f'{boldon}{ticker_str}/USD:{boldoff} {symbol_price_usd_str}'
         except (BaseException) as e:
             traceback.print_exc()
-            reply_str += f"{boldon}Error:{boldoff} {e}"
+            reply_str = f"{boldon}Error:{boldoff} {str(e)}"
         return reply_str
 
 
@@ -1143,7 +1150,7 @@ class BichBot:
             s = f'{sp500index_str}{separ2}{fe_msg}{rate_cmc_str}{kuna_str}{exmo_postfix}'  # , gnomeHodlDeltaStr
         except BaseException as e:
             print(__name__, e, flush=True)
-            s = f'Error: {e}'
+            s = f'Error: {str(e)}'
         print(__name__, "returning composed market report:", s, flush=True)
         return s
 

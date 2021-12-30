@@ -58,6 +58,9 @@ class IrcBich(BichBot):
         self.master_secret = settings.settings('master_secret')
 
 
+    def needs_irc_markup(self):
+        return True
+
     @staticmethod
     def link_title(n):
         """ Parses message to find links and get linked page titles """
@@ -432,7 +435,20 @@ class IrcBich(BichBot):
                                     self.send(
                                         f'PRIVMSG {communicationsLineName} :\x02hextoip:\x02 error: {str(e)}.\r\n'
                                     )
-                                continue
+                            continue
+
+                    print(__file__, "checking if !price")
+                    if self.connection_setting_or_None("enable_price"):
+                        if lineJoined.startswith(':!price') and dataTokensDelimitedByWhitespace[1] == "PRIVMSG":
+                            if self.grantCommand(sent_by, communicationsLineName):
+                                print(__file__, "!price detected")
+                                try:
+                                    sym = message.split('!price ', 1)[1].strip().upper()
+                                    self.send('PRIVMSG ' + communicationsLineName + ' :' + self.compose_ticker_price_reply(sym, True) + '\r\n')
+                                except BaseException as e:
+                                    traceback.print_exc()
+                                    self.send(f'PRIVMSG {communicationsLineName} :\x02!price: error:\x02 {str(e)}.\r\n')
+                            continue
 
                     """if 'PRIVMSG '+channel+' :!help' in data or 'PRIVMSG '+self.botName+' :!справка' in data or 'PRIVMSG '+self.botName+' :!помощь' in data or 'PRIVMSG '+self.botName+' :!хелп' in data:
                         self.send('NOTICE %s : Помощь по командам бота:\r\n' %(name))

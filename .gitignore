@@ -103,7 +103,8 @@ venv.bak/
 # mypy
 .mypy_cache/
 
-local.json*
+local.json
+local.json_*
 venv*
 nohup.out
 
