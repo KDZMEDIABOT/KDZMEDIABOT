@@ -73,4 +73,4 @@
     ,"spglobal_hostid":"..."
     ,"hook_after_quotes_json_saved_shell_command_line": "echo \"begin...\" && /bin/true && echo \"exit status: $?\" && echo \"done.\""
 }
-    
+
