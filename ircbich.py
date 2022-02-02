@@ -49,6 +49,7 @@ class IrcBich(BichBot):
         self.channelsProps = self.connection_settings('channelsProps')
         self.channelsList = list(self.channelsProps.keys())
         self.BOT_NAME_PREFIX = self.connection_settings('InitialBotNick')
+        self.BOT_REALNAME = self.connection_settings('REALNAME')
         self.botName = self.BOT_NAME_PREFIX
         self.botNickSalt = 0
         self.nickserv_password = self.connection_setting_or_None('nickserv_password')
@@ -210,8 +211,8 @@ class IrcBich(BichBot):
                 self.init_socket(self.irc_socket)
                 print("connected, self.sending login handshake, self.botName=[" + self.botName + "]…")
                 # print (self.irc_socket.recv(2048).decode("UTF-8"))
-                self.send('NICK ' + self.botName + '\r\n')
-                self.send('USER ' + self.botName + ' ' + self.botName + ' ' + self.botName + ' :irc bot\r\n')
+                self.send(f'NICK {self.botName}\r\n')
+                self.send(f'USER {self.botName} {self.botName} {self.botName} :{self.BOT_REALNAME}\r\n')
                 # self.send('NickServ IDENTIFY '+settings.settings('password')+'\r\n')
                 # self.send('MODE '+self.botName+' +x')
 
@@ -443,8 +444,13 @@ class IrcBich(BichBot):
                             if self.grantCommand(sent_by, communicationsLineName):
                                 print(__file__, "!price detected")
                                 try:
-                                    sym = message.split('!price ', 1)[1].strip().upper()
-                                    self.send('PRIVMSG ' + communicationsLineName + ' :' + self.compose_ticker_price_reply(sym, True) + '\r\n')
+                                    syms = message.split('!price ', 1)[1].strip().upper()
+                                    syms = syms.split("/");
+                                    if len(syms)==0:
+                                        self.send('PRIVMSG ' + communicationsLineName + ' : error. Send !price symbol or !price symbol/symbol\r\n')
+                                    else:
+                                        if len(syms)==1: syms.append("USD");
+                                        self.send('PRIVMSG ' + communicationsLineName + ' :' + self.compose_ticker_price_reply(syms[0], syms[1], True) + '\r\n')
                                 except BaseException as e:
                                     traceback.print_exc()
                                     self.send(f'PRIVMSG {communicationsLineName} :\x02!price: error:\x02 {str(e)}.\r\n')
@@ -673,6 +679,7 @@ class IrcBich(BichBot):
 
                     print("calling maybe_print_news()", flush=True)
                     self.maybe_print_news(self.botName, data)
+                    self.maybe_print_help(self.botName, data)
                     self.maybe_print_search(self.botName, data, sent_by)
                     if self.maybe_quotes(data, sent_by, communicationsLineName):
                         print("maybe_quotes() returned True, continuing loop", flush=True)

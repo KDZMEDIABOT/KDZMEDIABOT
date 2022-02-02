@@ -23,7 +23,12 @@ class TgBich(BichBot):
     async def on_message(self, message: types.Message):
         text = message.text
         ticker_str = str(text).strip().upper()
-        reply_str = self.compose_ticker_price_reply(ticker_str)
+        syms = ticker_str.split("/");
+        if len(syms)==0:
+            reply_str = "Error. Send `symbol` or `symbol/symbol`"
+        else:
+            if len(syms)==1: syms.append("USD");
+            reply_str = self.compose_ticker_price_reply(syms[0], syms[1])
         await message.answer(
             reply_str,
             parse_mode=types.ParseMode.HTML,

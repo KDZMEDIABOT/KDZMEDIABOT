@@ -296,6 +296,45 @@ class BichBot:
         else:
             return False
 
+    @staticmethod
+    def is_help_command(bot_nick, str_line):
+        """
+            :x!y@example.org PRIVMSG BichBot :!help
+        """
+        try:
+            dataTokensDelimitedByWhitespace = str_line.split(" ")
+            # dataTokensDelimitedByWhitespace[0] :nick!uname@addr.i2p
+            # dataTokensDelimitedByWhitespace[1] PRIVMSG
+
+            # dataTokensDelimitedByWhitespace[2] #ru
+            #  OR
+            # dataTokensDelimitedByWhitespace[2] BichBot
+
+            # dataTokensDelimitedByWhitespace[3] :!курс
+            communicationsLineName = dataTokensDelimitedByWhitespace[2] if len(dataTokensDelimitedByWhitespace) > 2 else None
+            where_mes_exc = communicationsLineName
+            if len(dataTokensDelimitedByWhitespace) > 3:
+                line = " ".join(dataTokensDelimitedByWhitespace[3:])
+                if(line.startswith(":")): line = line[1:]
+                line=line.strip()
+                is_in_private_query = where_mes_exc == bot_nick
+                if is_in_private_query: 
+                    return line.startswith("help") or line.startswith("справка")
+                bot_mentioned = bot_nick in line
+                if bot_mentioned and ("help" in line or "справка" in line):
+                    return True
+                commWithBot = line.startswith("!") or line.startswith("/")
+                if not commWithBot:
+                    return False
+                line = line[1:].strip()
+                return line.startswith("help") or line.startswith("справка")
+            else:
+                return False
+        except:
+            import traceback as tb
+            tb.print_exc()
+            return False
+
     def is_uanews_command(self, bot_nick, str_line):
         #:defender!~defender@example.org PRIVMSG BichBot :Чтобы получить войс, ответьте на вопрос: Как называется blah blah?
         dataTokensDelimitedByWhitespace = str_line.split(" ")
@@ -466,6 +505,12 @@ class BichBot:
         print("ns_resp", json.dumps(rjson, sort_keys=True, indent=4))
         for v in rjson["value"]: return v["url"]
         return None
+        
+    def print_usage(self, to_addr):
+        self.sendmsg(to_addr, f"!price symbol[/basesymbol] - gets financial symbol price, e.g. !price BTC or !price BTC/RUR")
+        self.sendmsg(to_addr, f"botnick курс или !market или !маркет - prints financial report")
+        self.sendmsg(to_addr, f"!!q searchstr or quoteid - search quotes")
+        self.sendmsg(to_addr, f"!help или !справка - prints help")
 
     def sendmsg(self, to_addr, msg):
         self.send('PRIVMSG %s :%s\r\n' % (to_addr, msg))
@@ -621,6 +666,14 @@ class BichBot:
                     resultUrl = self.news_search_ctxwebsrch(kwlist[0], 1)
                     self.sendmsg(where_mes_exc, "%s" % (resultUrl if resultUrl else "Новостей не найдено"))
 
+    def maybe_print_help(self, bot_nick, str_incoming_line):
+        sent_by = "unknown_sentBy"
+        dataTokensDelimitedByWhitespace = str_incoming_line.split(" ")
+        communicationsLineName = dataTokensDelimitedByWhitespace[2] if len(dataTokensDelimitedByWhitespace) > 2 else None
+        if self.is_help_command(bot_nick, str_incoming_line):
+            if self.grantCommand(sent_by, communicationsLineName):
+                self.print_usage(communicationsLineName)
+
     def write_quotes(self):
         print(__name__, "writing quotes.json")
         with open('quotes.json', 'w') as myfile:
@@ -713,6 +766,7 @@ class BichBot:
         self.sendmsg(at, report)
 
     def maybe_quotes(self, str_incoming_line, sent_by, commLineName):
+      try:
         tok1 = str_incoming_line.split(" ")
         if len(tok1) < 3: return False
         if tok1[1] != "PRIVMSG": return False
@@ -728,7 +782,10 @@ class BichBot:
         #    if self.grantCommand(sent_by, commLineName):
         #        self.add_quote(tok1, commLineName)
         #        return True
-        return False
+      except:
+        import traceback as tb
+        tb.print_exc()
+      return False
 
     def help_make_choice(self, message):
         if ' или ' in message:
@@ -830,7 +887,7 @@ class BichBot:
         modes = props['modes'] if props is not None and 'modes' in props else None
         return modes['compact'] if modes is not None and 'compact' in modes else COMPACT_DEFAULT
 
-    def compose_ticker_price_reply(self, ticker_str, irc_markup_bool=False):
+    def compose_ticker_price_reply(self, ticker_str, base_symbol_str, irc_markup_bool=False):
         boldon = "\x02" if irc_markup_bool else "<b>"
         boldoff = "\x02" if irc_markup_bool else "</b>"
         separ = " | " if irc_markup_bool else """
@@ -845,7 +902,7 @@ class BichBot:
                 url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
                 parameters = {
                     'symbol': ticker_str,
-                    'convert': 'USD'
+                    'convert': base_symbol_str
                 }
                 headers = {
                     'Accepts': 'application/json',
@@ -861,11 +918,18 @@ class BichBot:
                 response = session.get(url, params=parameters)
                 if LOG_TRACE: print("cmc.text:", response.text)
                 cmc = json.loads(response.text)
-                # if LOG_TRACE: print(f"cmc.json: {get_pretty_json_string(cmc)}")
-                symbol_price_usd = cmc["data"][ticker_str]["quote"]["USD"]["price"]
-                symbol_price_usd_str = str(self.format_currency(symbol_price_usd))
-
-                reply_str += f'{boldon}{ticker_str}/USD:{boldoff} {symbol_price_usd_str}'
+                if LOG_TRACE: print(f"cmc.json: {get_pretty_json_string(cmc)}")
+                if "status" in cmc and "error_code" in cmc["status"] and cmc["status"]["error_code"] != 0:
+                    err_msg = f'Error {cmc["status"]["error_code"]}'
+                    if "error_message" in cmc["status"]:
+                        err_msg = f'{boldon}{err_msg}:{boldoff} {cmc["status"]["error_message"]}'
+                    else:
+                        err_msg = f'{boldon}{err_msg}:{boldoff} (no error message)'
+                    reply_str += err_msg
+                else:
+                    symbol_price_usd = cmc["data"][ticker_str]["quote"][base_symbol_str]["price"]
+                    symbol_price_usd_str = str(symbol_price_usd)
+                    reply_str += f'{boldon}{ticker_str}/{base_symbol_str}:{boldoff} {symbol_price_usd_str}'
         except (BaseException) as e:
             traceback.print_exc()
             reply_str = f"{boldon}Error:{boldoff} {str(e)}"
