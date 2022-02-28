@@ -1065,7 +1065,7 @@ class BichBot:
                 vol24_str = str(self.format_currency(vol24))
 
                 kuna_str = f'Kuna.io {boldon}EVER/USDT{boldoff}: BID {bid_str} ASK {ask_str} VOL24 {vol24_str}'
-            except (ConnectionError, Timeout, TooManyRedirects) as e:
+            except BaseException as e:
                 print(__name__, e, flush=True)
                 kuna_str = 'Kuna.io error: ' + str(e)
 
@@ -1143,8 +1143,8 @@ class BichBot:
                     exmo_ETH_USD_json = exmo_ticker[
                         "ETH_USD"] if not 'error' in exmo_ticker else None
                     """
-                    exmo_TONCOIN_USD_json = exmo_ticker[
-                        "TONCOIN_USDT"] if not 'error' in exmo_ticker else None
+                    exmo_TON_USD_json = exmo_ticker[
+                        "TON_USDT"] if not 'error' in exmo_ticker else None
                     # exmo_USD_RUB_json = exmo_ticker["USD_RUB"]
 
                     """
@@ -1174,9 +1174,9 @@ class BichBot:
                             self.format_currency(
                                 float(exmo_ticker["BTC_RUB"]["buy_price"]))) + "."
                         """
-                        tons = self.format_currency(exmo_TONCOIN_USD_json["sell_price"])
-                        tonb = self.format_currency(exmo_TONCOIN_USD_json["buy_price"])
-                        sexmo = f'Exmo.me {boldon}TONCOIN/USDT:{boldoff} S {tons} B {tonb}'
+                        tons = self.format_currency(exmo_TON_USD_json["sell_price"])
+                        tonb = self.format_currency(exmo_TON_USD_json["buy_price"])
+                        sexmo = f'Exmo.me {boldon}TON/USDT:{boldoff} S {tons} B {tonb}'
                 except (ConnectionError, Timeout, TooManyRedirects, URLError) as e:
                     print(__name__, e, flush=True)
                     sexmo = f"Exmo.me error: {e}"
