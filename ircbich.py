@@ -440,7 +440,7 @@ class IrcBich(BichBot):
 
                     print(__file__, "checking if !price")
                     if self.connection_setting_or_None("enable_price"):
-                        if lineJoined.startswith(':!price') and dataTokensDelimitedByWhitespace[1] == "PRIVMSG":
+                        if ("!price" in lineJoined) and dataTokensDelimitedByWhitespace[1] == "PRIVMSG":
                             if self.grantCommand(sent_by, communicationsLineName):
                                 print(__file__, "!price detected")
                                 try:
@@ -450,7 +450,10 @@ class IrcBich(BichBot):
                                         self.send('PRIVMSG ' + communicationsLineName + ' : error. Send !price symbol or !price symbol/symbol\r\n')
                                     else:
                                         if len(syms)==1: syms.append("USD");
-                                        self.send('PRIVMSG ' + communicationsLineName + ' :' + self.compose_ticker_price_reply(syms[0], syms[1], True) + '\r\n')
+                                        if syms[1] == "RUR" or syms[1] == "rur":
+                                            syms[1] = "RUB"
+                                        self.send('PRIVMSG ' + communicationsLineName + ' :' + self.compose_ticker_price_reply(syms[0], syms[1], True) + 
+                                                  '\r\n')
                                 except BaseException as e:
                                     traceback.print_exc()
                                     self.send(f'PRIVMSG {communicationsLineName} :\x02!price: error:\x02 {str(e)}.\r\n')
