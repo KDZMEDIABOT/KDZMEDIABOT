@@ -253,9 +253,9 @@ class BichBot:
     def format_total_cap(total_market_cap_usd):
         total_market_cap_usd_t = float(total_market_cap_usd) / 1.0e12
         b = "$"+"{:0,.2f}T".format(total_market_cap_usd_t)
-        total_str = "{:0,.2f}T".format(TOTAL_WORLD_CAP_TRILLIONS_USD)
-        p = "{:0,.2f}".format(total_market_cap_usd_t / TOTAL_WORLD_CAP_TRILLIONS_USD * 100.0) + f'% of the world cap e.g. $'+f'{total_str}'
-        return b + " (" + p + ')'
+        # total_str = "{:0,.2f}T".format(TOTAL_WORLD_CAP_TRILLIONS_USD)
+        # p = "{:0,.2f}".format(total_market_cap_usd_t / TOTAL_WORLD_CAP_TRILLIONS_USD * 100.0) + f'% of the world cap e.g. $'+f'{total_str}'
+        return b # + " (" + p + ')'
 
     def fetch_last_hour_new_news(self, old_news_cache=None, kwlist=None):
         array = self.get_trending_searches(country_str="russia", kwlist=kwlist)
@@ -507,9 +507,9 @@ class BichBot:
         return None
         
     def print_usage(self, to_addr):
-        self.sendmsg(to_addr, f"!price symbol[/basesymbol] - gets financial symbol price, e.g. !price BTC or !price BTC/RUR")
-        self.sendmsg(to_addr, f"botnick курс или !market или !маркет - prints financial report")
-        self.sendmsg(to_addr, f"!!q searchstr or quoteid - search quotes")
+        self.sendmsg(to_addr, f"!price symbol[/basesymbol] - gets financial symbol price, e.g. !price BTC or !price BTC/RUB")
+        self.sendmsg(to_addr, f"!market или !маркет или botnick курс - prints financial report")
+        self.sendmsg(to_addr, f"!!q searchstr or !!q quoteid - search quotes")
         self.sendmsg(to_addr, f"!help или !справка - prints help")
 
     def sendmsg(self, to_addr, msg):
@@ -778,10 +778,10 @@ class BichBot:
             if self.grantCommand(sent_by, commLineName):
                 self.print_quote(tok1)
                 return True
-        #if cmd == "!!aq":
-        #    if self.grantCommand(sent_by, commLineName):
-        #        self.add_quote(tok1, commLineName)
-        #        return True
+        if cmd == "!!aq":
+            if self.grantCommand(sent_by, commLineName):
+                self.add_quote(tok1, commLineName)
+                return True
       except:
         import traceback as tb
         tb.print_exc()

@@ -4,7 +4,7 @@
 Description=librelifetg systemd service for LibreLifeBotTelegram
 
 [Service]
-ExecStart=/bin/bash -c /vcs/LibreLifeBotTelegram/bin/run.sh
+ExecStart=/bin/bash -c /home/myusername/vcs/LibreLifeBotTelegram/bin/run.sh
 
 [Install]
 WantedBy=multi-user.target
@@ -18,15 +18,6 @@ WantedBy=multi-user.target
 # have a .service extension. For example, a custom foo service 
 # uses /etc/systemd/system/foo.service unit file.
 # 
-# sudo ln -sv ~/vcs/greenbich-runtime/greenbich.service /etc/systemd/system/
-# ls -al ~/vcs/greenbich-runtime/greenbich.service /etc/systemd/system/|grep greenbich
-# -rw-rw-r--. 1 user user  570 2021-06-29 21:36:54 +08 nanoseconds:259003973 /root/vcs/greenbich-runtime/greenbich.service
-# lrwxrwxrwx. 1 root root   45 2021-06-29 21:37:00 +08 nanoseconds:892976823 greenbich.service -> /root/vcs/greenbich-runtime/greenbich.service
-# chown -v root.root ~/vcs/greenbich-runtime/greenbich.service
-# changed owner '/root/vcs/greenbich-runtime/greenbich.service' from user:user to root:root
-# export LANG=en_us.UTF-8
-# rm -v /etc/systemd/system/greenbich.service
-# removed '/etc/systemd/system/greenbich.service'
 # cp -v ~/vcs/greenbich-runtime/greenbich.service /etc/systemd/system/greenbich.service
 # '/root/vcs/greenbich-runtime/greenbich.service' -> '/etc/systemd/system/greenbich.service'
 # chown -v user.user ~user/vcs/greenbich-runtime/greenbich.service

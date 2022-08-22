@@ -1,4 +1,4 @@
-cd /vcs/LibreLifeBotTelegram/
+cd /home/myusername/vcs/LibreLifeBotTelegram/
 
 echo pwd
 pwd
