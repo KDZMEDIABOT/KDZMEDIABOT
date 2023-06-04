@@ -14,11 +14,11 @@ import urllib.request
 
 import pytz
 import requests
-import socks
+#import socks
 import subprocess
 from urllib.error import URLError
 
-from pytrends.request import TrendReq
+#from pytrends.request import TrendReq
 
 from requests import Request, Session
 from requests.exceptions import ConnectionError, Timeout, TooManyRedirects

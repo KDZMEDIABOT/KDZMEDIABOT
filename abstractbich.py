@@ -14,10 +14,10 @@ from urllib.error import URLError
 
 import pytz
 import requests
-import socks
+#import socks
 import subprocess
 
-from pytrends.request import TrendReq
+#from pytrends.request import TrendReq
 
 import settings
 import translate_krzb
@@ -131,8 +131,8 @@ class BichBot:
                     if irc_markup_bool:
                         reason = reason[:10]
                 return f'S&P500 Error: HTTP{response.status_code} {reason}'
-        except KeyboardError:
-            raise
+        #except KeyboardException:
+        #    raise
         except (ConnectionError, Timeout, TooManyRedirects, BaseException) as e:
             import traceback as tb
             tb.print_exc()
@@ -992,9 +992,11 @@ class BichBot:
             RUR_SYMBOL = "RUB"
 
             parameters = {
-                'symbol': 'DOGE',
+                'symbol': 'DOGE,BTC',
                 'convert': RUR_SYMBOL
             }
+            
+            btc_rur = None
 
             try:
                 print('!курс rur session.get url=' + url)
@@ -1002,6 +1004,7 @@ class BichBot:
                 cmc = json.loads(response.text)
                 if LOG_TRACE: print("cmc_rur:", cmc)
                 doge_rur = cmc["data"]["DOGE"]["quote"][RUR_SYMBOL]["price"]
+                btc_rur = float(cmc["data"]["BTC"]["quote"][RUR_SYMBOL]["price"])
                 doge_rur_str = str(self.format_currency(doge_rur))
 
                 rate_cmc_str += f'{separ}{boldon}DOGE/RUR:{boldoff} {doge_rur_str}'
@@ -1104,17 +1107,17 @@ class BichBot:
                         else None
                     highestBuy_lit = gst_resp["highestBuy"]
                     highestBuy = float(highestBuy_lit)
-                    highestBuy_rur = float(self.btcToRurFloat) * highestBuy if \
-                        self.btcToRurFloat != "Unknown" \
+                    rur_hb = float(btc_rur * highestBuy) if \
+                        btc_rur is not None \
                         else None
                     lowestSell_lit = gst_resp["lowestSell"]
                     lowestSell = float(lowestSell_lit)
-                    lowestSell_rur = float(self.btcToRurFloat) * lowestSell if \
-                        self.btcToRurFloat != "Unknown" \
+                    rur_ls = float(btc_rur * lowestSell) if \
+                        btc_rur is not None \
                         else None
 
                     # fe_msg = "FreiEx(GST): VOL24:"+fmt2(volume24h_rur)+"RUR LAST:"+fmt2(last_rur)+"RUR S:"+fmt2(lowestSell_rur)+"RUR B:"+fmt2(highestBuy_rur)+"RUR"
-                    fe_msg = f"FreiExchange.com {boldon}GST/BTC:{boldoff} VOL24:{volume24h_btc_lit}BTC LAST:{last_lit} S:{lowestSell_lit} B:{highestBuy_lit}"
+                    fe_msg = f"FreiExchange.com {boldon}GST/BTC:{boldoff} VOL24:{volume24h_btc_lit}BTC LAST:{last_lit} S:{lowestSell_lit}BTC({rur_ls}RUR) B:{highestBuy_lit}({rur_hb}RUR)"
                 else:
                     fe_msg = "FreiExchange.com error"
             except KeyboardInterrupt:

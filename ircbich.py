@@ -15,10 +15,10 @@ from urllib.error import URLError
 import os
 import pytz
 import requests
-import socks
+#import socks
 import subprocess
 
-from pytrends.request import TrendReq
+#from pytrends.request import TrendReq
 
 import settings
 import translate_krzb

@@ -14,10 +14,10 @@ from urllib.error import URLError
 
 import pytz
 import requests
-import socks
+# import socks
 import subprocess
 
-from pytrends.request import TrendReq
+#from pytrends.request import TrendReq
 
 import settings
 import translate_krzb
@@ -38,20 +38,20 @@ from multiprocessing import Process
 import os
 
 
-print(f"{__file__}, {__name__}: pytrends: processing Trend Requests")
-while True:
-    try:
-        pytrends = TrendReq(hl='ru-RU', tz=360)
-        break
-    except KeyboardInterrupt as e:
-        raise e
-    except:
-        traceback.print_exc()
-        TIME_TO_SLEEP_SECONDS = 1
-        print("sleeping %s seconds" % str(TIME_TO_SLEEP_SECONDS))
-        time.sleep(TIME_TO_SLEEP_SECONDS)
-        continue
-print(f"{__file__}, {__name__}: pytrends: completed.")
+#print(f"{__file__}, {__name__}: pytrends: processing Trend Requests")
+#while True:
+#    try:
+#        pytrends = TrendReq(hl='ru-RU', tz=360)
+#        break
+#    except KeyboardInterrupt as e:
+#        raise e
+#    except:
+#        traceback.print_exc()
+#        TIME_TO_SLEEP_SECONDS = 1
+#        print("sleeping %s seconds" % str(TIME_TO_SLEEP_SECONDS))
+#        time.sleep(TIME_TO_SLEEP_SECONDS)
+#        continue
+#print(f"{__file__}, {__name__}: pytrends: completed.")
 
 
 # launch processes
