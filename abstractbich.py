@@ -507,10 +507,10 @@ class BichBot:
         return None
         
     def print_usage(self, to_addr):
-        self.sendmsg(to_addr, f"!price symbol[/basesymbol] - gets financial symbol price, e.g. !price BTC or !price BTC/RUB")
-        self.sendmsg(to_addr, f"!market или !маркет или botnick курс - prints financial report")
+        self.sendmsg(to_addr, f"!price symbol[/basesymbol] - gets symbol price, e.g. !price BTC or !price BTC/RUB . symbol is Coinmarketcap crypto ticker, basesymbol is Coinmarketcap fiat ticker or crypto ticker.")
+        self.sendmsg(to_addr, f"botnick курс - prints financial report")
         self.sendmsg(to_addr, f"!!q searchstr or !!q quoteid - search quotes")
-        self.sendmsg(to_addr, f"!help или !справка - prints help")
+        self.sendmsg(to_addr, f"!help - prints help")
 
     def sendmsg(self, to_addr, msg):
         self.send('PRIVMSG %s :%s\r\n' % (to_addr, msg))
