@@ -1048,6 +1048,7 @@ class BichBot:
 	      ]
 	    ]
 	    """
+	    """
             url = 'https://api.kuna.io/v3/tickers?symbols=everusdt'
             parameters = {
             }
@@ -1071,6 +1072,7 @@ class BichBot:
             except BaseException as e:
                 print(__name__, e, flush=True)
                 kuna_str = 'Kuna.io error: ' + str(e)
+            """
 
             sp500index_str = self.fetch_sp500_index(irc_markup_bool)
 
@@ -1214,10 +1216,9 @@ class BichBot:
             # https://developer.bitcoin.com/
 
             exmo_postfix = f"{separ}{sexmo}" if ENABLE_EXMO else ""
-            s = f'{sp500index_str}{separ2}{fe_msg}{rate_cmc_str}{kuna_str}{exmo_postfix}'  # , gnomeHodlDeltaStr
+            s = f'{sp500index_str}{separ2}{fe_msg}{rate_cmc_str}{exmo_postfix}'  # , gnomeHodlDeltaStr
         except BaseException as e:
             print(__name__, e, flush=True)
             s = f'Error: {str(e)}'
         print(__name__, "returning composed market report:", s, flush=True)
         return s
-
