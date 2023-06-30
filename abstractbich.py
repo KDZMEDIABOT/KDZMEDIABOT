@@ -1032,7 +1032,7 @@ class BichBot:
 
             # docs: https://docs.kuna.io/docs/%D0%BF%D0%BE%D1%81%D0%BB%D0%B5%D0%B4%D0%BD%D0%B8%D0%B5-%D0%B4%D0%B0%D0%BD%D0%BD%D1%8B%D0%B5-%D0%BF%D0%BE-%D1%80%D1%8B%D0%BD%D0%BA%D1%83-%D1%82%D0%B8%D0%BA%D0%B5%D1%80%D1%8B
             """
-        [
+	    [
 	      [
 	        "btcuah",   # символ рынка [0]
 	        208001,     # цена BID [1]
@@ -1047,8 +1047,6 @@ class BichBot:
 	        208001      # минимальная цена за 24 часа 10
 	      ]
 	    ]
-	    """
-	    """
             url = 'https://api.kuna.io/v3/tickers?symbols=everusdt'
             parameters = {
             }
@@ -1072,7 +1070,7 @@ class BichBot:
             except BaseException as e:
                 print(__name__, e, flush=True)
                 kuna_str = 'Kuna.io error: ' + str(e)
-            """
+	    """
 
             sp500index_str = self.fetch_sp500_index(irc_markup_bool)
 
@@ -1215,7 +1213,7 @@ class BichBot:
             # Coming soon
             # https://developer.bitcoin.com/
 
-            exmo_postfix = f"{separ}{sexmo}" if ENABLE_EXMO else ""
+            exmo_postfix = f"{sexmo}" if ENABLE_EXMO else ""
             s = f'{sp500index_str}{separ2}{fe_msg}{rate_cmc_str}{exmo_postfix}'  # , gnomeHodlDeltaStr
         except BaseException as e:
             print(__name__, e, flush=True)
