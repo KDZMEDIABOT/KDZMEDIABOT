@@ -66,6 +66,7 @@ class BichBot:
                 (self.gnome_btc_amount2_BTC_float - self.gnomeBtcTransaction1) * 9500.0 * 65.0)
         self.measurementRur1 = self.gnome1rur
         self.measurementRur2 = self.gnome1rur
+        self.quotes_array = []
 
     def settings_by_key(self, key):
         return self.getconfig()[key]
@@ -510,6 +511,7 @@ class BichBot:
         self.sendmsg(to_addr, f"!price symbol[/basesymbol] - gets symbol price, e.g. !price BTC or !price BTC/RUB . symbol is Coinmarketcap crypto ticker, basesymbol is Coinmarketcap fiat ticker or crypto ticker.")
         self.sendmsg(to_addr, f"botnick курс - prints financial report")
         self.sendmsg(to_addr, f"!!q searchstr or !!q quoteid - search quotes")
+        self.sendmsg(to_addr, f"!!aq quotetext - add a quote")
         self.sendmsg(to_addr, f"!help - prints help")
 
     def sendmsg(self, to_addr, msg):
@@ -678,20 +680,20 @@ class BichBot:
         print(__name__, "writing quotes.json")
         with open('quotes.json', 'w') as myfile:
             myfile.write(get_pretty_json_string(self.quotes_array))
-        shell("echo \"begin...\" && cp -v ~user/vcs/greenbich-runtime/quotes.json /DK/hutor_i2p_htdocs/ && echo \"exit status: $?\" && ls -alh /DK/hutor_i2p_htdocs/ && echo \"exit status: $?\" && echo \"done.\"")
+        shell("echo \"begin...\" && cp -v /root/vcs_rig1/LibreLifeBotTelegram/quotes.json /zsata/ && echo \"exit status: $?\" && ls -alh /zsata/ && echo \"exit status: $?\" && echo \"done.\"")
 
 
     def read_quotes(self):
         # read file
-        # try:
-        print(__name__, "reading quotes.json")
-        with open('quotes.json', 'r') as myfile:
-            quotes_array = myfile.read()
-        self.quotes_array = json.loads(quotes_array)
-        # except:
-        #    traceback.print_exc()
-        #    print(__name__, "warning: setting empty quotes_array")
-        #    quotes_array = []
+        try:
+          print(__name__, "reading quotes.json")
+          with open('quotes.json', 'r') as myfile:
+              quotes_array = myfile.read()
+          self.quotes_array = json.loads(quotes_array)
+        except:
+           traceback.print_exc()
+           print(__name__, "warning: setting empty quotes_array")
+           self.quotes_array = []
 
     # tok1[0] :nick!uname@addr.i2p
     # tok1[1] PRIVMSG
@@ -740,6 +742,7 @@ class BichBot:
             self.sendmsg(at, f"Need a positive int.")
 
     def add_quote(self, tok1, communicationsLineName):
+        print("add_quote", tok1)
         self.read_quotes()
         length = len(self.quotes_array)
         for i in range(length):
@@ -767,6 +770,7 @@ class BichBot:
 
     def maybe_quotes(self, str_incoming_line, sent_by, commLineName):
       try:
+        print("maybe_quotes", str_incoming_line)
         tok1 = str_incoming_line.split(" ")
         if len(tok1) < 3: return False
         if tok1[1] != "PRIVMSG": return False
@@ -782,9 +786,12 @@ class BichBot:
             if self.grantCommand(sent_by, commLineName):
                 self.add_quote(tok1, commLineName)
                 return True
-      except:
-        import traceback as tb
-        tb.print_exc()
+      except BaseException as ex:
+        print("ex:", str(ex), flush=True)
+        import traceback
+        traceback.print_exc()
+        sys.stdout.flush()
+        sys.stderr.flush()
       return False
 
     def help_make_choice(self, message):

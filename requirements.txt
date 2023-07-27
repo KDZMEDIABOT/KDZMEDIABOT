@@ -15,7 +15,7 @@ dnspython==1.16.0
 docopt==0.6.2
 frozenlist==1.2.0
 httplib2==0.9.2
--e git://github.com/undecidedvisvitalis8/i2plib.git@6edf51cd5d21cc745aa7e23cb98c582144884fa8#egg=i2plib
+-e git+https://github.com/undecidedvisvitalis8/i2plib.git@6edf51cd5d21cc745aa7e23cb98c582144884fa8#egg=i2plib
 idna==2.9
 ipwhois==1.1.0
 keyring==10.6.0
@@ -23,7 +23,6 @@ keyrings.alt==3.0
 launchpadlib==1.10.6
 lazr.restfulclient==0.13.5
 lazr.uri==1.0.3
-libvirt-python==7.5.0
 lxml==4.6.3
 Mako==1.0.7
 MarkupSafe==1.1.1
