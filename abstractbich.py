@@ -1,4 +1,4 @@
-# abstractbich.py
+5~# abstractbich.py
 
 import datetime
 # import whois
@@ -504,7 +504,8 @@ class BichBot:
         resp = requests.get(url=url, headers=headers)
         rjson = resp.json()
         print("ns_resp", json.dumps(rjson, sort_keys=True, indent=4))
-        for v in rjson["value"]: return v["url"]
+        if "value" in rjson and "url" in rjson["value"]:
+            for v in rjson["value"]: return v["url"]
         return None
         
     def print_usage(self, to_addr):
@@ -512,6 +513,7 @@ class BichBot:
         self.sendmsg(to_addr, f"botnick курс - prints financial report")
         self.sendmsg(to_addr, f"!!q searchstr or !!q quoteid - search quotes")
         self.sendmsg(to_addr, f"!!aq quotetext - add a quote")
+        self.sendmsg(to_addr, f"!uanews or !runews - новости Украины или РФ")
         self.sendmsg(to_addr, f"!help - prints help")
 
     def sendmsg(self, to_addr, msg):

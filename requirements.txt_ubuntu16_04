@@ -1,0 +1,22 @@
+apiai
+asn1crypto
+attrs
+Babel
+certifi
+chardet
+cryptography
+httplib2
+-e git+https://github.com/undecidedvisvitalis8/i2plib.git@6edf51cd5d21cc745aa7e23cb98c582144884fa8#egg=i2plib
+ipwhois
+lxml
+numpy
+oauth
+pandas
+Pillow
+pycrypto
+python-dateutil
+pytz==2021.1
+requests
+simplejson
+six
+urllib3

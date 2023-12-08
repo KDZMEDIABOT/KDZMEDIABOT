@@ -1,6 +1,7 @@
 cd /home/user/vcs_rig1/LibreLifeBotTelegram/
 
-sudo /sbin/mount.fuse root@192.168.1.124:/zroot/data/ /zroot/data -o noauto,_netdev,reconnect,identityfile=/root/.ssh/desktop1_ubuntu20_04_root,allow_other -t fuse.sshfs
+sudo /sbin/mount.fuse root@desktop1:/zroot/data/ /zroot/data -o noauto,_netdev,reconnect,identityfile=/root/.ssh/desktop1_ubuntu20_04_root,allow_other -t fuse.sshfs
+sudo /sbin/mount.fuse root@desktop1:/zsata/ /zsata -o noauto,_netdev,reconnect,identityfile=/root/.ssh/desktop1_ubuntu20_04_root,allow_other -t fuse.sshfs
 
 #nohup sudo -u root bash -c "cd /zroot/data/DK_12TB/hoowiki/ && . ./runsrv.sh"&
 #nohup sudo -u root bash -c "cd /zroot/data/DK_12TB/hoowikis2/ && . ./run-hoowikis2.sh"&
