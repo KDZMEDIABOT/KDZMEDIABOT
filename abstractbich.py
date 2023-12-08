@@ -1,4 +1,4 @@
-5~# abstractbich.py
+# abstractbich.py
 
 import datetime
 # import whois
