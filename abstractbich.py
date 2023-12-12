@@ -801,7 +801,7 @@ class BichBot:
         degPart1 = self.degPartExpr()
         if self.tok == '^':
             self.get()
-            degPart1 = degPart1 ^ self.degPartExpr()
+            degPart1 = degPart1 ** self.degPartExpr()
         return degPart1
 
     
