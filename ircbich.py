@@ -378,7 +378,7 @@ class IrcBich(BichBot):
                         # print(__file__, "krako test")
                         try:
                             where_message = communicationsLineName
-                            if message is not None and (message.startswith('!k') or message.startswith("!к")) and \
+                            if message is not None and (message.startswith('!k ') or message.startswith("!к ")) and \
                                     dataTokensDelimitedByWhitespace[1] == "PRIVMSG":
                                 if self.grantCommand(sent_by, communicationsLineName):
                                     print(__name__, "krako test success", flush=True)
@@ -682,6 +682,7 @@ class IrcBich(BichBot):
 
                     print("calling maybe_print_news()", flush=True)
                     self.maybe_print_news(self.botName, data)
+                    self.maybe_print_calc(self.botName, data)
                     self.maybe_print_help(self.botName, data)
                     self.maybe_print_search(self.botName, data, sent_by)
                     if self.maybe_quotes(data, sent_by, communicationsLineName):

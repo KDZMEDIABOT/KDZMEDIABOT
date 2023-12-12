@@ -42,12 +42,14 @@ class TgBich(BichBot):
 
 /m /markets - see the markets report (курсы валют, индикаторы и прочее);
 /h /help - see the help and welcome message.
+/c /calc formula - might use 'price' '(' &ltcrypto&gt; '/' &lt;cryptofiat&gt; ')' via Coinmarketcap
 
-If you send a stock or token ticker to the bot, it will query its price at CoinMarketCap.com and report it to you.
+If you send a crypto ticker to the bot, it will query its price at CoinMarketCap.com and report it to you.
 
 <b>Bot author:</b> @ConstAlphaRusDev (Гипн aka гном)""",
             parse_mode=types.ParseMode.HTML,
         )
+
 
     async def cmd_markets_handler(self, event: types.Message):
         markets_report_str = self.compose_markets_report()
@@ -57,6 +59,18 @@ If you send a stock or token ticker to the bot, it will query its price at CoinM
             parse_mode=types.ParseMode.HTML,
         )
 
+
+    async def cmd_calc_handler(self, message: types.Message):
+        text = message.text
+        input = str(text).lower()
+        retval=self.calc(input)
+        reply_str = retval
+        await message.answer(
+            reply_str,
+            parse_mode=types.ParseMode.HTML,
+        )
+    
+
     async def main(self):
         print(f"{self}: new Bot");
         self.bot = Bot(token=self.BOT_TOKEN)
@@ -65,8 +79,9 @@ If you send a stock or token ticker to the bot, it will query its price at CoinM
             print(f"{self}: new Dispatcher");
             self.disp = Dispatcher(bot=self.bot)
             print(f"{self}: done new Dispatcher");
-            self.disp.register_message_handler(self.cmd_start_handler, commands={"start", "s", "h", "help", "?"})
-            self.disp.register_message_handler(self.cmd_markets_handler, commands={"markets", "m", "курс"})
+            self.disp.register_message_handler(self.cmd_start_handler, commands={"start", "s", "h", "help"})
+            self.disp.register_message_handler(self.cmd_markets_handler, commands={"markets", "m"})
+            self.disp.register_message_handler(self.cmd_calc_handler, commands={"calc", "c"})
             self.disp.register_message_handler(self.on_message)
             print(f"{self}: entering start_polling()");
             await self.disp.start_polling()

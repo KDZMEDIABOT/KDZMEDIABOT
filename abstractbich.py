@@ -16,6 +16,7 @@ import pytz
 import requests
 #import socks
 import subprocess
+import sys
 
 #from pytrends.request import TrendReq
 
@@ -336,6 +337,44 @@ class BichBot:
             tb.print_exc()
             return False
 
+
+    @staticmethod
+    def is_calc_command(bot_nick, str_line):
+        """
+            :x!y@example.org PRIVMSG BichBot :!calc <formula>, <formula> might include price(CRYPTO/CRYPTOFIAT) via Coinmarketcap
+        """
+        try:
+            dataTokensDelimitedByWhitespace = str_line.split(" ")
+            # dataTokensDelimitedByWhitespace[0] :nick!uname@addr.i2p
+            # dataTokensDelimitedByWhitespace[1] PRIVMSG
+
+            # dataTokensDelimitedByWhitespace[2] #ru
+            #  OR
+            # dataTokensDelimitedByWhitespace[2] BichBot
+
+            # dataTokensDelimitedByWhitespace[3] :!курс
+            communicationsLineName = dataTokensDelimitedByWhitespace[2] if len(dataTokensDelimitedByWhitespace) > 2 else None
+            where_mes_exc = communicationsLineName
+            if len(dataTokensDelimitedByWhitespace) > 3:
+                line = " ".join(dataTokensDelimitedByWhitespace[3:])
+                if(line.startswith(":")): line = line[1:]
+                line=line.strip()
+                is_in_private_query = where_mes_exc == bot_nick
+                if is_in_private_query: 
+                    return line.startswith("!calc") or line.startswith("!кальк") or line.startswith("!c") or line.startswith('с')
+                commWithBot = line.startswith("!") or line.startswith("/")
+                if not commWithBot:
+                    return False
+                line = line[1:].strip()
+                retval = line.startswith("calc") or line.startswith("кальк") or line.startswith("c") or line.startswith('с')
+                return retval
+            else:
+                return False
+        except:
+            import traceback as tb
+            tb.print_exc()
+            return False
+
     def is_uanews_command(self, bot_nick, str_line):
         #:defender!~defender@example.org PRIVMSG BichBot :Чтобы получить войс, ответьте на вопрос: Как называется blah blah?
         dataTokensDelimitedByWhitespace = str_line.split(" ")
@@ -508,11 +547,12 @@ class BichBot:
             for v in rjson["value"]: return v["url"]
         return None
         
-    def print_usage(self, to_addr):
-        self.sendmsg(to_addr, f"!price symbol[/basesymbol] - gets symbol price, e.g. !price BTC or !price BTC/RUB . symbol is Coinmarketcap crypto ticker, basesymbol is Coinmarketcap fiat ticker or crypto ticker.")
-        self.sendmsg(to_addr, f"botnick курс - prints financial report")
-        self.sendmsg(to_addr, f"!!q searchstr or !!q quoteid - search quotes")
-        self.sendmsg(to_addr, f"!!aq quotetext - add a quote")
+    def print_usage(self, to_addr, botnick):
+        self.sendmsg(to_addr, f"!price <symbol>[/<basesymbol>] - gets <symbol> price, e.g. !price BTC or !price BTC/RUB . <symbol> is Coinmarketcap crypto ticker, <basesymbol> is Coinmarketcap fiat ticker or crypto ticker.")
+        self.sendmsg(to_addr, f"!c or !calc <formula>, <formula> might include 'price' '(' <CRYPTO> '/' <CRYPTOFIAT> ')' via Coinmarketcap")
+        self.sendmsg(to_addr, f"{botnick} курс - prints financial report")
+        self.sendmsg(to_addr, f"!!q <searchstr> or !!q <quoteid> - search quotes")
+        self.sendmsg(to_addr, f"!!aq <quotetext> - add a quote")
         self.sendmsg(to_addr, f"!uanews or !runews - новости Украины или РФ")
         self.sendmsg(to_addr, f"!help - prints help")
 
@@ -573,7 +613,7 @@ class BichBot:
             sent = sent + 1
             index = index + 1
             if sent >= cnt: break
-        if sent == 0: self.sendmsg(to_addr, "Нет новостей у меня")
+        if sent == 0: self.sendmsg(to_addr, f'Нет новостей у меня, {datetime.datetime.now(pytz.utc)}')
 
     def print_new_uanews_newsapi_org(self, to_addr):
         old_news_cache = self.old_news_cache
@@ -608,6 +648,7 @@ class BichBot:
             if sent >= cnt: break
         if sent == 0: self.sendmsg(to_addr, "Нет новостей у меня")
 
+
     def maybe_print_news(self, bot_nick, str_incoming_line):
         sent_by = "unknown_sentBy"
         dataTokensDelimitedByWhitespace = str_incoming_line.split(" ")
@@ -640,7 +681,7 @@ class BichBot:
                     self.print_new_runews_newsapi_org(where_mes_exc)
                 else:
                     resultUrl = self.news_search_ctxwebsrch(kwlist[0], 1)
-                    self.sendmsg(where_mes_exc, "%s" % (resultUrl if resultUrl else "Новостей не найдено"))
+                    self.sendmsg(where_mes_exc, "%s" % (resultUrl if resultUrl else f"Новостей не найдено. {datetime.datetime.now(pytz.utc)}"))
         if self.is_uanews_command(bot_nick, str_incoming_line):
             if self.grantCommand(sent_by, communicationsLineName):
                 kwlist = []
@@ -668,7 +709,266 @@ class BichBot:
                     self.print_new_uanews_newsapi_org(where_mes_exc)
                 else:
                     resultUrl = self.news_search_ctxwebsrch(kwlist[0], 1)
-                    self.sendmsg(where_mes_exc, "%s" % (resultUrl if resultUrl else "Новостей не найдено"))
+                    self.sendmsg(where_mes_exc, "%s" % (resultUrl if resultUrl else "Новостей не найдено. {datetime.datetime.now(pytz.utc)}"))
+
+
+    def getch(self):
+        self.ch = self.input[:1] if len(self.input)>0 else 'eof'
+        self.input = self.input[1:] if len(self.input)>0 else ''
+
+    
+    def get(self):
+        ch = self.ch
+        if ch=='':
+            self.getch()
+            ch = self.ch
+        while ch==' ' or ch=="\r" or ch=='\n':
+            self.tokval = ch
+            self.tok = 'ws'
+            self.getch()
+            ch = self.ch
+        # ws skipped
+        if ch=='eof':
+            self.tokval=ch
+            self.tok=ch
+            return
+        if ch=='/' or ch=='!':
+            self.tokval=ch
+            self.tok='/'
+            self.getch()
+            ch = self.ch
+            return
+        if ch=='(':
+            self.tokval=ch
+            self.tok="("
+            self.getch()
+            ch = self.ch
+            return
+        if ch==')':
+            self.tokval=ch
+            self.tok=")"
+            self.getch()
+            ch = self.ch
+            return
+        if ch=="+":
+            self.tokval=ch
+            self.tok="+"
+            self.getch()
+            ch = self.ch
+            return
+        if ch=="-":
+            self.tokval=ch
+            self.tok=ch
+            self.getch()
+            ch = self.ch
+            return
+        if ch=="*":
+            self.tokval=ch
+            self.tok=ch
+            self.getch()
+            ch = self.ch
+            return
+        if ch=="^":
+            self.tokval=ch
+            self.tok=ch
+            self.getch()
+            ch = self.ch
+            return
+        if ch in "0123456789.,":
+            self.tokval=""
+            self.tok="float"
+            while ch in "0123456789.,Ee":
+                if ch==",": ch = "."
+                self.tokval = self.tokval + ch
+                self.getch()
+                ch = self.ch
+            print(f"float: '{self.tokval}'")
+            self.tokfloatval=float(self.tokval)
+            print(f"float parsed: '{self.tokfloatval}'")
+            return
+        if ch != 'eof' and ch in "abcdefghijklmnopqrstuvwxyz":
+            self.tokval=""
+            self.tok="string"
+            while ch in "abcdefghijklmnopqrstuvwxyz":
+                self.tokval = self.tokval + ch
+                self.getch()
+                ch = self.ch
+            return
+        raise Exception(f'unknown character in input: what is "{ch}"?')
+
+
+    def prodPartExpr(self):
+        degPart1 = self.degPartExpr()
+        if self.tok == '^':
+            self.get()
+            degPart1 = degPart1 ^ self.degPartExpr()
+        return degPart1
+
+    
+    def priceExpr(self):
+        if self.tok != '(': raise Exception(f"token ( is expected, got '{self.tokval}' instead")
+        self.get()
+        if self.tok != 'string': raise Exception(f"cryptocurrency Coinmarketcap.com symbol is expected, got '{self.tokval}' instead")
+        symbol = self.tokval.upper()
+        self.get()
+        if self.tok != '/': raise Exception(f"token / is expected, got '{self.tokval}' instead")
+        self.get()
+        if self.tok != 'string': raise Exception(f"cryptocurrency Coinmarketcap.com symbol or fiat Coinmarketcap.com symbol is expected, got '{self.tokval}' instead")
+        basesymbol = self.tokval.upper()
+        self.get()
+        if self.tok != ')': raise Exception(f"token ) is expected, got '{self.tokval}' instead")
+        self.get()
+
+        url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
+        parameters = {
+            'symbol': symbol,
+            'convert': basesymbol
+        }
+        headers = {
+            'Accepts': 'application/json',
+            'X-CMC_PRO_API_KEY': self.coinmarketcap_apikey,
+        }
+
+        session = Session()
+        session.headers.update(headers)
+
+        reply_str = f""
+                
+        print('!курс session.get url=' + url)
+        response = session.get(url, params=parameters)
+        if LOG_TRACE: print("cmc.text:", response.text)
+        cmc = json.loads(response.text)
+        if LOG_TRACE: print(f"cmc.json: {get_pretty_json_string(cmc)}")
+        if "status" in cmc and "error_code" in cmc["status"] and cmc["status"]["error_code"] != 0:
+            err_msg = f'Error {cmc["status"]["error_code"]}'
+            if "error_message" in cmc["status"]:
+                err_msg = f'{err_msg}: {cmc["status"]["error_message"]}'
+            else:
+                err_msg = f'{err_msg}: (no error message)'
+            raise Exception(err_msg)
+        price = float(cmc["data"][symbol]["quote"][basesymbol]["price"])
+        return price
+
+
+    def degPartExpr(self):
+        if self.tok == 'float':
+            val = self.tokfloatval
+            self.get()
+            return val
+        if self.tok == 'string' and self.tokval == 'price':
+            self.get()
+            val = self.priceExpr()
+            return val
+        if self.tok == '(':
+            self.get()
+            retval = self.expr()
+            if self.tok!=')':
+                raise Exception(f"token ) expected, got '{self.tokval}' instead")
+            self.get()
+            return retval
+        raise Exception(f"expected float, priceExpr or '(', got '{self.tokval}' instead")
+
+
+    def sumPartExpr(self):
+        prodPart1 = self.prodPartExpr()
+        while self.tok == '*' or self.tok == '/':
+            op = self.tok
+            self.get()
+            prodPart2 = self.prodPartExpr()
+            prodPart1 = prodPart1 / prodPart2 if op == '/' else prodPart1*prodPart2
+        return prodPart1
+        
+        
+    def expr(self):
+        return self.sum()
+        
+        
+    def sum(self):
+        tok = self.tok
+        sign=1
+        if tok=='-' or tok == '+':
+            sign=-1 if tok == '-' else 1
+            self.get()
+        sumpart1 = self.sumPartExpr()
+        sumpart1 = sign*sumpart1
+        while self.tok == '-' or self.tok == '+':
+            sign = -1 if self.tok=='-' else 1
+            self.get()
+            sumpart2 = self.sumPartExpr()
+            sumpart1 = sumpart1 + sign*sumpart2
+        return sumpart1
+        
+            
+    def calc(self, input):
+        try:
+            self.input = input
+            self.ch = ''
+            self.tokval = ''
+            self.tok = ''
+            self.get()
+
+            if(self.tok=='/'):self.get()
+            else:return "Error: '/' expected"
+
+            if(self.tok=='string' and self.tokval == 'calc'):self.get()
+            else:return "Error: 'calc' expected"
+            retval = self.expr()
+            if self.tok != 'eof': return 'Error: unexpected garbage token at end of parse, valid expression expected'
+            return retval
+        except Exception as ex:
+            sys.stdout.flush()
+            import traceback
+            traceback.print_exc()
+            sys.stderr.flush()
+            return f"Error: {str(ex)}"
+
+    def maybe_print_calc(self, bot_nick, str_incoming_line):
+        sent_by = "unknown_sentBy"
+        dataTokensDelimitedByWhitespace = str_incoming_line.split(" ")
+        communicationsLineName = dataTokensDelimitedByWhitespace[2] if len(
+            dataTokensDelimitedByWhitespace) > 2 else None
+        if self.is_calc_command(bot_nick, str_incoming_line):
+            if self.grantCommand(sent_by, communicationsLineName):
+                formula=""
+                where_mes_exc = communicationsLineName
+                line = " ".join(dataTokensDelimitedByWhitespace[3:]) if len(
+                    dataTokensDelimitedByWhitespace) >= 4 else ""
+                if line.startswith(":"): line = line[1:]
+                print("'%s'" % line)
+                p = line.find("!calc")
+                if p == -1:
+                    p = line.find("!кальк")
+                    if p == -1:
+                        p = line.find("!c")  # latin
+                        if p == -1:
+                            p = line.find("!с")  # cyrillic
+                            if p == -1:
+                                pass
+                            else:
+                                p = p + len("!с")  # cyrillic
+                                line = line[p:].strip()
+                                print("'%s'" % line)
+                                formula=line
+                        else:
+                            p = p + len("!c")
+                            line = line[p:].strip()
+                            print("'%s'" % line)
+                            formula=line
+                    else:
+                        p = p + len("!кальк")
+                        line = line[p:].strip()
+                        print("'%s'" % line)
+                        formula=line
+                else:
+                    p = p + len("!calc")
+                    line = line[p:].strip()
+                    print("'%s'" % line)
+                    formula=line
+                self.sendmsg(where_mes_exc, self.calc("/calc "+formula))
+            else:
+                where_mes_exc = communicationsLineName
+                self.sendmsg(where_mes_exc, f"calc: Access denied to {sent_by}. {datetime.datetime.now(pytz.utc)}")
+
 
     def maybe_print_help(self, bot_nick, str_incoming_line):
         sent_by = "unknown_sentBy"
@@ -676,7 +976,7 @@ class BichBot:
         communicationsLineName = dataTokensDelimitedByWhitespace[2] if len(dataTokensDelimitedByWhitespace) > 2 else None
         if self.is_help_command(bot_nick, str_incoming_line):
             if self.grantCommand(sent_by, communicationsLineName):
-                self.print_usage(communicationsLineName)
+                self.print_usage(communicationsLineName, bot_nick)
 
     def write_quotes(self):
         print(__name__, "writing quotes.json")
