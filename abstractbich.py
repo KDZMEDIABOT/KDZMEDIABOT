@@ -901,7 +901,7 @@ class BichBot:
             
     def calc(self, input):
         try:
-            self.input = input
+            self.input = input.lower()
             self.ch = ''
             self.tokval = ''
             self.tok = ''
