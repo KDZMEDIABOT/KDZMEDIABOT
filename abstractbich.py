@@ -32,7 +32,7 @@ from helpers import format_currency
 from requests import Request, Session
 from requests.exceptions import ConnectionError, Timeout, TooManyRedirects
 # pip3 install xlrd pandas
-import pandas as pd
+#import pandas as pd
 
 
 ENABLE_EXMO = True
@@ -972,12 +972,12 @@ class BichBot:
         tok1 = str_incoming_line.split(" ")
         tok_s = str_incoming_line.split(":")
         if(len(tok_s)<=2): tok_s=""
-        else: tok_s=tok_s[2]
+        else: tok_s=tok_s[len(tok_s)-1]
         if len(tok1) < 3: return False
         if tok1[1] != "PRIVMSG": return False
-        cmdtok = tok1[3].split(":")
-        if len(cmdtok) < 2: return False
-        cmd = cmdtok[1]
+        cmdtok = tok_s.split(" ")
+        if len(cmdtok) < 1: return False
+        cmd = cmdtok[0]
         #if cmd == "!!q" or cmd == "!q":
         #    if self.grantCommand(sent_by, commLineName):
         #        self.print_quote(tok1, cmd == "!q")
