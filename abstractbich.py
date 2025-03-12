@@ -839,20 +839,20 @@ class BichBot:
         self.sendmsg(at, f"[{q['id']}] {msg} ({poster} at {q['date-posted']})")
         return
             
-    def print_spec_quote(self, tok1,tok_s):
+    def print_spec_quote(self, tok1,tok_msg):
         at = tok1[2]
         print('spec', tok1)
-        print(f'tok_s "{tok_s}"')
-        isQuoteSetOne = tok_s.startswith('!q')
+        print(f'tok_msg "{tok_msg}"')
+        isQuoteSetOne = tok_msg.startswith('!q')
         prefix = '!q' if isQuoteSetOne else '!!q'
         self.read_quotes(isQuoteSetOne)
         arr = self.quotes_array1 if isQuoteSetOne else self.quotes_array
-        tok_s = tok_s[len(prefix):]
-        if(re.search("^(\\d+)(.*)$", tok_s)):
-            num = re.match('^(\\d+)(.*)$', tok_s).group(1)
-            tok_s = re.match('^(\\d+)(.*)$', tok_s).group(2).strip()
+        tok_msg = tok_msg[len(prefix):]
+        if(re.search("^(\\d+)(.*)$", tok_msg)):
+            num = re.match('^(\\d+)(.*)$', tok_msg).group(1)
+            tok_msg = re.match('^(\\d+)(.*)$', tok_msg).group(2).strip()
         else:
-            tok_s = tok_s.strip()
+            tok_msg = tok_msg.strip()
             num = ''
         print(f'num "{num}"')
         if len(num) == 0:
@@ -868,11 +868,11 @@ class BichBot:
                print(f'num_parsed3 "{num}"')
                num = 1
         print(f'num_parsed2,tok_s "{num}","{tok_s}"')
-        if len(tok1)<=4 or tok_s=='':
+        if len(tok1)<=4 or tok_msg=='':
             q = arr[random.randrange(len(arr))]
             self.sendmsg(at, f"[{q['id']}] {q['text']} ({q['posted-by'].split('!')[0]} at {q['date-posted']})")
             return
-        finds = [q for q in arr if tok_s.lower() in f"{q['id']} {q['text']}".lower()]
+        finds = [q for q in arr if tok_msg.lower() in f"{q['id']} {q['text']}".lower()]
         if len(finds) == 0:
             self.sendmsg(at, f'not found: "{tok_s}"');
             return
@@ -988,7 +988,7 @@ class BichBot:
                 return True
         if re.search("^!!q(\\d+)*$", cmd) or re.search("^!q(\\d+)*$", cmd):
             if self.grantCommand(sent_by, commLineName):
-                self.print_spec_quote(tok1,tok_s)
+                self.print_spec_quote(tok1,tok_msg)
                 return True
       except BaseException as ex:
         print("ex:", str(ex), flush=True)
