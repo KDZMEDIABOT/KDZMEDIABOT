@@ -856,8 +856,7 @@ class BichBot:
             num = ''
         print(f'num "{num}"')
         if len(num) == 0:
-            num = 1
-            print(f'num_parsed4 "{num}"')
+            print(f'num_parsed4')
         else:
            try:
                num = int(num)
@@ -878,6 +877,8 @@ class BichBot:
             return
         if num > len(finds):
             num = len(finds)
+        if len(num) == 0:
+            num = random.randrange(len(finds))+1
         q = finds[num-1]
         self.sendmsg(at, f"[{q['id']}, {num}/{len(finds)}] {q['text']} ({q['posted-by'].split('!')[0]} at {q['date-posted']})")
         return
