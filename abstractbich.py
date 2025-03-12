@@ -867,14 +867,14 @@ class BichBot:
            if num <= 0:
                print(f'num_parsed3 "{num}"')
                num = 1
-        print(f'num_parsed2,tok_s "{num}","{tok_s}"')
+        print(f'num_parsed2,tok_msg "{num}","{tok_msg}"')
         if len(tok1)<=4 or tok_msg=='':
             q = arr[random.randrange(len(arr))]
             self.sendmsg(at, f"[{q['id']}] {q['text']} ({q['posted-by'].split('!')[0]} at {q['date-posted']})")
             return
         finds = [q for q in arr if tok_msg.lower() in f"{q['id']} {q['text']}".lower()]
         if len(finds) == 0:
-            self.sendmsg(at, f'not found: "{tok_s}"');
+            self.sendmsg(at, f'not found: "{tok_msg}"');
             return
         if num > len(finds):
             num = len(finds)
