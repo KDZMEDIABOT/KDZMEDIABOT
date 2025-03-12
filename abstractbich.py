@@ -864,8 +864,8 @@ class BichBot:
            except:
                num = -1
            if num <= 0:
+               num = ''
                print(f'num_parsed3 "{num}"')
-               num = 1
         print(f'num_parsed2,tok_msg "{num}","{tok_msg}"')
         if len(tok1)<=4 or tok_msg=='':
             q = arr[random.randrange(len(arr))]
