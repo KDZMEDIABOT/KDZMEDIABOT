@@ -26,11 +26,6 @@ public class WebSocketConfig implements WebSocketConfigurer {
         return new BotWebSocketHandler(objectMapper);
     }
 
-    @Bean
-    public ObjectMapper objectMapper() {
-        return new ObjectMapper();
-    }
-
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(botWebSocketHandler(), "/ws/bot")
