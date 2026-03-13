@@ -25,11 +25,11 @@ RUN mvn install:install-file \
     -Dpackaging=pom \
     -Dfile=./kie-soup-bom-7.74.1.Final.pom
 
-# Build generic_backend with Maven cache
+# Build generic_backend with Maven cache (skip repackage so it can be used as a dependency)
 RUN mvn -f generic_backend -Dmaven.wagon.httpconnectionManager.ttlSeconds=30 \
     -Dmaven.wagon.http.socketTimeout=30000 \
     -Dmaven.wagon.http.connectionTimeout=30000 -Djava.net.preferIPv4Stack=true \
-    -X clean install -DskipTests
+    -Dspring.boot.repackage.skip=true -X clean install -DskipTests
 
 RUN echo done generic
 
