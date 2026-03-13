@@ -71,6 +71,83 @@ If you send a crypto ticker to the bot, it will query its price at CoinMarketCap
         )
     
 
+
+    async def cmd_ai_handler(self, message: types.Message):
+        """Handle /ai command for Telegram."""
+        text = message.text
+        input_text = str(text).strip()
+
+        # Remove /ai command prefix
+        if input_text.startswith('/ai '):
+            query = input_text[4:].strip()
+        elif input_text.startswith('/ai'):
+            query = ""
+        else:
+            query = input_text
+
+        if not query:
+            await message.answer(
+                "Usage: /ai <your question>",
+                parse_mode=types.ParseMode.HTML,
+            )
+            return
+
+        # Check if AI handler is available
+        if self.ai_handler is None or not self.ai_handler.is_available():
+            await message.answer(
+                "AI service is not available. Please try again later.",
+                parse_mode=types.ParseMode.HTML,
+            )
+            return
+
+        # Send "thinking" message
+        thinking_msg = await message.answer(
+            "Thinking... 🤔",
+            parse_mode=types.ParseMode.HTML,
+        )
+
+        try:
+            # Get user info
+            user = message.from_user
+            user_id = str(user.id) if user else "unknown"
+            chat_id = str(message.chat.id) if message.chat else "private"
+
+            # Call AI handler (sync method, run in executor)
+            import asyncio
+            response = await asyncio.get_event_loop().run_in_executor(
+                None,
+                self.ai_handler.handle_ai_command,
+                query,
+                user_id,
+                chat_id,
+                'telegram'
+            )
+
+            # Delete thinking message
+            try:
+                await self.bot.delete_message(
+                    chat_id=message.chat.id,
+                    message_id=thinking_msg.message_id
+                )
+            except:
+                pass
+
+            # Send response (Telegram supports longer messages than IRC)
+            max_len = 4000
+            if len(response) > max_len:
+                response = response[:max_len-3] + "..."
+
+            await message.answer(
+                f"<b>AI:</b> {response}",
+                parse_mode=types.ParseMode.HTML,
+            )
+        except Exception as e:
+            print(f"Error in AI handler: {e}")
+            await message.answer(
+                f"Error: {str(e)}",
+                parse_mode=types.ParseMode.HTML,
+            )
+
     async def main(self):
         print(f"{self}: new Bot");
         self.bot = Bot(token=self.BOT_TOKEN)
@@ -82,6 +159,7 @@ If you send a crypto ticker to the bot, it will query its price at CoinMarketCap
             self.disp.register_message_handler(self.cmd_start_handler, commands={"start", "s", "h", "help"})
             self.disp.register_message_handler(self.cmd_markets_handler, commands={"markets", "m"})
             self.disp.register_message_handler(self.cmd_calc_handler, commands={"calc", "c"})
+            self.disp.register_message_handler(self.cmd_ai_handler, commands={"ai", "a"})
             self.disp.register_message_handler(self.on_message)
             print(f"{self}: entering start_polling()");
             await self.disp.start_polling()

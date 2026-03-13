@@ -742,6 +742,10 @@ class IrcBich(BichBot):
                     self.maybe_print_calc(self.botName, data)
                     self.maybe_print_help(self.botName, data)
                     self.maybe_print_search(self.botName, data, sent_by)
+                    if self.maybe_ai_command(data, sent_by, communicationsLineName):
+                        print("maybe_ai_command() returned True, continuing loop", flush=True)
+                        continue
+                    
                     if self.maybe_quotes(data, sent_by, communicationsLineName):
                         print("maybe_quotes() returned True, continuing loop", flush=True)
                         continue
