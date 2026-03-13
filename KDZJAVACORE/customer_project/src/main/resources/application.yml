@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: customer-aisystem
+  profiles:
+    default: dev
+
+server:
+  port: ${HTTPD_SERVER_PORT:8081}
