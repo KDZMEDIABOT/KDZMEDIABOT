@@ -39,6 +39,12 @@ try:
 except ImportError:
     AiCommandHandler = None
 
+# AI command support
+try:
+    from ai_command import AiCommandHandler
+except ImportError:
+    AiCommandHandler = None
+
 from abstractbich import BichBot
 
 
