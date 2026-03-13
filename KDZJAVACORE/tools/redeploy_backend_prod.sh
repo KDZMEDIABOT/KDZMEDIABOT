@@ -28,11 +28,10 @@ echo "=============================================="
 echo "Redeploying Backend (PROD, docker compose)"
 echo "=============================================="
 
-docker compose -f "${COMPOSE_FILE}" --env-file "${PROD_ENV_FILE}" build backend
-docker compose -f "${COMPOSE_FILE}" --env-file "${PROD_ENV_FILE}" build auth_sidecar
-docker compose -f "${COMPOSE_FILE}" --env-file "${PROD_ENV_FILE}" build readingplus_mcp_sidecar
-docker compose -f "${COMPOSE_FILE}" --env-file "${PROD_ENV_FILE}" up -d redis postgres backend auth_sidecar readingplus_mcp_sidecar
-docker compose -f "${COMPOSE_FILE}" --env-file "${PROD_ENV_FILE}" restart redis backend readingplus_mcp_sidecar
+OPT_LOG="--progress=plain"
+#--driver-opt env.BUILDKIT_STEP_LOG_MAX_SIZE=1000000000 --progress=plain"
+DOCKER_BUILDKIT=0 docker compose $OPT_LOG -f "${COMPOSE_FILE}" --env-file "${PROD_ENV_FILE}" up -d --build redis postgres backend auth_sidecar readingplus_mcp_sidecar
+DOCKER_BUILDKIT=0 docker compose $OPT_LOG -f "${COMPOSE_FILE}" --env-file "${PROD_ENV_FILE}" restart redis backend readingplus_mcp_sidecar
 
 echo "Waiting for backend and sidecar health..."
 for i in $(seq 1 180); do
@@ -46,5 +45,5 @@ for i in $(seq 1 180); do
 done
 
 echo "Timeout waiting for backend/auth readiness."
-docker compose -f "${COMPOSE_FILE}" --env-file "${PROD_ENV_FILE}" logs --tail=200 backend auth_sidecar readingplus_mcp_sidecar
+DOCKER_BUILDKIT=0 docker compose $OPT_LOG -f "${COMPOSE_FILE}" --env-file "${PROD_ENV_FILE}" logs --tail=200 backend auth_sidecar readingplus_mcp_sidecar
 exit 1

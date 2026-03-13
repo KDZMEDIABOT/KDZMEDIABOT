@@ -21,6 +21,20 @@
  <jbpm.version>7.74.1.Final</jbpm.version>
     </properties>
 
+<repositories>
+  <!-- Maven Central first (has most KIE deps) -->
+  <repository>
+    <id>central</id>
+    <url>https://repo1.maven.org/maven2</url>
+  </repository>
+  <!-- Mirror JBoss to avoid hangs -->
+  <repository>
+    <id>jboss-mirror</id>
+    <url>https://repo1.maven.org/maven2</url> <!-- or your company Nexus -->
+    <!--<mirrorOf>jboss-public-repository-group</mirrorOf>-->
+  </repository>
+</repositories>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
