@@ -81,6 +81,7 @@ SPRING_PROFILES_ACTIVE=prod \
 SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:15432/${DB_NAME}" \
 SPRING_DATASOURCE_USERNAME="${DB_USERNAME}" \
 SPRING_DATASOURCE_PASSWORD="${DB_PASSWORD}" \
+SPRING_FLYWAY_LOCATIONS="db/migration" \
 java -jar "${JAR_FILE}" &
 
 # Save PID for potential later kill
