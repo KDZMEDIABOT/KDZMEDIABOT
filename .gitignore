@@ -101,8 +101,7 @@ env.bak
 # mypy
 .mypy_cache/
 
-local.json
-local.json_*
+local.json*
 venv*
 nohup.out
 
@@ -113,3 +112,4 @@ quotes.json
 *json
 irc_patriarch_kdzbot.dat
 tunnels.conf
+*BKP

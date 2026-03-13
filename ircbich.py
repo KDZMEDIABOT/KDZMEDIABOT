@@ -1,5 +1,7 @@
 # ircbich.py
 
+import traceback as tb
+import sys
 import datetime
 # import whois
 import json
@@ -29,7 +31,7 @@ from helpers import get_pretty_json_string, shell, LOG_TRACE
 from requests import Request, Session
 from requests.exceptions import ConnectionError, Timeout, TooManyRedirects
 # pip3 install xlrd pandas
-import pandas as pd
+#import pandas as pd
 
 from abstractbich import BichBot
 
@@ -165,20 +167,58 @@ class IrcBich(BichBot):
         return None
 
     def get_line(self, client_socket):
+        try:
+            raise Exception("dumpstack")
+        except:
+            import traceback as tb
+            tb.print_exc()
+            import sys
+            sys.stderr.flush()
+        
         if self.socket_closed:
             return self.extract_line()
         line = self.extract_line_1()
         if line is not None: return line
         while True:
-            r = client_socket.recv(81920)
-            if len(r) == 0:
-                if LOG_TRACE: print("EOF")
-                self.socket_closed = True
-                return self.extract_line()
-            if LOG_TRACE: print("RX:", r)
-            self.databuf += r
-            line = self.extract_line_1()
-            if line is not None: return line
+            try:
+                r = client_socket.recv(81920)
+                if len(r) == 0:
+                    if LOG_TRACE: print("EOF")
+                    self.socket_closed = True
+                    return self.extract_line()
+                if LOG_TRACE: print("RX:", r)
+                self.databuf += r
+                line = self.extract_line_1()
+                if line is not None: return line
+            except KeyboardInterrupt as e:
+                import traceback as tb
+                tb.print_exc()
+                import sys
+                sys.stderr.flush()
+                raise e
+            except:
+                import traceback as tb
+                tb.print_exc()
+                import sys
+                sys.stderr.flush()
+                try:
+                    self.socket_closed = True
+                    self.irc_socket.close()
+                except KeyboardInterrupt as e:
+                    import traceback as tb
+                    tb.print_exc()
+                    import sys
+                    sys.stderr.flush()
+                    raise e
+                except:
+                    import traceback as tb
+                    tb.print_exc()
+                    import sys
+                    sys.stderr.flush()
+                self.irc_socket = None
+                line = self.extract_line_1()
+                if line is not None: return line
+                return b""
 
     # Function shortening of ic.self.send.  
     def send(self, msg):
@@ -207,10 +247,10 @@ class IrcBich(BichBot):
                     print("new socket(AF_INET,SOCK_STREAM)")
                     self.irc_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 print("connecting... irc_server_hostname='" + self.irc_server_hostname + "' port='" + str(
-                    self.port) + "'…")
+                    self.port) + "'…" + f'{self.irc_socket}', flush=True)
                 self.irc_socket.connect((self.irc_server_hostname, self.port))
                 self.init_socket(self.irc_socket)
-                print("connected, self.sending login handshake, self.botName=[" + self.botName + "]…")
+                print("connected, self.sending login handshake, self.botName=[" + self.botName + "]…"+ f'{self.irc_socket}', flush=True)
                 # print (self.irc_socket.recv(2048).decode("UTF-8"))
                 self.send(f'NICK {self.botName}\r\n')
                 self.send(f'USER {self.botIrcUserName} {self.botIrcUserName} {self.botIrcUserName} :{self.BOT_REALNAME}\r\n')
@@ -262,19 +302,24 @@ class IrcBich(BichBot):
                 list_floodfree = settings.settings('list_floodfree')
                 list_bot_not_work = settings.settings('list_bot_not_work')
 
+                print(__name__, "pp4", flush=True)
                 keepingConnection = True
                 while keepingConnection:
                     try:
+                        print(__name__, f"pp3 self.irc_socket='{self.irc_socket}'", flush=True)
                         data = self.get_line(self.irc_socket).decode("UTF-8")
                         print("got line:[" + data + "]", flush=True)
                         if data == "":
-                            print("data=='', self.irc_socket.close(), keepingConnection=False, iterating...")
-                            self.irc_socket.close()
+                            print("data=='', self.irc_socket.close(), keepingConnection=False, iterating...", flush=True)
+                            if self.irc_socket is not None:
+                                self.irc_socket.close()
+                                self.irc_socket = None
                             keepingConnection = False
                             continue
                     except UnicodeDecodeError as decodeException:
-                        print(f"UnicodeDecodeError {decodeException}, iterating...")
+                        print(f"UnicodeDecodeError {decodeException}, iterating...", flush=True)
                         continue
+                    print(__name__, "pp5", flush=True)
                     tokens1 = data.split(" ")
 
                     sender_mask = None
@@ -690,51 +735,60 @@ class IrcBich(BichBot):
                         continue
                     else:
                         print("maybe_quotes() returned False", flush=True)
-                    # if self.maybe_choice(self.botName, data): continue
+                        
+                        
+                    try:
+                        # if self.maybe_choice(self.botName, data): continue
 
-                    #:nick!uname@addr.i2p PRIVMSG #ru :!курс
-                    #:defender!~defender@example.org PRIVMSG BichBot :Чтобы получить войс, ответьте на вопрос: Как называется blah blah?
-                    where_mes_exc = communicationsLineName
-                    # print(__name__, "point 4.1", flush=True)
-                    if len(dataTokensDelimitedByWhitespace) > 3:
-                        # print(__name__, "point 4.2", flush=True)
+                        #:nick!uname@addr.i2p PRIVMSG #ru :!курс
+                        #:defender!~defender@example.org PRIVMSG BichBot :Чтобы получить войс, ответьте на вопрос: Как называется blah blah?
+                        where_mes_exc = communicationsLineName
+                        # print(__name__, "point 4.1", flush=True)
+                        if len(dataTokensDelimitedByWhitespace) > 3:
+                            # print(__name__, "point 4.2", flush=True)
 
-                        fe_msg = "FreiEx(GST): N/A"
+                            fe_msg = "FreiEx(GST): N/A"
 
-                        line = " ".join(dataTokensDelimitedByWhitespace[3:])
-                        is_in_private_query = where_mes_exc == self.botName
-                        bot_mentioned = self.botName in line
-                        commWithBot = is_in_private_query or bot_mentioned
-                        # print(__name__, f"point 4.3, line: '{line}', commWithBot: '{commWithBot}'", flush=True)
-                        try:
-                            if 'курс' in line and commWithBot:
-                                if self.grantCommand(sent_by, communicationsLineName):
-                                    print(__name__, 'курс', flush=True)
-                                    is_dialogue_with_master = False
-                                    if where_mes_exc == self.botName:  # /query
-                                        tokensNick1 = dataTokensDelimitedByWhitespace[0].split("!")
-                                        tokensNick1 = tokensNick1[0].split(":")
-                                        tokensNick1 = tokensNick1[1]
-                                        where_mes_exc = tokensNick1
-                                        is_dialogue_with_master = self.master_secret in line
-                                        if is_dialogue_with_master: self.send(
-                                            'PRIVMSG %s :%s\r\n' % (where_mes_exc, "hello, Master!"))
-                                    print('курс куда слать будем:', where_mes_exc, "is_dialogue_with_master:",
-                                          is_dialogue_with_master, flush=True)
-                                    s = self.compose_markets_report(irc_markup_bool=True)
-                                    self.send('PRIVMSG %s :\x033%s\r\n' % (where_mes_exc, s))
-                                    print(__name__, "point 6.1", flush=True)
-                                # print(__name__, "point 5.0", flush=True)
-                                    
+                            line = " ".join(dataTokensDelimitedByWhitespace[3:])
+                            is_in_private_query = where_mes_exc == self.botName
+                            bot_mentioned = self.botName in line
+                            commWithBot = is_in_private_query or bot_mentioned
+                            # print(__name__, f"point 4.3, line: '{line}', commWithBot: '{commWithBot}'", flush=True)
+                            try:
+                                if 'курс' in line and commWithBot:
+                                    if self.grantCommand(sent_by, communicationsLineName):
+                                        print(__name__, 'курс', flush=True)
+                                        is_dialogue_with_master = False
+                                        if where_mes_exc == self.botName:  # /query
+                                            tokensNick1 = dataTokensDelimitedByWhitespace[0].split("!")
+                                            tokensNick1 = tokensNick1[0].split(":")
+                                            tokensNick1 = tokensNick1[1]
+                                            where_mes_exc = tokensNick1
+                                            is_dialogue_with_master = self.master_secret in line
+                                            if is_dialogue_with_master: self.send(
+                                                'PRIVMSG %s :%s\r\n' % (where_mes_exc, "hello, Master!"))
+                                        print('курс куда слать будем:', where_mes_exc, "is_dialogue_with_master:",
+                                              is_dialogue_with_master, flush=True)
+                                        s = self.compose_markets_report(irc_markup_bool=True)
+                                        self.send('PRIVMSG %s :\x033%s\r\n' % (where_mes_exc, s))
+                                        print(__name__, "point 6.1", flush=True)
+                                    # print(__name__, "point 5.0", flush=True)
+                                        
 
-                        except:
-                            # print(__name__, "point 5.1", flush=True)
-                            tb.print_exc()
-                            import sys
-                            sys.stderr.flush()
-                            raise ()
-
-
+                            except:
+                                print(__name__, "point 5.1", flush=True)
+                                import traceback as tb
+                                tb.print_exc()
+                                import sys
+                                sys.stderr.flush()
+                                raise ()
+                    except:
+                        import traceback as tb
+                        tb.print_exc()
+                        import sys
+                        sys.stderr.flush()
+                        raise ()
+                    print(__name__, "pp1", flush=True)
             except KeyboardInterrupt:
                 import traceback as tb
                 tb.print_exc()
@@ -748,7 +802,7 @@ class IrcBich(BichBot):
                 sys.stderr.flush()
                 print("self.irc_socket.close(), iterate", flush=True)
                 try:
-                    self.irc_socket.close()
+                    if self.irc_socket is not None: self.irc_socket.close()
                 except KeyboardInterrupt as e:
                     import traceback as tb
                     tb.print_exc()
@@ -761,26 +815,31 @@ class IrcBich(BichBot):
                     import sys
                     sys.stderr.flush()
                 continue
+            print(__name__, "pp2", flush=True)
 
     def pinger_of_server(self):
         print("spawned pinger_of_server, key: '%s'" % self.settings_key)
         while True:
+            err = False
             try:
                 print("---new ping to server---")
                 self.pong_received = False
                 self.send('PING :' + str(time.time()) + '\r\n')
+                time.sleep(180)
             except:
                 import traceback as tb
                 tb.print_exc()
                 import sys
                 sys.stderr.flush()
+                err = True
             
-                time.sleep(180)
-            if self.pong_received:
+            if not err and self.pong_received:
                 continue
             else:
-                print("ping to server timeout, closing socket, key: '%s'" % self.settings_key)
-                self.irc_socket.close()
+                print(f"ping to server timeout or err={err}, closing socket, key: {self.settings_key}")
+                if self.irc_socket is not None:
+                    self.irc_socket.close()
+                    self.irc_socket = None
                 print("exiting pinger of server, key: '%s'" % self.settings_key)
                 return
 
