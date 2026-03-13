@@ -28,6 +28,7 @@ echo "=============================================="
 echo "Building JARs (host Maven, no Docker)"
 echo "=============================================="
 
+rm -rf "${PROJECT_ROOT}/generic_backend/target" "${PROJECT_ROOT}/customer_project/target"
 # Build generic_backend as library (no Spring Boot fat JAR)
 echo "Building generic_backend..."
 mvn -f "${PROJECT_ROOT}/generic_backend/pom.xml" \
