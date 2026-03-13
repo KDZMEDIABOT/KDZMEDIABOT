@@ -3,7 +3,7 @@ WORKDIR /app
 
 RUN addgroup app && adduser -G app -D app
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm install --omit=dev
 COPY server.js ./
 RUN chown -R app:app /app
 
