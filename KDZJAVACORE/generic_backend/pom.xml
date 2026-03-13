@@ -6,7 +6,7 @@
 
     <groupId>com.localmesalevel</groupId>
     <artifactId>aisystemtakeone</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>AI System TakeOne Library</name>
@@ -113,7 +113,7 @@
         </dependency>
     </dependencies>
 
-    <build>
+<!--    <build>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
@@ -129,5 +129,5 @@
             </plugin>
         </plugins>
     </build>
-
+-->
 </project>
