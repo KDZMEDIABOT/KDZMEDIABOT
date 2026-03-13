@@ -26,7 +26,11 @@ echo "=============================================="
 echo "Redeploying Frontend (PROD, docker compose)"
 echo "=============================================="
 
-docker compose -f "${COMPOSE_FILE}" --env-file "${PROD_ENV_FILE}" up -d --build frontend backend auth_sidecar readingplus_mcp_sidecar postgres redis
+docker compose -f "${COMPOSE_FILE}" --env-file "${PROD_ENV_FILE}" build backend
+docker compose -f "${COMPOSE_FILE}" --env-file "${PROD_ENV_FILE}" build auth_sidecar
+docker compose -f "${COMPOSE_FILE}" --env-file "${PROD_ENV_FILE}" build readingplus_mcp_sidecar
+docker compose -f "${COMPOSE_FILE}" --env-file "${PROD_ENV_FILE}" build frontend
+docker compose -f "${COMPOSE_FILE}" --env-file "${PROD_ENV_FILE}" up -d frontend backend auth_sidecar readingplus_mcp_sidecar postgres redis
 
 echo "Waiting for frontend health..."
 for i in $(seq 1 180); do

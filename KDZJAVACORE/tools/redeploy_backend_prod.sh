@@ -28,7 +28,10 @@ echo "=============================================="
 echo "Redeploying Backend (PROD, docker compose)"
 echo "=============================================="
 
-docker compose -f "${COMPOSE_FILE}" --env-file "${PROD_ENV_FILE}" up -d --build redis postgres backend auth_sidecar readingplus_mcp_sidecar
+docker compose -f "${COMPOSE_FILE}" --env-file "${PROD_ENV_FILE}" build backend
+docker compose -f "${COMPOSE_FILE}" --env-file "${PROD_ENV_FILE}" build auth_sidecar
+docker compose -f "${COMPOSE_FILE}" --env-file "${PROD_ENV_FILE}" build readingplus_mcp_sidecar
+docker compose -f "${COMPOSE_FILE}" --env-file "${PROD_ENV_FILE}" up -d redis postgres backend auth_sidecar readingplus_mcp_sidecar
 docker compose -f "${COMPOSE_FILE}" --env-file "${PROD_ENV_FILE}" restart redis backend readingplus_mcp_sidecar
 
 echo "Waiting for backend and sidecar health..."
