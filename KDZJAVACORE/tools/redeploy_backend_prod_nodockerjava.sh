@@ -53,7 +53,7 @@ HOST_IP="${HOST_IP:-host.docker.internal}"
 docker compose -f "${COMPOSE_FILE}" \
     --env-file "${PROD_ENV_FILE}" \
     up -d --remove-orphans \
-    postgres redis auth_sidecar readingplus_mcp_sidecar
+    postgres redis #auth_sidecar readingplus_mcp_sidecar
 
 # Network setup: backend is outside Docker, so auth_sidecar needs to reach host
 # Pause briefly to let containers start
@@ -78,7 +78,7 @@ echo "Port: ${HTTPD_SERVER_PORT}"
 # Run JVM on host with prod profile
 # Connects to postgres on localhost (mapped port)
 SPRING_PROFILES_ACTIVE=prod \
-SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:5432/${DB_NAME:-aisystem_prod}" \
+SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:15432/${DB_NAME}" \
 SPRING_DATASOURCE_USERNAME="${DB_USERNAME}" \
 SPRING_DATASOURCE_PASSWORD="${DB_PASSWORD}" \
 java -jar "${JAR_FILE}" &
