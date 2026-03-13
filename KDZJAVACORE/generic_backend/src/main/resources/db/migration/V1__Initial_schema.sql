@@ -2,7 +2,7 @@
 
 -- Topics table
 CREATE TABLE IF NOT EXISTS topics (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     description TEXT,
     category VARCHAR(50) NOT NULL,
@@ -17,12 +17,12 @@ CREATE TABLE IF NOT EXISTS topics (
 
 -- Articles table
 CREATE TABLE IF NOT EXISTS articles (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     topic_id BIGINT NOT NULL,
     title VARCHAR(255) NOT NULL,
     meta_description VARCHAR(500),
     slug VARCHAR(255) NOT NULL,
-    content LONGTEXT,
+    content TEXT,
     internal_links TEXT,
     external_links TEXT,
     status VARCHAR(50) NOT NULL DEFAULT 'DRAFT',
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS articles (
 
 -- Article sections
 CREATE TABLE IF NOT EXISTS article_sections (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     article_id BIGINT NOT NULL,
     type VARCHAR(50),
     content TEXT,
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS article_sections (
 
 -- SEO metadata
 CREATE TABLE IF NOT EXISTS seo_metadata (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     article_id BIGINT NOT NULL,
     seo_title VARCHAR(100),
     meta_description VARCHAR(160),
@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS seo_metadata (
 
 -- FAQ items
 CREATE TABLE IF NOT EXISTS faq_items (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     article_id BIGINT NOT NULL,
     question VARCHAR(500),
     answer TEXT,
@@ -65,9 +65,9 @@ CREATE TABLE IF NOT EXISTS faq_items (
 
 -- Research data
 CREATE TABLE IF NOT EXISTS research_data (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     topic_id BIGINT NOT NULL,
-    summary LONGTEXT,
+    summary TEXT,
     expert_quotes TEXT,
     statistics TEXT,
     ai_provider VARCHAR(50),
@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS research_data (
 
 -- Research sources
 CREATE TABLE IF NOT EXISTS research_sources (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     research_id BIGINT NOT NULL,
     url VARCHAR(500),
     title VARCHAR(255),
@@ -88,7 +88,7 @@ CREATE TABLE IF NOT EXISTS research_sources (
 
 -- Research citations
 CREATE TABLE IF NOT EXISTS research_citations (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     research_id BIGINT NOT NULL,
     citation VARCHAR(1000),
     FOREIGN KEY (research_id) REFERENCES research_data(id) ON DELETE CASCADE
@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS research_citations (
 
 -- Images
 CREATE TABLE IF NOT EXISTS images (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     topic_id BIGINT NOT NULL,
     url VARCHAR(500) NOT NULL,
     alt_text VARCHAR(255),
@@ -112,11 +112,11 @@ CREATE TABLE IF NOT EXISTS images (
 
 -- Reviews
 CREATE TABLE IF NOT EXISTS reviews (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     article_id BIGINT NOT NULL,
     reviewer_id VARCHAR(100) NOT NULL,
     decision VARCHAR(50) NOT NULL,
-    feedback LONGTEXT,
+    feedback TEXT,
     quality_score INT,
     revision_notes TEXT,
     reviewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -126,11 +126,11 @@ CREATE TABLE IF NOT EXISTS reviews (
 );
 
 -- Indexes
-CREATE INDEX idx_topics_status ON topics(status);
-CREATE INDEX idx_topics_category ON topics(category);
-CREATE INDEX idx_topics_batch ON topics(batch_number);
-CREATE INDEX idx_articles_status ON articles(status);
-CREATE INDEX idx_articles_topic ON articles(topic_id);
+CREATE INDEX IF NOT EXISTS idx_topics_status ON topics(status);
+CREATE INDEX IF NOT EXISTS idx_topics_category ON topics(category);
+CREATE INDEX IF NOT EXISTS idx_topics_batch ON topics(batch_number);
+CREATE INDEX IF NOT EXISTS idx_articles_status ON articles(status);
+CREATE INDEX IF NOT EXISTS idx_articles_topic ON articles(topic_id);
 
 -- Insert sample data
 INSERT INTO topics (title, description, category, status, primary_keyword, secondary_keywords, batch_number)

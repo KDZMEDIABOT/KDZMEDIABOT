@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS llm_endpoint_credentials (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     llm_api_type VARCHAR(50) NOT NULL,
     base_url VARCHAR(1000) NOT NULL,
     api_key VARCHAR(2000) NOT NULL,
