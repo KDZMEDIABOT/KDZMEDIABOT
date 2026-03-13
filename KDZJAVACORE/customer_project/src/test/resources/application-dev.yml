@@ -1,0 +1,36 @@
+# Test configuration - uses dev profile with PostgreSQL test database
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: jdbc:postgresql://localhost:5432/customer_aisystem_test
+    username: ${DB_USERNAME:customer_test}
+    password: ${DB_PASSWORD:test_password}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: true
+    locations: classpath:db/migration/dev
+
+server:
+  port: 0
+
+# No blue-green in dev/test
+bluegreen:
+  enabled: false
+
+# SSO: no issuer for tests (permit-all API)
+spring.security.oauth2.resourceserver:
+  jwt:
+    issuer-uri: 
+
+logging:
+  level:
+    com.customer1org.aisystem: DEBUG

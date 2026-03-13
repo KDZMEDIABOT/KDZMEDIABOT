@@ -1,0 +1,17 @@
+# Backend build context (when building from root)
+.git
+*.md
+frontend
+auth_service
+tools
+.env
+.env.*
+*.code-workspace
+.idea
+node_modules
+**/node_modules
+**/dist
+**/target
+**/.quasar
+**/test-results
+**/coverage

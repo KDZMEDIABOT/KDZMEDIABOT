@@ -1,0 +1,137 @@
+# Development profile: Frontend + Backend + Auth sidecar (+ PostgreSQL).
+# Run from project root:
+#   docker compose -f docker-compose.dev.yml --env-file .env.dev up -d --build
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: aisystem-redis-dev
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: aisystem-postgres-dev
+    environment:
+      POSTGRES_DB: aisystem_dev
+      POSTGRES_USER: cust1dev
+      POSTGRES_PASSWORD: cust1devpassw
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cust1dev -d aisystem_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    image: maven:3.9.9-eclipse-temurin-17
+    container_name: aisystem-backend-dev
+    restart: unless-stopped
+    working_dir: /workspace/customer_project
+    command: >
+      bash -lc "
+      mvn -f /workspace/generic_backend clean install -DskipTests -Dspring.profiles.active=dev &&
+      mvn -f /workspace/customer_project spring-boot:run -Dspring-boot.run.profiles=dev
+      "
+    volumes:
+      - ./:/workspace
+      - maven_dev_cache:/root/.m2
+      - /usr/bin/docker:/usr/bin/docker
+      - /var/run/docker.sock:/var/run/docker.sock
+    env_file:
+      - .env.dev
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      HTTPD_SERVER_PORT: ${HTTPD_SERVER_PORT:-8080}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/aisystem_dev
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:-cust1dev}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-cust1devpassw}
+      READINGPLUS_MCP_CONTAINER_NAME: aisystem-readingplus-mcp-sidecar-dev
+      # Dev local auth flow uses auth_sidecar session + local credentials.
+      # Keep issuer empty so JWT resource-server mode is not force-enabled by placeholders.
+      SSO_ISSUER_URI: ""
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  auth_sidecar:
+    build:
+      context: ./auth_service
+      dockerfile: Dockerfile
+    container_name: aisystem-auth-sidecar-dev
+    restart: unless-stopped
+    env_file:
+      - .env.dev
+    environment:
+      PORT: ${AUTH_SERVICE_HTTPD_PORT:-3001}
+      FRONTEND_URL: ${AUTH_SERVICE_FRONTEND_URL:-http://localhost:9000}
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_PUBLIC_URL:-http://localhost:3001}
+      GENERIC_BACKEND_URL: http://backend:8080
+      SESSION_SECRET: ${AUTH_SERVICE_SESSION_SECRET:-dev-session-secret}
+      AUTH_SESSION_STORE: ${AUTH_SESSION_STORE:-redis}
+      AUTH_SERVICE_REDIS_URL: ${AUTH_SERVICE_REDIS_URL:-redis://redis:6379}
+      AUTH_SERVICE_REDIS_PREFIX: ${AUTH_SERVICE_REDIS_PREFIX:-aisystem:auth:sess:}
+      ISSUER_URI: ${SSO_ISSUER_URI:-}
+      CLIENT_ID: ${SSO_CLIENT_ID:-}
+      CLIENT_SECRET: ${SSO_CLIENT_SECRET:-}
+    ports:
+      - "${AUTH_SERVICE_HTTPD_PORT:-3001}:3001"
+    depends_on:
+      backend:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    networks:
+      default:
+        aliases:
+          - auth
+
+  readingplus_mcp_sidecar:
+    image: python:3.11-slim
+    container_name: aisystem-readingplus-mcp-sidecar-dev
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    command: >
+      sh -lc "
+      pip install --no-cache-dir mcp==${READINGPLUS_MCP_PROTOCOL_VERSION:-1.1.0} mcp-server-ds==${READINGPLUS_MCP_SERVER_VERSION:-0.1.5} &&
+      exec mcp-server-ds
+      "
+    environment:
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      backend:
+        condition: service_started
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_AUTH_SERVICE_URL: ${VITE_AUTH_SERVICE_URL:-http://localhost:${AUTH_SERVICE_HTTPD_PORT:-3001}}
+    container_name: aisystem-frontend-dev
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_HTTPD_PORT:-9000}:80"
+    depends_on:
+      - backend
+      - auth_sidecar
+      - readingplus_mcp_sidecar
+
+volumes:
+  redis_dev_data:
+  postgres_dev_data:
+  maven_dev_cache:

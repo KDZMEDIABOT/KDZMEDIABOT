@@ -1,0 +1,25 @@
+# Ignore environment files
+.env
+.env.dev
+.env.prod
+.env.tests
+
+# Ignore IDE files
+.idea/
+*.iml
+
+# Ignore build artifacts
+/target/
+/build/
+
+# Ignore node_modules
+frontend/node_modules/
+frontend/dist
+frontend/test-results
+frontend/playwright-report
+auth_service/node_modules/
+auth_service/.env
+generic_backend/target
+customer_project/target
+
+*.code-workspace
