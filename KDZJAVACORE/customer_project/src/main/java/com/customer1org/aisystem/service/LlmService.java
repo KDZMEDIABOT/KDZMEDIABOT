@@ -18,8 +18,6 @@ public class LlmService {
 
     private static final Logger logger = LoggerFactory.getLogger(LlmService.class);
 
-    private final com.localmesalevel.aisystemtakeone.llm.service.LlmConnection llmConnection;
-
     @Value("${ai.model:claude-3-5-sonnet-20241022}")
     private String defaultModel;
 
@@ -29,10 +27,6 @@ public class LlmService {
     @Value("${ai.max-tokens:2048}")
     private int maxTokens;
 
-    public LlmService(com.localmesalevel.aisystemtakeone.llm.service.LlmConnection llmConnection) {
-        this.llmConnection = llmConnection;
-    }
-
     @PostConstruct
     public void init() {
         logger.info("LlmService initialized with model: {}", defaultModel);
@@ -41,11 +35,15 @@ public class LlmService {
     /**
      * Process a bot query asynchronously.
      *
+     * @param llmConnection LLM connection (passed as parameter, not a bean)
      * @param systemPrompt System prompt
-     * @param userQuery    User's query
+     * @param userQuery User's query
      * @return CompletableFuture with the response
      */
-    public CompletableFuture<String> processBotQuery(String systemPrompt, String userQuery) {
+    public CompletableFuture<String> processBotQuery(
+            com.localmesalevel.aisystemtakeone.llm.service.LlmConnection llmConnection,
+            String systemPrompt,
+            String userQuery) {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 logger.debug("Calling LLM with system prompt [{} chars] and user query [{} chars]",
