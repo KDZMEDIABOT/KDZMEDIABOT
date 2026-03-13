@@ -9,6 +9,7 @@ import com.localmesalevel.aisystemtakeone.websocket.AiRequestCallback;
 import com.localmesalevel.aisystemtakeone.websocket.BotWebSocketHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
@@ -28,7 +29,7 @@ public class BotAiService implements AiRequestCallback {
     private final UserAccountRepository userAccountRepository;
     private final LlmConnectionFactory llmConnectionFactory;
 
-    public BotAiService(BotWebSocketHandler webSocketHandler,
+    public BotAiService(@Lazy BotWebSocketHandler webSocketHandler,
                         LlmService llmService,
                         UserAccountRepository userAccountRepository,
                         LlmConnectionFactory llmConnectionFactory) {
