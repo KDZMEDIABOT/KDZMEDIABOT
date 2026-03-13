@@ -1,8 +1,6 @@
 # Backend build context (when building from root)
 .git
 *.md
-#frontend
-#auth_service
 tools
 .env
 .env.*

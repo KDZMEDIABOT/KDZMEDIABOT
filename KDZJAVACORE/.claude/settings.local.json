@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(bash ./tools/test*.sh)",
+      "Bash(bash ./tools/*dev*.sh)"
+    ]
+  }
+}

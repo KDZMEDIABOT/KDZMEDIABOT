@@ -1,0 +1,41 @@
+{
+  "name": "aisystem-frontend",
+  "version": "0.1.0",
+  "description": "AI Content Generator Frontend - Quasar + TypeScript",
+  "productName": "AI System",
+  "author": "",
+  "private": true,
+  "scripts": {
+    "dev": "quasar dev",
+    "build": "quasar build",
+    "test": "echo \"No tests yet\"",
+    "test:unit": "vitest",
+    "test:e2e": "playwright test",
+    "lint": "eslint . --ext .ts,.vue"
+  },
+  "dependencies": {
+    "@quasar/extras": "^1.16.0",
+    "axios": "^1.6.0",
+    "pinia": "^2.1.0",
+    "quasar": "^2.14.0",
+    "vue": "^3.3.0",
+    "vue-router": "^4.2.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@quasar/app-vite": "^1.7.0",
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "autoprefixer": "^10.4.0",
+    "eslint": "^8.50.0",
+    "eslint-plugin-vue": "^9.17.0",
+    "happy-dom": "^20.7.0",
+    "jsdom": "^28.1.0",
+    "typescript": "^5.2.0",
+    "vitest": "^0.34.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
