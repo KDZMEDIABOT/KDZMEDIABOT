@@ -43,7 +43,7 @@ services:
     container_name: aisystem-backend-prod
     restart: unless-stopped
     volumes:
-      - maven_prod_cache:/root/.m2
+      - /root/.m2:/root/.m2
       - /usr/bin/docker:/usr/bin/docker
       - /var/run/docker.sock:/var/run/docker.sock
     env_file:
@@ -125,4 +125,3 @@ services:
 volumes:
   redis_prod_data:
   postgres_prod_data:
-  maven_prod_cache:
