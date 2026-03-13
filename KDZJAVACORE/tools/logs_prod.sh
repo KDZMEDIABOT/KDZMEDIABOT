@@ -19,5 +19,5 @@ set -a
 . "${PROD_ENV_FILE}"
 set +a
 
-DOCKER_BUILDKIT=0 docker compose $OPT_LOG -f "${COMPOSE_FILE}" --env-file "${PROD_ENV_FILE}" logs -f backend auth_sidecar readingplus_mcp_sidecar
+DOCKER_BUILDKIT=0 docker compose -f "${COMPOSE_FILE}" --env-file "${PROD_ENV_FILE}" logs -f backend auth_sidecar readingplus_mcp_sidecar
 exit 1
