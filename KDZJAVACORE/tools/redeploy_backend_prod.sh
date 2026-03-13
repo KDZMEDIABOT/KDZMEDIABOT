@@ -30,8 +30,8 @@ echo "=============================================="
 
 OPT_LOG="--progress=plain"
 #--driver-opt env.BUILDKIT_STEP_LOG_MAX_SIZE=1000000000 --progress=plain"
-DOCKER_BUILDKIT=0 docker compose $OPT_LOG -f "${COMPOSE_FILE}" --env-file "${PROD_ENV_FILE}" up -d --build redis postgres backend auth_sidecar readingplus_mcp_sidecar
-DOCKER_BUILDKIT=0 docker compose $OPT_LOG -f "${COMPOSE_FILE}" --env-file "${PROD_ENV_FILE}" restart redis backend readingplus_mcp_sidecar
+DOCKER_BUILDKIT=1 COMPOSE_BAKE=true docker compose $OPT_LOG -f "${COMPOSE_FILE}" --env-file "${PROD_ENV_FILE}" up -d --build redis postgres backend auth_sidecar readingplus_mcp_sidecar
+DOCKER_BUILDKIT=1 COMPOSE_BAKE=true docker compose $OPT_LOG -f "${COMPOSE_FILE}" --env-file "${PROD_ENV_FILE}" restart redis backend readingplus_mcp_sidecar
 
 echo "Waiting for backend and sidecar health..."
 for i in $(seq 1 180); do
@@ -45,5 +45,5 @@ for i in $(seq 1 180); do
 done
 
 echo "Timeout waiting for backend/auth readiness."
-DOCKER_BUILDKIT=0 docker compose $OPT_LOG -f "${COMPOSE_FILE}" --env-file "${PROD_ENV_FILE}" logs --tail=200 backend auth_sidecar readingplus_mcp_sidecar
+docker compose $OPT_LOG -f "${COMPOSE_FILE}" --env-file "${PROD_ENV_FILE}" logs --tail=200 backend auth_sidecar readingplus_mcp_sidecar
 exit 1

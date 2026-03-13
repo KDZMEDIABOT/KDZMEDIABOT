@@ -28,10 +28,10 @@ echo "=============================================="
 echo "Redeploying Backend (DEV, docker compose)"
 echo "=============================================="
 
-docker compose -f "${COMPOSE_FILE}" --env-file "${DEV_ENV_FILE}" build backend
-docker compose -f "${COMPOSE_FILE}" --env-file "${DEV_ENV_FILE}" build auth_sidecar
-docker compose -f "${COMPOSE_FILE}" --env-file "${DEV_ENV_FILE}" build readingplus_mcp_sidecar
-docker compose -f "${COMPOSE_FILE}" --env-file "${DEV_ENV_FILE}" up -d redis postgres backend auth_sidecar readingplus_mcp_sidecar
+DOCKER_BUILDKIT=1 COMPOSE_BAKE=true docker compose -f "${COMPOSE_FILE}" --env-file "${DEV_ENV_FILE}" build backend
+DOCKER_BUILDKIT=1 COMPOSE_BAKE=true docker compose -f "${COMPOSE_FILE}" --env-file "${DEV_ENV_FILE}" build auth_sidecar
+DOCKER_BUILDKIT=1 COMPOSE_BAKE=true docker compose -f "${COMPOSE_FILE}" --env-file "${DEV_ENV_FILE}" build readingplus_mcp_sidecar
+DOCKER_BUILDKIT=1 COMPOSE_BAKE=true docker compose -f "${COMPOSE_FILE}" --env-file "${DEV_ENV_FILE}" up -d redis postgres backend auth_sidecar readingplus_mcp_sidecar
 docker compose -f "${COMPOSE_FILE}" --env-file "${DEV_ENV_FILE}" restart redis backend readingplus_mcp_sidecar
 
 echo "Waiting for backend and sidecar health..."
