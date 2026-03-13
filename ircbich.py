@@ -31,6 +31,12 @@ from requests.exceptions import ConnectionError, Timeout, TooManyRedirects
 # pip3 install xlrd pandas
 import pandas as pd
 
+# AI command support
+try:
+    from ai_command import AiCommandHandler
+except ImportError:
+    AiCommandHandler = None
+
 from abstractbich import BichBot
 
 
@@ -784,6 +790,59 @@ class IrcBich(BichBot):
                 print("exiting pinger of server, key: '%s'" % self.settings_key)
                 return
 
+
+
+    def maybe_ai_command(self, data, sent_by, communicationsLineName):
+        """Handle !ai command for IRC."""
+        if self.ai_handler is None or not self.ai_handler.is_available():
+            return False
+        
+        # Parse the message
+        if 'PRIVMSG' not in data:
+            return False
+        
+        # Check for !ai command
+        if ':!ai ' not in data and ' :!ai' not in data:
+            return False
+        
+        try:
+            # Extract the query after !ai
+            msg_start = data.find(' :!ai')
+            if msg_start == -1:
+                msg_start = data.find(':!ai ')
+            if msg_start == -1:
+                return False
+            
+            # Extract query
+            query = data[msg_start + 5:].strip()  # Skip " :!ai " or ":!ai "
+            if not query:
+                self.send(f'PRIVMSG {communicationsLineName} :Usage: !ai <your question>\r\n')
+                return True
+            
+            # Get user info
+            name = sent_by.split('!')[0] if '!' in sent_by else sent_by
+            
+            # Call AI handler
+            response = self.ai_handler.handle_ai_command(
+                query=query,
+                user_id=name,
+                channel=communicationsLineName,
+                platform='irc'
+            )
+            
+            # Truncate for IRC (max ~400 chars to be safe)
+            if len(response) > 400:
+                response = response[:397] + '...'
+            
+            # Send response
+            self.send(f'PRIVMSG {communicationsLineName} :\x02AI\x02: {response}\r\n')
+            print(f"Sent AI response to {name} in {communicationsLineName}", flush=True)
+            return True
+            
+        except Exception as e:
+            print(f"Error in maybe_ai_command: {e}", flush=True)
+            self.send(f'PRIVMSG {communicationsLineName} :\x02AI Error\x02: {str(e)}\r\n')
+            return True
 
 def ircbich_init_and_loop(settings_key, connection_settings: dict, config):
     connection_props = connection_settings

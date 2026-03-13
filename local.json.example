@@ -76,5 +76,18 @@
     ,"spglobal_sampleurl":"https://www.spglobal.com/spdji/en/idsexport/file.xls?hostIdentifier=putyourhostidhere&redesignExport=true&languageId=1&selectedModule=PerformanceTableView&selectedSubModule=Daily&indexId=340"
     ,"spglobal_hostid":"..."
     ,"hook_after_quotes_json_saved_shell_command_line": "echo \"begin...\" && /bin/true && echo \"exit status: $?\" && echo \"done.\""
+ ,"websocket": {
+   "enabled": true
+   ,"url": "ws://localhost:8080/ws/bot"
+   ,"reconnect_delay": 5
+   ,"max_reconnect_attempts": 10
+   ,"heartbeat_interval": 30
+   ,"timeout_seconds": 60
+ }
+ ,"ai": {
+   "prompt_file": "KDZPROMPT.txt"
+   ,"timeout_seconds": 60
+   ,"max_response_length": 2000
+ }
 }
 
