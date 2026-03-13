@@ -4,12 +4,12 @@ WORKDIR /build
 
 # Copy generic_backend and install to local repo
 COPY generic_backend /build/generic_backend
-RUN apt-get update -qq && apt-get install -y -qq maven > /dev/null && \
-    mvn -f generic_backend clean install -DskipTests -q
+RUN apt-get update && apt-get install -y maven > /dev/null && \
+    mvn -f generic_backend clean install -DskipTests
 
 # Copy customer_project and package
 COPY customer_project /build/customer_project
-RUN mvn -f customer_project package -DskipTests -q
+RUN mvn -f customer_project package -DskipTests
 
 # Run stage
 FROM eclipse-temurin:17-jre-jammy
