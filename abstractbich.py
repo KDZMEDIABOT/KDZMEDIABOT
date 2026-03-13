@@ -29,6 +29,12 @@ from settings import getconfig
 from helpers import get_pretty_json_string, shell, LOG_TRACE, TOTAL_WORLD_CAP_TRILLIONS_USD, fetch_and_compose_gostcoin_price_rur_report
 from helpers import format_currency
 
+# AI command integration
+try:
+    from ai_command import AiCommandHandler
+except ImportError:
+    AiCommandHandler = None
+
 from requests import Request, Session
 from requests.exceptions import ConnectionError, Timeout, TooManyRedirects
 # pip3 install xlrd pandas
@@ -71,6 +77,16 @@ class BichBot:
         self.measurementRur2 = self.gnome1rur
         self.quotes_array = []
         self.quotes_array1 = []
+
+        # Initialize AI command handler if available
+        self.ai_handler = None
+        if AiCommandHandler is not None:
+            try:
+                self.ai_handler = AiCommandHandler(self.config)
+                self.ai_handler.start()
+                print(f"{self}: AI command handler initialized")
+            except Exception as e:
+                print(f"{self}: Failed to initialize AI command handler: {e}")
 
     def settings_by_key(self, key):
         return self.getconfig()[key]
