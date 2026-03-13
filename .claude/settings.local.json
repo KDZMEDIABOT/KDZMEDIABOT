@@ -3,7 +3,8 @@
     "allow": [
       "Bash(python3:*)",
       "Bash(cd /media/user/datasata1_1/vcs_zsata/KDZMEDIABOT/KDZJAVACORE && DOCKER_BUILDKIT=1 docker compose -f docker-compose.dev.yml build --no-cache auth_sidecar 2>&1 | tail -30)",
-      "Bash(ls -la /media/user/datasata1_1/vcs_zsata/KDZMEDIABOT/KDZJAVACORE/generic_backend/src/main/resources/db/migration/V*.sql)"
+      "Bash(ls -la /media/user/datasata1_1/vcs_zsata/KDZMEDIABOT/KDZJAVACORE/generic_backend/src/main/resources/db/migration/V*.sql)",
+      "Bash(ls /media/user/datasata1_1/vcs_zsata/KDZMEDIABOT/KDZJAVACORE/generic_backend/src/main/resources/db/migration/V*.sql | sort)"
     ]
   }
 }
