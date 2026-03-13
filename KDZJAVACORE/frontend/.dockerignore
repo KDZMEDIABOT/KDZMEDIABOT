@@ -1,0 +1,7 @@
+node_modules
+dist
+test-results
+.quasar
+playwright-report
+.env
+.env.*
