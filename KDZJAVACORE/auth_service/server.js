@@ -131,6 +131,22 @@ async function adminFetchFromGenericBackend(path, method = 'GET', body = null, b
   return { ok: response.ok, status: response.status, payload };
 }
 
+async function adminFetchFromGenericBackend2(path, method = 'GET', body = null, bearerToken = null) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (bearerToken) {
+    headers.Authorization = `Bearer ${bearerToken}`;
+  }
+  const response = await fetch(buildGenericBackendUrl(path), {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const payload = response.headers.get('content-type')?.includes('application/json')
+    ? await response.json()
+    : {};
+  return { ok: response.ok, status: response.status, payload: payload };
+}
+
 function loginSession(req, user) {
   return new Promise((resolve, reject) => {
     req.login(user, (err) => {
@@ -508,8 +524,8 @@ export function createApp() {
   const userId = req.query.userId;
     try {
       const bearerToken = null;
-	  const response = await adminFetchFromGenericBackend(`/api/llm-endpoints${userId !== undefined ? `?userId=${userId}` : ''}`, 'POST', req.body, bearerToken);
-      const payload = await response.json().catch(() => ({}));
+	  const response = await adminFetchFromGenericBackend2(`/api/llm-endpoints${userId !== undefined ? `?userId=${userId}` : ''}`, 'POST', req.body, bearerToken);
+      const payload = await response.payload;
       return res.status(response.status).json(payload);
     } catch (error) {
       console.error('LLM endpoints passthrough error:', error);
