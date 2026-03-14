@@ -6,7 +6,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
@@ -28,7 +27,7 @@ public class ResourceServerSecurityConfig {
                     "/api/users/authenticate",
                     "/error"
                 ).permitAll()
-                .antMatchers(HttpMethod.POST, "/api/users/change-password")
+                /*.antMatchers(HttpMethod.POST, "/api/users/change-password")
                     .authenticated()
                 .antMatchers(HttpMethod.GET, "/api/users", "/api/users/**")
                     .hasAnyAuthority("ROLE_admin", "SCOPE_admin", "admin")
@@ -38,9 +37,9 @@ public class ResourceServerSecurityConfig {
                     .hasAnyAuthority("ROLE_admin", "SCOPE_admin", "admin")
                 .antMatchers(HttpMethod.DELETE, "/api/users", "/api/users/**")
                     .hasAnyAuthority("ROLE_admin", "SCOPE_admin", "admin")
-                .anyRequest().authenticated()
+                .anyRequest().authenticated()*/
             )
-            .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {}))
+            //.oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {}))
             .csrf(csrf -> csrf.disable());
         return http.build();
     }
