@@ -419,7 +419,11 @@ export function createApp() {
     }
   });
 
-  app.get('/api/admin/users', requireAdmin, async (req, res) => {
+  app.get('/api/admin/users', ensureSecureCredentialTransport, async (req, res) => {
+	if (!req.isAuthenticated || !req.isAuthenticated() || !req.user) {
+	  console.log("req:", req);
+	  return res.status(401).json({ error: 'Not authenticated' });
+	}
     const page = Number.isFinite(Number(req.query.page)) ? Number(req.query.page) : 0;
     const size = Number.isFinite(Number(req.query.size)) ? Number(req.query.size) : 10;
     const username = typeof req.query.username === 'string' ? req.query.username : '';
