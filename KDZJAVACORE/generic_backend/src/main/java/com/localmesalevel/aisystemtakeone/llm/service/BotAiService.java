@@ -100,8 +100,6 @@ public class BotAiService implements AiRequestCallback {
      * Extracts credentials from the user's current_llm_endpoint.
      */
     public LlmConnection getKdmediabotConnection() {
-    	//Session session = entityManager.unwrap(Session.class);
-    	//session.beginTransaction();
     	try {
     		java.util.Optional<UserAccount> botUserOpt = userAccountRepository.findByUsername("KDZMEDIABOT");
             if (botUserOpt.isEmpty()) {
@@ -110,18 +108,26 @@ public class BotAiService implements AiRequestCallback {
             }
 
             UserAccount botUser = botUserOpt.get();
-            LlmEndpointCredentials credentials = botUser.getCurrentLlmEndpoint();
-            Hibernate.initialize(credentials);
-            if (credentials == null) {
-                logger.error("User KDZMEDIABOT has no current LLM endpoint configured");
+        	Session session = entityManager.unwrap(Session.class);
+        	session.beginTransaction();
+        	try {
+	            LlmEndpointCredentials credentials = botUser.getCurrentLlmEndpoint();
+	            //Hibernate.initialize(credentials);
+	            if (credentials == null) {
+	                logger.error("User KDZMEDIABOT has no current LLM endpoint configured");
+	                return null;
+	            }
+	
+	            LlmConnection llmConnection = llmConnectionFactory.create(credentials);
+	            return llmConnection;
+            } catch (Throwable e) {
+                logger.error("Failed to create LLM connection for KDZMEDIABOT err1", e);
                 return null;
+            } finally {
+            	session.close();
             }
-
-            LlmConnection llmConnection = llmConnectionFactory.create(credentials);
-            
-            return llmConnection;
         } catch (Throwable e) {
-            logger.error("Failed to create LLM connection for KDZMEDIABOT", e);
+            logger.error("Failed to create LLM connection for KDZMEDIABOT err2", e);
             return null;
         } finally {
         	//session.close();
