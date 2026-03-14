@@ -1,20 +1,19 @@
 package com.localmesalevel.aisystemtakeone.llm.service;
 
-import com.customer1org.aisystem.service.LlmService;
-import com.localmesalevel.aisystemtakeone.llm.model.LlmEndpointCredentials;
-import com.localmesalevel.aisystemtakeone.user.model.UserAccount;
-import com.localmesalevel.aisystemtakeone.user.repository.UserAccountRepository;
-import com.localmesalevel.aisystemtakeone.websocket.AiRequestCallback;
-import com.localmesalevel.aisystemtakeone.websocket.BotWebSocketHandler;
+import java.util.function.Consumer;
+
+import javax.annotation.PostConstruct;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
-import javax.transaction.Transactional;
-
-import java.util.function.Consumer;
+import com.localmesalevel.aisystemtakeone.llm.model.LlmEndpointCredentials;
+import com.localmesalevel.aisystemtakeone.user.model.UserAccount;
+import com.localmesalevel.aisystemtakeone.user.repository.UserAccountRepository;
+import com.localmesalevel.aisystemtakeone.websocket.AiRequestCallback;
+import com.localmesalevel.aisystemtakeone.websocket.BotWebSocketHandler;
 
 /**
  * Service that handles AI requests from the bot.
