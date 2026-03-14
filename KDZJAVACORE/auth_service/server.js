@@ -334,7 +334,7 @@ export function createApp() {
         username: backendUser.username || username,
         email: `${backendUser.username || username}@local`,
         role: backendUser.role || 'maintainer',
-        accessToken: backendUser.accessToken || `local-	${backendUser.id}-${Date.now()}`,
+        accessToken: backendUser.accessToken || null,
         idToken: backendUser.idToken || null,
       };
       await loginSession(req, user);
