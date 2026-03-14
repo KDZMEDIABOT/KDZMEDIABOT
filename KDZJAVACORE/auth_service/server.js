@@ -229,7 +229,7 @@ export function createApp() {
   }
 
   function requireAdmin(req, res, next) {
-    if (!req.isAuthenticated || !req.isAuthenticated() || !req.user) {
+    if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
     if (req.user.role !== 'admin') {
