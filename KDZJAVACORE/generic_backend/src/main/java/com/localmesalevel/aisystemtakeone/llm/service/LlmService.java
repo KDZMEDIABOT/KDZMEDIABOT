@@ -1,6 +1,5 @@
-package com.customer1org.aisystem.service;
+package com.localmesalevel.aisystemtakeone.llm.service;
 
-import com.localmesalevel.aisystemtakeone.llm.service.LlmConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;

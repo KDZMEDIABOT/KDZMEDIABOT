@@ -1,8 +1,7 @@
-package com.customer1org.aisystem.service;
+package com.localmesalevel.aisystemtakeone.llm.service;
 
+import com.customer1org.aisystem.service.LlmService;
 import com.localmesalevel.aisystemtakeone.llm.model.LlmEndpointCredentials;
-import com.localmesalevel.aisystemtakeone.llm.service.LlmConnection;
-import com.localmesalevel.aisystemtakeone.llm.service.LlmConnectionFactory;
 import com.localmesalevel.aisystemtakeone.user.model.UserAccount;
 import com.localmesalevel.aisystemtakeone.user.repository.UserAccountRepository;
 import com.localmesalevel.aisystemtakeone.websocket.AiRequestCallback;
