@@ -12,8 +12,6 @@ import org.springframework.security.web.SecurityFilterChain;
 /**
  * When JWT issuer is configured: permit health/error, require JWT for other /api.
  */
-@EnableWebSecurity
-@Configuration
 public class ResourceServerSecurityConfig {
 
     @Bean
