@@ -131,10 +131,13 @@ async function adminFetchFromGenericBackend(path, method = 'GET', body = null, b
   return { ok: response.ok, status: response.status, payload };
 }
 
-async function adminFetchFromGenericBackend2(path, method = 'GET', body = null, bearerToken = null) {
+async function adminFetchFromGenericBackend2(path, method = 'GET', body = null, bearerToken = null, csrfToken = null) {
   const headers = { 'Content-Type': 'application/json' };
   if (bearerToken) {
     headers.Authorization = `Bearer ${bearerToken}`;
+  }
+  if(csrfToken){
+    headers['X-XSRF-TOKEN'] = csrfToken    
   }
   const response = await fetch(buildGenericBackendUrl(path), {
     method,
@@ -524,11 +527,12 @@ export function createApp() {
   const userId = req.query.userId;
     try {
       const bearerToken = null;
+      const csrfToken = req.headers['X-XSRF-TOKEN']
 	  const payload1 = req.headers['content-type']?.includes('application/json')
 	    ? await req.body
 	    : {};
 	  const response = await adminFetchFromGenericBackend2(`/api/llm-endpoints${userId !== undefined ? `?userId=${userId}` : ''}`, 'POST', 
-		JSON.stringify(payload1), bearerToken);
+		JSON.stringify(payload1), bearerToken, csrfToken);
       const payload = await response.payload;
       return res.status(response.status).json(payload);
     } catch (error) {
