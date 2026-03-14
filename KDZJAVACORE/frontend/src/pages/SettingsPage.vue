@@ -186,6 +186,8 @@ import { computed, onMounted, ref } from 'vue';
 import { useQuasar, type QTableColumn } from 'quasar';
 import { useAuthStore } from '../stores/auth';
 
+const AUTH_SERVICE_URL = (import.meta as ImportMeta & { env: { VITE_AUTH_SERVICE_URL?: string } }).env?.VITE_AUTH_SERVICE_URL || 'http://localhost:3001';
+
 type LlmApiType = 'OpenAICompatible' | 'AnthropicCompatible';
 
 type EndpointRow = {
@@ -288,7 +290,7 @@ async function loadEntries() {
 
   loading.value = true;
   try {
-    const response = await fetch(`/api/llm-endpoints?userId=${encodeURIComponent(String(userId.value))}`);
+    const response = await fetch(`${AUTH_SERVICE_URL}/api/llm-endpoints?userId=${encodeURIComponent(String(userId.value))}`);
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
       throw new Error(payload.error || 'Failed to load endpoint credentials');
@@ -309,7 +311,7 @@ async function createEndpoint() {
 
   saving.value = true;
   try {
-    const response = await fetch(`/api/llm-endpoints?userId=${encodeURIComponent(String(userId.value))}`, {
+    const response = await fetch(`${AUTH_SERVICE_URL}/api/llm-endpoints?userId=${encodeURIComponent(String(userId.value))}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -341,7 +343,7 @@ async function createEndpoint() {
 async function selectCurrent(endpointId: number) {
   selectingId.value = endpointId;
   try {
-    const response = await fetch(`/api/llm-endpoints/current?userId=${encodeURIComponent(String(userId.value))}`, {
+    const response = await fetch(`${AUTH_SERVICE_URL}/api/llm-endpoints/current?userId=${encodeURIComponent(String(userId.value))}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ endpointId }),
@@ -369,7 +371,7 @@ async function deleteEndpoint(endpointId: number, endpointDisplayName: string) {
     deletingId.value = endpointId;
     try {
       const response = await fetch(
-        `/api/llm-endpoints/${encodeURIComponent(String(endpointId))}?userId=${encodeURIComponent(String(userId.value))}`,
+        `${AUTH_SERVICE_URL}/api/llm-endpoints/${encodeURIComponent(String(endpointId))}?userId=${encodeURIComponent(String(userId.value))}`,
         { method: 'DELETE' }
       );
       if (!response.ok && response.status !== 204) {
@@ -409,7 +411,7 @@ async function saveEndpointEdit() {
   editingId.value = editEndpointId.value;
   try {
     const response = await fetch(
-      `/api/llm-endpoints/${encodeURIComponent(String(editEndpointId.value))}?userId=${encodeURIComponent(String(userId.value))}`,
+      `${AUTH_SERVICE_URL}/api/llm-endpoints/${encodeURIComponent(String(editEndpointId.value))}?userId=${encodeURIComponent(String(userId.value))}`,
       {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
