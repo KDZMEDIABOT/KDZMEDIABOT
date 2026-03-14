@@ -10,6 +10,7 @@ import org.hibernate.Session;
 import org.hibernate.ejb.HibernateEntityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
@@ -39,6 +40,7 @@ public class BotAiService implements AiRequestCallback {
     private final UserAccountRepository userAccountRepository;
     private final LlmConnectionFactory llmConnectionFactory;
 
+    @Autowired
 	private EntityManager entityManager;
 
     public BotAiService(@Lazy BotWebSocketHandler webSocketHandler,
@@ -91,12 +93,7 @@ public class BotAiService implements AiRequestCallback {
                     return null;
                 });
     }
-    
-    @Bean
-    public void setEntityManager(EntityManager entityManager) {
-    	this.entityManager = entityManager;
-    }
-    
+        
     /**
      * Get LLM connection for user "KDZMEDIABOT".
      * Extracts credentials from the user's current_llm_endpoint.
