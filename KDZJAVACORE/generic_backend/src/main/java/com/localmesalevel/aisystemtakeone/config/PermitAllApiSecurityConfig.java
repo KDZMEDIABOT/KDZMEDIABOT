@@ -15,7 +15,7 @@ import org.springframework.security.web.SecurityFilterChain;
 public class PermitAllApiSecurityConfig {
 
     @Bean
-    @Order(1)
+    @Order(2)
     //@Conditional(JwtIssuerNotConfiguredCondition.class)
     public SecurityFilterChain permitAllApiChain(HttpSecurity http) throws Exception {
         http
