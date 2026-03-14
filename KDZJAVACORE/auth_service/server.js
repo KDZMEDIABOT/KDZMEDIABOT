@@ -189,7 +189,7 @@ export function createApp() {
       httpOnly: true,
       sameSite: 'lax', // Less strict for cross-origin
       domain: 'rig1.lan', // Explicit domain for subdomains/ports
-      maxAge: 24 * 60 * 60 * 100000000,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
       path: '/', // Cookie valid for entire domain
     },
   };
