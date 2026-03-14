@@ -28,6 +28,7 @@ const REMEMBER_ME_MAX_AGE_MS = Number(process.env.REMEMBER_ME_MAX_AGE_MS) || (30
 const SERVER_PROFILE = (process.env.SERVER_PROFILE || '').toLowerCase();
 const IS_DEV_PROFILE = SERVER_PROFILE === 'dev';
 const GENERIC_BACKEND_BASE_URL = new URL(GENERIC_BACKEND_URL);
+console.log("BE URL:", GENERIC_BACKEND_BASE_URL);
 
 const hasOidcConfig = !!(ISSUER_URI && CLIENT_ID && CLIENT_SECRET);
 if (!hasOidcConfig) {
@@ -189,7 +190,7 @@ export function createApp() {
       httpOnly: true,
       sameSite: 'lax', // Less strict for cross-origin
       domain: 'rig1.lan', // Explicit domain for subdomains/ports
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      maxAge: 24 * 60 * 60 * 1000000, // 24000 hours
       path: '/', // Cookie valid for entire domain
     },
   };
@@ -344,7 +345,7 @@ export function createApp() {
       const backendAuthUrl = `${GENERIC_BACKEND_URL}/api/users/authenticate`;
       // Keep raw error object in logs for full diagnostics (including socket/IP details).
       console.error(`Local login backend call failed at ${backendAuthUrl}:`, error);
-      const errorCode = error?.code || 'UNKNOWN';
+      const errorCode = error?.code || 'UNKNOWNERRCODE';
       return res.status(502).json({
         error: `Authentication backend unavailable at configured endpoint ${backendAuthUrl} (${errorCode})`,
       });

@@ -53,7 +53,7 @@ HOST_IP="${HOST_IP:-host.docker.internal}"
 # Start only postgres, redis, auth_sidecar, readingplus_mcp_sidecar - NOT the backend
 docker compose -f "${COMPOSE_FILE}" \
     --env-file "${PROD_ENV_FILE}" \
-    up -d --build --remove-orphans \
+    restart -d --build --remove-orphans \
     postgres redis auth_sidecar readingplus_mcp_sidecar frontend
 
 # Network setup: backend is outside Docker, so auth_sidecar needs to reach host
