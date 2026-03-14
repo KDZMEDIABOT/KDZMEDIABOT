@@ -1,5 +1,42 @@
 # AI Content Generator System
 
+## Production Environment (rig1.lan)
+
+Current production deployment is on `rig1.lan`:
+- **Frontend**: http://rig1.lan:8088 (nginx serving SPA)
+- **Auth Service**: http://rig1.lan:3002 (Node.js/Passport.js sidecar)
+- **Backend**: http://rig1.lan:8443 (Spring Boot Java)
+- **PostgreSQL**: rig1.lan:5432 (port 15432 externally exposed)
+- **Redis**: rig1.lan:6379 (used for session storage)
+
+### Critical Production Configuration (`.env.prod`)
+
+```bash
+# URLs must use rig1.lan, NOT localhost
+AUTH_SERVICE_FRONTEND_URL=http://rig1.lan:8088
+AUTH_SERVICE_PUBLIC_URL=http://rig1.lan:3002
+FRONTEND_URL=http://rig1.lan:8088
+SERVER_PROFILE=prod
+AUTH_SERVICE_SESSION_SECRET=<strong-random-secret>
+AUTH_SERVICE_HTTPD_PORT=3002
+AUTH_SESSION_STORE=redis
+AUTH_SERVICE_REDIS_URL=redis://redis:6379
+AUTH_SERVICE_REDIS_PREFIX=aisystem:auth:sess:
+```
+
+### Production Container Status
+
+```bash
+# Check running containers
+sudo ssh -o PasswordAuthentication=false -i /home/rig1_ubuntu16_root root@rig1.lan -c "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
+
+# View auth service logs
+sudo ssh -o PasswordAuthentication=false -i /home/rig1_ubuntu16_root root@rig1.lan -c "docker logs -f aisystem-auth-sidecar-prod"
+
+# Check Redis sessions
+sudo ssh -o PasswordAuthentication=false -i /home/rig1_ubuntu16_root root@rig1.lan -c "docker exec aisystem-redis-prod redis-cli KEYS 'aisystem:auth:sess:*'"
+```
+
 ## Beware
   * NEVER USE FALLBACK RDBMS, ALWAYS USE POSTGRESQL!!!
 * NEVER RUN MULTIPLE COPIES OF BACKENDS TEST SCRIPT IN PARALLEL!!!

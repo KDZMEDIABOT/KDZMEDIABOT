@@ -229,7 +229,7 @@ export function createApp() {
   }
 
   function requireAdmin(req, res, next) {
-    if (!req.isAuthenticated || !req.user) {
+    if (!req.isAuthenticated || !req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
     if (req.user.role !== 'admin') {
@@ -360,7 +360,7 @@ export function createApp() {
   });
 
   app.get('/api/auth/me', (req, res) => {
-    if (!req.isAuthenticated || !req.user) {
+    if (!req.isAuthenticated || !req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
     res.json({
@@ -372,7 +372,7 @@ export function createApp() {
   });
 
   app.get('/api/auth/token', (req, res) => {
-    if (!req.isAuthenticated || !req.user) {
+    if (!req.isAuthenticated || !req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
     const token = req.user.accessToken || req.user.idToken;
@@ -383,7 +383,7 @@ export function createApp() {
   });
 
   app.post('/api/auth/change-password', ensureSecureCredentialTransport, async (req, res) => {
-    if (!req.isAuthenticated || !req.user) {
+    if (!req.isAuthenticated || !req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
