@@ -149,6 +149,7 @@ export const useAuthStore = defineStore('auth', () => {
     return `Login failed${status ? ` (HTTP ${status})` : ''}: no additional error details were returned by the authentication service.`;
   }
 
+  /*
   async function signup(name: string, email: string, password: string): Promise<boolean> {
     loading.value = true;
     try {
@@ -161,7 +162,7 @@ export const useAuthStore = defineStore('auth', () => {
     } finally {
       loading.value = false;
     }
-  }
+  }*/
 
   async function changePassword(currentPassword: string, newPassword: string): Promise<{ ok: boolean; error?: string }> {
     loading.value = true;

@@ -334,7 +334,7 @@ export function createApp() {
         username: backendUser.username || username,
         email: `${backendUser.username || username}@local`,
         role: backendUser.role || 'maintainer',
-        accessToken: backendUser.accessToken || `local-${backendUser.id}-${Date.now()}',
+        accessToken: backendUser.accessToken || `local-	${backendUser.id}-${Date.now()}`,
         idToken: backendUser.idToken || null,
       };
       await loginSession(req, user);
@@ -345,7 +345,7 @@ export function createApp() {
       const backendAuthUrl = `${GENERIC_BACKEND_URL}/api/users/authenticate`;
       // Keep raw error object in logs for full diagnostics (including socket/IP details).
       console.error(`Local login backend call failed at ${backendAuthUrl}:`, error);
-      const errorCode = error?.code || 'UNKNOWNERRCODE';
+      const errorCode = error?.code || 'UNKNOWNERRORCODE';
       return res.status(502).json({
         error: `Authentication backend unavailable at configured endpoint ${backendAuthUrl} (${errorCode})`,
       });
