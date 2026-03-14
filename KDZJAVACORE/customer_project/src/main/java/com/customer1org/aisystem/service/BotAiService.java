@@ -13,6 +13,8 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
+import javax.transaction.Transactional;
+
 import java.util.function.Consumer;
 
 /**
@@ -84,6 +86,7 @@ public class BotAiService implements AiRequestCallback {
      * Get LLM connection for user "KDZMEDIABOT".
      * Extracts credentials from the user's current_llm_endpoint.
      */
+    @org.springframework.transaction.annotation.Transactional
     private LlmConnection getKdmediabotConnection() {
         try {
             java.util.Optional<UserAccount> botUserOpt = userAccountRepository.findByUsername("KDZMEDIABOT");
@@ -100,7 +103,7 @@ public class BotAiService implements AiRequestCallback {
             }
 
             return llmConnectionFactory.create(credentials);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             logger.error("Failed to create LLM connection for KDZMEDIABOT", e);
             return null;
         }
