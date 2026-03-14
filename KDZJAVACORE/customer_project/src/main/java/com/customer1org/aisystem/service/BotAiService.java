@@ -87,7 +87,7 @@ public class BotAiService implements AiRequestCallback {
      * Extracts credentials from the user's current_llm_endpoint.
      */
     @org.springframework.transaction.annotation.Transactional
-    private LlmConnection getKdmediabotConnection() {
+    public LlmConnection getKdmediabotConnection() {
         try {
             java.util.Optional<UserAccount> botUserOpt = userAccountRepository.findByUsername("KDZMEDIABOT");
             if (botUserOpt.isEmpty()) {
