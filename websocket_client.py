@@ -307,10 +307,10 @@ class ThreadSafeWebSocketClient:
             logger.info("WebSocket client disabled in config")
             return
 
-        url = self.ws_config.get("url", "ws://localhost:8080/ws/bot")
-        reconnect = self.ws_config.get("reconnect_delay", 5)
+        url = self.ws_config.get("url", "ws://localhost:8443/ws/bot")
+        reconnect = self.ws_config.get("reconnect_delay", 1)
         heartbeat = self.ws_config.get("heartbeat_interval", 30)
-        timeout = self.ws_config.get("timeout_seconds", 60)
+        timeout = self.ws_config.get("timeout_seconds", 60000000)
 
         self.client = WebSocketClient(
             url=url,
