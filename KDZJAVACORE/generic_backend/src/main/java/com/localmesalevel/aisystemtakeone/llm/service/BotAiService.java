@@ -8,6 +8,7 @@ import javax.transaction.Transactional;
 
 import org.hibernate.Hibernate;
 import org.hibernate.Session;
+import org.hibernate.Transaction;
 import org.hibernate.ejb.HibernateEntityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -100,6 +101,8 @@ public class BotAiService implements AiRequestCallback {
      * Extracts credentials from the user's current_llm_endpoint.
      */
     public LlmConnection getKdmediabotConnection() {
+    	Session session = entityManager.unwrap(Session.class);
+    	Transaction t = session.beginTransaction();
     	try {
     		java.util.Optional<UserAccount> botUserOpt = userAccountRepository.findByUsername("KDZMEDIABOT");
             if (botUserOpt.isEmpty()) {
@@ -108,29 +111,26 @@ public class BotAiService implements AiRequestCallback {
             }
 
             UserAccount botUser = botUserOpt.get();
-        	Session session = entityManager.unwrap(Session.class);
-        	session.beginTransaction();
-        	try {
-	            LlmEndpointCredentials credentials = botUser.getCurrentLlmEndpoint();
-	            //Hibernate.initialize(credentials);
-	            if (credentials == null) {
-	                logger.error("User KDZMEDIABOT has no current LLM endpoint configured");
-	                return null;
-	            }
-	
-	            LlmConnection llmConnection = llmConnectionFactory.create(credentials);
-	            return llmConnection;
-            } catch (Throwable e) {
-                logger.error("Failed to create LLM connection for KDZMEDIABOT err1", e);
+            LlmEndpointCredentials credentials = botUser.getCurrentLlmEndpoint();
+            //Hibernate.initialize(credentials);
+            if (credentials == null) {
+                logger.error("User KDZMEDIABOT has no current LLM endpoint configured");
                 return null;
-            } finally {
-            	session.close();
             }
+
+            LlmConnection llmConnection = llmConnectionFactory.create(credentials);
+            t.commit();
+            return llmConnection;
         } catch (Throwable e) {
+            t.rollback();
             logger.error("Failed to create LLM connection for KDZMEDIABOT err2", e);
             return null;
         } finally {
-        	//session.close();
+        	try {
+        		session.close();
+        	} catch(Throwable tr) {
+        		logger.error("", tr);
+        	}
         }
     }
 }
