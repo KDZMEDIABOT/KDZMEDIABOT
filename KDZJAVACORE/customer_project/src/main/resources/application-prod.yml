@@ -35,5 +35,6 @@ spring.security.oauth2.resourceserver:
 
 logging:
   level:
+    org; TRACE	
     com.customer1org.aisystem: INFO
     com.localmesalevel.aisystemtakeone: TRACE

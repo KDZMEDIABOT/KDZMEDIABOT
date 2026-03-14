@@ -1,5 +1,8 @@
 # Production profile - hosted at rig1.lan, WITH blue-green deployment
 spring:
+  mvc:
+    log-request-details: true
+    log-resolved-exception: true
   security:
     enabled: false
   config:
@@ -35,4 +38,7 @@ logging:
   level:
     org: TRACE
     com.localmesalevel.aisystemtakeone: TRACE
+    com.localmesalevel.aisystemtakeone.llm.service: TRACE
+    org.springframework.web: TRACE
+    org.springframework.web.filter.CommonsRequestLoggingFilter: DEBUG
     com.localmesalevel.aisystemtakeone.llm.service: TRACE
