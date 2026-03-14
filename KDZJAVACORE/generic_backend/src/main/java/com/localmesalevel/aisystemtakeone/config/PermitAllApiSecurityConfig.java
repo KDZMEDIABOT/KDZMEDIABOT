@@ -1,10 +1,8 @@
 package com.localmesalevel.aisystemtakeone.config;
 
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
@@ -12,12 +10,12 @@ import org.springframework.security.web.SecurityFilterChain;
 /**
  * When JWT issuer is NOT configured (e.g. dev without IdP): permit all /api for local/test use.
  */
-@EnableWebSecurity
-@Configuration
+//@EnableWebSecurity
+//@Configuration
 public class PermitAllApiSecurityConfig {
 
-    @Bean
-    @Order(1)
+    //@Bean
+    //@Order(1)
     //@Conditional(JwtIssuerNotConfiguredCondition.class)
     public SecurityFilterChain permitAllApiChain(HttpSecurity http) throws Exception {
         http

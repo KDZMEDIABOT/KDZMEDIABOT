@@ -11,12 +11,12 @@ import org.springframework.security.web.SecurityFilterChain;
 /**
  * When JWT issuer is configured: permit health/error, require JWT for other /api.
  */
-@Configuration
+//@Configuration
 public class ResourceServerSecurityConfig {
 
-    @Bean
-    @Order(10)
-    @Conditional(JwtIssuerConfiguredCondition.class)
+    //@Bean
+    //@Order(10)
+    //@Conditional(JwtIssuerConfiguredCondition.class)
     public SecurityFilterChain resourceServerChain(HttpSecurity http) throws Exception {
         http
             .antMatcher("/api/**")
