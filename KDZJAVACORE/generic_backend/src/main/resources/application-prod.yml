@@ -33,6 +33,6 @@ sso:
 
 logging:
   level:
-	org: TRACE
+    org: TRACE
     com.localmesalevel.aisystemtakeone: TRACE
     com.localmesalevel.aisystemtakeone.llm.service: TRACE
