@@ -12,11 +12,13 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import org.slf4j.*;
 
 @RestController
 @RequestMapping("/api/llm-endpoints")
 public class LlmEndpointCredentialsController {
-
+	private static final Logger LOGGER = LoggerFactory.getLogger(LlmEndpointCredentialsController.class);
+	
     private final LlmEndpointCredentialsRepository llmEndpointCredentialsRepository;
     private final UserAccountRepository userAccountRepository;
 
@@ -66,12 +68,15 @@ public class LlmEndpointCredentialsController {
         @RequestParam("userId") Long userId,
         @RequestBody UpsertRequest request
     ) {
+    	LOGGER.debug("create enter");
         Optional<UserAccount> maybeUser = userAccountRepository.findById(userId);
         if (maybeUser.isEmpty()) {
+        	LOGGER.debug("create userId not found");
             return ResponseEntity.badRequest().body(new ErrorResponse("User not found"));
         }
         UserAccount user = maybeUser.get();
         if (!isMaintainerOrAdmin(user.getRole())) {
+        	LOGGER.debug("create bad role");
             return ResponseEntity.status(403).body(new ErrorResponse("Role is not allowed to manage LLM endpoints"));
         }
         if (request == null
@@ -79,8 +84,10 @@ public class LlmEndpointCredentialsController {
             || isBlank(request.getBaseURL())
             || isBlank(request.getApiKey())
             || isBlank(request.getEndpointDisplayName())) {
+        	LOGGER.debug("create bad body");
             return ResponseEntity.badRequest().body(new ErrorResponse("llmApiType, baseURL, apiKey and endpointDisplayName are required"));
         }
+    	LOGGER.debug("create creating");
 
         LlmEndpointCredentials entity = new LlmEndpointCredentials();
         entity.setUser(user);
@@ -94,6 +101,7 @@ public class LlmEndpointCredentialsController {
         autoSelectSingleEndpointIfNeeded(user, llmEndpointCredentialsRepository.findByUserIdOrderByIdDesc(user.getId()));
 
         Long currentEndpointId = user.getCurrentLlmEndpoint() == null ? null : user.getCurrentLlmEndpoint().getId();
+    	LOGGER.debug("create leaving");
         return ResponseEntity.ok(new EntryResponse(
             saved.getId(),
             saved.getLlmApiType(),
