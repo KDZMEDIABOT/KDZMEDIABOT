@@ -38,7 +38,10 @@ public class CorsConfig {
     @Bean
     @Order(1)
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.cors(cors -> cors.configurationSource(corsConfigurationSource()));
+        http
+        	.cors(cors -> cors.configurationSource(corsConfigurationSource()))
+	        .antMatcher("/**")
+	        .authorizeRequests(auth -> auth.anyRequest().permitAll());
         return http.build();
     }
 }
