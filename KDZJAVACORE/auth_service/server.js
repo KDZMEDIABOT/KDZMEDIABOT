@@ -526,7 +526,7 @@ export function createApp() {
       const bearerToken = null;
 	  const response = await adminFetchFromGenericBackend2(`/api/llm-endpoints${userId !== undefined ? `?userId=${userId}` : ''}`, 'POST', req.body, bearerToken);
       const payload = await response.payload;
-      return res.status(response.status).body(payload);
+      return res.status(response.status).json(payload);
     } catch (error) {
       console.error('LLM endpoints passthrough error:', error);
       return res.status(502).json({ error: 'Backend unavailable' });
