@@ -121,7 +121,7 @@ public class BotAiService implements AiRequestCallback {
 //                return null;
 //            }
 //
-            LlmConnection llmConnection = llmConnectionFactory.create(credentialsOpt.get());
+            LlmConnection llmConnection = llmConnectionFactory.create(credentialsOpt);
             t.commit();
             return llmConnection;
         } catch (Throwable e) {
