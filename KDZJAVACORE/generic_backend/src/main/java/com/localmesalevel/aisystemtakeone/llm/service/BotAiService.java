@@ -6,6 +6,7 @@ import javax.annotation.PostConstruct;
 import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
 
+import org.hibernate.Hibernate;
 import org.hibernate.Session;
 import org.hibernate.ejb.HibernateEntityManager;
 import org.slf4j.Logger;
@@ -99,8 +100,8 @@ public class BotAiService implements AiRequestCallback {
      * Extracts credentials from the user's current_llm_endpoint.
      */
     public LlmConnection getKdmediabotConnection() {
-    	Session session = entityManager.unwrap(Session.class);
-    	session.beginTransaction();
+    	//Session session = entityManager.unwrap(Session.class);
+    	//session.beginTransaction();
     	try {
     		java.util.Optional<UserAccount> botUserOpt = userAccountRepository.findByUsername("KDZMEDIABOT");
             if (botUserOpt.isEmpty()) {
@@ -110,6 +111,7 @@ public class BotAiService implements AiRequestCallback {
 
             UserAccount botUser = botUserOpt.get();
             LlmEndpointCredentials credentials = botUser.getCurrentLlmEndpoint();
+            Hibernate.initialize(credentials);
             if (credentials == null) {
                 logger.error("User KDZMEDIABOT has no current LLM endpoint configured");
                 return null;
@@ -122,7 +124,7 @@ public class BotAiService implements AiRequestCallback {
             logger.error("Failed to create LLM connection for KDZMEDIABOT", e);
             return null;
         } finally {
-        	session.close();
+        	//session.close();
         }
     }
 }
