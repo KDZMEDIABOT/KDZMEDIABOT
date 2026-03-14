@@ -2,6 +2,7 @@ package com.localmesalevel.aisystemtakeone.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
@@ -14,6 +15,7 @@ import java.util.List;
 public class CorsConfig {
 
     @Bean
+    @Order(1)
     public CorsConfigurationSource corsConfigurationSource() {
     	System.out.println("corsConfigurationSource() enter");
         CorsConfiguration configuration = new CorsConfiguration();
@@ -34,6 +36,7 @@ public class CorsConfig {
     }
     
     @Bean
+    @Order(1)
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.cors(cors -> cors.configurationSource(corsConfigurationSource()));
         return http.build();
