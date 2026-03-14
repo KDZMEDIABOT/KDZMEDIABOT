@@ -19,7 +19,7 @@ public class LlmConnection {
     private final LlmApiType llmApiType;
     private final String baseURL;
     private final String apiKey;
-    private final String defaultModelName;
+    private final String model;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
@@ -27,23 +27,23 @@ public class LlmConnection {
         LlmApiType llmApiType,
         String baseURL,
         String apiKey,
-        String defaultModelName,
+        String model,
         RestTemplate restTemplate,
         ObjectMapper objectMapper
     ) {
         this.llmApiType = llmApiType;
         this.baseURL = normalizeBaseURL(baseURL);
         this.apiKey = apiKey;
-        this.defaultModelName = normalizeModelName(defaultModelName);
+        this.model = normalizeModelName(model);
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
     }
 
-    public String complete(String model, String prompt) {
-        return complete(model, null, prompt, 0.2, 1024);
+    public String complete(String prompt) {
+        return complete(null, prompt, 0.2, 1024);
     }
 
-    public String complete(String model, String systemPrompt, String userPrompt, double temperature, int maxTokens) {
+    public String complete(String systemPrompt, String userPrompt, double temperature, int maxTokens) {
         String effectiveModel = resolveEffectiveModel(model);
         logger.trace(
             "LlmConnection.complete called: apiType='{}', requestedModel='{}', effectiveModel='{}', baseURL='{}', hasSystemPrompt={}, userPromptLength={}, temperature={}, maxTokens={}",
@@ -371,8 +371,8 @@ public class LlmConnection {
         if (!isBlank(requestedModel)) {
             return requestedModel.trim();
         }
-        if (!isBlank(defaultModelName)) {
-            return defaultModelName;
+        if (!isBlank(model)) {
+            return model;
         }
         throw new IllegalArgumentException("Model is required");
     }

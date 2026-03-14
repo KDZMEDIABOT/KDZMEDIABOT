@@ -17,10 +17,7 @@ public class LlmService {
 
     private static final Logger logger = LoggerFactory.getLogger(LlmService.class);
 
-    @Value("${ai.model:claude-3-5-sonnet-20241022}")
-    private String defaultModel;
-
-    @Value("${ai.temperagure:0.7}")
+    @Value("${ai.temperature:0.7}")
     private double temperature;
 
     @Value("${ai.max-tokens:2048}")
@@ -28,7 +25,7 @@ public class LlmService {
 
     @PostConstruct
     public void init() {
-        logger.info("LlmService initialized with model: {}", defaultModel);
+        logger.info("LlmService initialized");
     }
 
     /**
@@ -49,15 +46,14 @@ public class LlmService {
                         systemPrompt.length(), userQuery.length());
 
                 return llmConnection.complete(
-                        defaultModel,
                         systemPrompt,
                         userQuery,
                         temperature,
                         maxTokens
                 );
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 logger.error("LLM call failed", e);
-                throw new RuntimeException("Failed to get AI response: " + e.getMessage(), e);
+                throw new RuntimeException("Failed to get AI response: " + e, e);
             }
         });
     }

@@ -106,7 +106,6 @@ public class LlmLoopEngine {
                     conversationState.length()
                 );
                 String llmRawResponse = llmConnection.complete(
-                    model.trim(),
                     systemPrompt,
                     loopPrompt,
                     DEFAULT_TEMPERATURE,

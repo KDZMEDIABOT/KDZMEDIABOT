@@ -41,4 +41,3 @@ logging:
     com.localmesalevel.aisystemtakeone.llm.service: TRACE
     org.springframework.web: TRACE
     org.springframework.web.filter.CommonsRequestLoggingFilter: DEBUG
-    com.localmesalevel.aisystemtakeone.llm.service: TRACE
