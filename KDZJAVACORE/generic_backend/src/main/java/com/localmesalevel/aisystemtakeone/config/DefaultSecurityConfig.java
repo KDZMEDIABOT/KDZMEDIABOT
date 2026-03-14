@@ -9,11 +9,11 @@ import org.springframework.security.web.SecurityFilterChain;
 /**
  * Fallback: permit all non-API paths (e.g. error page, actuator).
  */
-//@Configuration
+@Configuration
 public class DefaultSecurityConfig {
 
-    //@Bean
-    //@Order(100)
+    @Bean
+    @Order(100)
     public SecurityFilterChain defaultChain(HttpSecurity http) throws Exception {
         http
             .antMatcher("/**")

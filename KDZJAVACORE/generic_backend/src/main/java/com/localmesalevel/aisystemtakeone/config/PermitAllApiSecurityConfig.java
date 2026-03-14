@@ -10,12 +10,12 @@ import org.springframework.security.web.SecurityFilterChain;
 /**
  * When JWT issuer is NOT configured (e.g. dev without IdP): permit all /api for local/test use.
  */
-//@EnableWebSecurity
-//@Configuration
+@EnableWebSecurity
+@Configuration
 public class PermitAllApiSecurityConfig {
 
-    //@Bean
-    //@Order(1)
+    @Bean
+    @Order(1)
     //@Conditional(JwtIssuerNotConfiguredCondition.class)
     public SecurityFilterChain permitAllApiChain(HttpSecurity http) throws Exception {
         http
