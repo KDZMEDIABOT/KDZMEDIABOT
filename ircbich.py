@@ -862,19 +862,24 @@ class IrcBich(BichBot):
 
 
     def maybe_ai_command(self, data, sent_by, communicationsLineName):
+        print(f"maybe_ai_command p1", flush=True)
         """Handle !ai command for IRC."""
         if self.ai_handler is None or not self.ai_handler.is_available():
+			print(f"maybe_ai_command p2", flush=True)
             return False
         
         # Parse the message
         if 'PRIVMSG' not in data:
+			print(f"maybe_ai_command p3", flush=True)
             return False
         
         # Check for !ai command
         if ':!ai ' not in data and ' :!ai' not in data:
+			print(f"maybe_ai_command p4", flush=True)
             return False
         
         try:
+			print(f"maybe_ai_command p5", flush=True)
             # Extract the query after !ai
             msg_start = data.find(' :!ai')
             if msg_start == -1:
