@@ -78,7 +78,7 @@
     ,"hook_after_quotes_json_saved_shell_command_line": "echo \"begin...\" && /bin/true && echo \"exit status: $?\" && echo \"done.\""
  ,"websocket": {
    "enabled": true
-   ,"url": "ws://localhost:8080/ws/bot"
+   ,"url": "ws://localhost:8443/ws/bot"
    ,"reconnect_delay": 5
    ,"max_reconnect_attempts": 10
    ,"heartbeat_interval": 30

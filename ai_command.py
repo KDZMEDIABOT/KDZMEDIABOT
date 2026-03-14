@@ -48,7 +48,7 @@ class AiCommandHandler:
         self.prompt_last_modified = 0
 
         # Initialize WebSocket client
-        ws_config = self.config.get("websocket", {"url":"ws://localhost:8443/"})
+        ws_config = self.config.get("websocket", {})
         self.ws_client = ThreadSafeWebSocketClient(ws_config["url"], response_callback)
 
         self._lock = Lock()

@@ -86,6 +86,8 @@ class BichBot:
                 self.ai_handler.start()
                 print(f"{self}: AI command handler initialized")
             except Exception as e:
+				import traceback
+				traceback.print_exc()
                 print(f"{self}: Failed to initialize AI command handler: {e}")
         else:
         	print(f"{self}: AI command handler skipped")
