@@ -17,7 +17,7 @@ public class LlmService {
 
     private static final Logger logger = LoggerFactory.getLogger(LlmService.class);
 
-    @Value("${ai.temperature:0.7}")
+    @Value("${ai.temperature:0}")
     private double temperature;
 
     @Value("${ai.max-tokens:300}")
