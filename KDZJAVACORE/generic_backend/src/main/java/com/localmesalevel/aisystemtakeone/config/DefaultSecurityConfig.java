@@ -17,7 +17,8 @@ public class DefaultSecurityConfig {
     public SecurityFilterChain defaultChain(HttpSecurity http) throws Exception {
         http
             .antMatcher("/**")
-            .authorizeRequests(auth -> auth.anyRequest().permitAll());
+            .authorizeRequests(auth -> auth.anyRequest().permitAll())
+            .csrf(csrf -> csrf.disable());
         return http.build();
     }
 }
