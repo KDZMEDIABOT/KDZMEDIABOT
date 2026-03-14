@@ -33,9 +33,9 @@ bluegreen:
   idle-color: ${BLUE_GREEN_IDLE_COLOR:green}
 
 # SSO: validate JWT Bearer tokens (Passport.js auth service / IdP)
-spring.security.oauth2.resourceserver:
-  jwt:
-    issuer-uri: ${SSO_ISSUER_URI}
+#spring.security.oauth2.resourceserver:
+#  jwt:
+#    issuer-uri: ${SSO_ISSUER_URI}
 
 logging:
   level:

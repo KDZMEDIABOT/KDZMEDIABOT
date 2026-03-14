@@ -137,7 +137,7 @@ async function adminFetchFromGenericBackend2(path, method = 'GET', body = null, 
     headers.Authorization = `Bearer ${bearerToken}`;
   }
   if(csrfToken){
-    headers['X-XSRF-TOKEN'] = csrfToken    
+    headers['x-xsrf-token'] = csrfToken    
   }
   const response = await fetch(buildGenericBackendUrl(path), {
     method,
@@ -527,7 +527,7 @@ export function createApp() {
   const userId = req.query.userId;
     try {
       const bearerToken = null;
-      const csrfToken = req.headers['X-XSRF-TOKEN']
+      const csrfToken = req.headers['x-xsrf-token']
 	  const payload1 = req.headers['content-type']?.includes('application/json')
 	    ? await req.body
 	    : {};
