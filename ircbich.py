@@ -918,6 +918,8 @@ class IrcBich(BichBot):
             
         except Exception as e:
             print(f"Error in maybe_ai_command: {e}", flush=True)
+            import traceback
+            traceback.print_exc()
             self.send(f'PRIVMSG {communicationsLineName} :\x02AI Error\x02: {str(e)}\r\n')
             return True
 
