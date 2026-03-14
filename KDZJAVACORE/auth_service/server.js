@@ -431,12 +431,14 @@ export function createApp() {
     const username = typeof req.query.username === 'string' ? req.query.username : '';
     try {
       const bearerToken = req.user.accessToken || req.user.idToken || null;
+	  console.log("calling BE, bearer:", bearerToken);
       const result = await adminFetchFromGenericBackend(
         `/api/users?page=${Math.max(page, 0)}&size=${Math.max(size, 1)}&username=${encodeURIComponent(username)}`,
         'GET',
         null,
         bearerToken
       );
+	  console.log("ret status", result.status, "payload", result.payload);
       return res.status(result.status).json(result.payload);
     } catch (error) {
       console.error('Admin list users error:', error);
