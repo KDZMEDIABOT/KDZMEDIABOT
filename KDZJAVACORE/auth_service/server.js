@@ -508,7 +508,7 @@ export function createApp() {
   const userId = req.query.userId;
     try {
       const bearerToken = null;
-	  const response = await adminFetchFromGenericBackend(`/api/llm-endpoints${userId !== undefined ? `?userId=${userId}` : ''}`, 'POST', req.json(), bearerToken);
+	  const response = await adminFetchFromGenericBackend(`/api/llm-endpoints${userId !== undefined ? `?userId=${userId}` : ''}`, 'POST', req.body, bearerToken);
       const payload = await response.json().catch(() => ({}));
       return res.status(response.status).json(payload);
     } catch (error) {
