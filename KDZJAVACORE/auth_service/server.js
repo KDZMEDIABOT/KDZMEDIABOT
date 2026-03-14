@@ -173,7 +173,7 @@ export function createApp() {
   console.log(`FE URL: '${FRONTEND_URL}'`);
 
   app.use(cors({
-    origin: [FRONTEND_URL],//, 'http://localhost:9000', 'http://localhost:8080', 'http://127.0.0.1:9000', 'http://127.0.0.1:8080', 'http://rig1.lan:8088', 'http://rig1.lan:9000'],
+    origin: [FRONTEND_URL, 'http://rig1.lan:8088', 'http://rig1.lan:9000'],
     credentials: true,
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
