@@ -4,6 +4,7 @@ import java.util.function.Consumer;
 
 import javax.annotation.PostConstruct;
 import javax.persistence.EntityManager;
+import javax.persistence.criteria.CriteriaBuilder;
 import javax.transaction.Transactional;
 
 import org.hibernate.Hibernate;
@@ -104,21 +105,23 @@ public class BotAiService implements AiRequestCallback {
     	Session session = entityManager.unwrap(Session.class);
     	Transaction t = session.beginTransaction();
     	try {
-    		java.util.Optional<UserAccount> botUserOpt = userAccountRepository.findByUsername("KDZMEDIABOT");
-            if (botUserOpt.isEmpty()) {
-                logger.error("User KDZMEDIABOT not found");
+    		LlmEndpointCredentials credentialsOpt = 
+    				(LlmEndpointCredentials) entityManager.createQuery(
+    						"from LlmEndpointCredentials c, UserAccount u select c where u.current = c").getSingleResult();
+            if (credentialsOpt == null) {
+                logger.error("credentialsOpt.isEmpty()");
                 return null;
             }
-
-            UserAccount botUser = botUserOpt.get();
-            LlmEndpointCredentials credentials = botUser.getCurrentLlmEndpoint();
-            //Hibernate.initialize(credentials);
-            if (credentials == null) {
-                logger.error("User KDZMEDIABOT has no current LLM endpoint configured");
-                return null;
-            }
-
-            LlmConnection llmConnection = llmConnectionFactory.create(credentials);
+//
+//            UserAccount botUser = botUserOpt.get();
+//            LlmEndpointCredentials credentials = botUser.getCurrentLlmEndpoint();
+//            //Hibernate.initialize(credentials);
+//            if (credentials) {
+//                logger.error("User KDZMEDIABOT has no current LLM endpoint configured");
+//                return null;
+//            }
+//
+            LlmConnection llmConnection = llmConnectionFactory.create(credentialsOpt.get());
             t.commit();
             return llmConnection;
         } catch (Throwable e) {
