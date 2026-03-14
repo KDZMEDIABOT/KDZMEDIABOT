@@ -195,7 +195,7 @@ export function createApp() {
   app.use(cors({
     origin: [FRONTEND_URL, 'http://rig1.lan:8088', 'http://rig1.lan:9000'],
     credentials: true,
-    methods: ['GET', 'POST', 'OPTIONS'],
+    methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   }));
   app.use(express.json());
