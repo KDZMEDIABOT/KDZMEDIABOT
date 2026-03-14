@@ -72,7 +72,7 @@ public class LlmConnection {
     private String callOpenAICompatible(String model, String systemPrompt, String userPrompt, double temperature, int maxTokens) {
         String url = baseURL + "/v1/chat/completions";
         logger.trace(
-            "OpenAI-compatible request: url='{}', model='{}', hasSystemPrompt={}, userPromptLength={}, temperature={}, maxTokens={}, auth='Bearer {}'",
+            "OpenAI-compatible request: url='{}', model='{}', hasSystemPrompt={}, userPromptLength={}, temperature={}, maxTokens={}, auth='{}'",
             url,
             model,
             !isBlank(systemPrompt),

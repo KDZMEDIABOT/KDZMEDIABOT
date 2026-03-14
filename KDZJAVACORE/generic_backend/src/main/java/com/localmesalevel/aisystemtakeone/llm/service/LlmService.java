@@ -20,7 +20,7 @@ public class LlmService {
     @Value("${ai.temperature:0.7}")
     private double temperature;
 
-    @Value("${ai.max-tokens:2048}")
+    @Value("${ai.max-tokens:300}")
     private int maxTokens;
 
     @PostConstruct
