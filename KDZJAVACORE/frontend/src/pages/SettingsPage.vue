@@ -186,7 +186,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useQuasar, type QTableColumn } from 'quasar';
 import { useAuthStore } from '../stores/auth';
 
-const AUTH_SERVICE_URL = 'http://rig1.lan:8443';//(import.meta as ImportMeta & { env: { VITE_AUTH_SERVICE_URL?: string } }).env?.VITE_AUTH_SERVICE_URL || 'http://localhost:3001';
+const AUTH_SERVICE_URL = 'http://rig1.lan:3002';//(import.meta as ImportMeta & { env: { VITE_AUTH_SERVICE_URL?: string } }).env?.VITE_AUTH_SERVICE_URL || 'http://localhost:3001';
 
 type LlmApiType = 'OpenAICompatible' | 'AnthropicCompatible';
 

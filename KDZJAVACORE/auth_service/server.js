@@ -502,6 +502,21 @@ export function createApp() {
     }
   });
 
+  // Passthrough to Java backend for LLM endpoints
+  app.get('/api/llm-endpoints', async (req, res) => {
+    console.log('/api/llm-endpoints');
+	const userId = req.query.userId;
+    try {
+	  
+      const response = await fetch(buildGenericBackendUrl(`/api/llm-endpoints${userId !== undefined ? `?userId=${userId}` : ''}`));
+      const payload = await response.json().catch(() => ({}));
+      return res.status(response.status).json(payload);
+    } catch (error) {
+      console.error('LLM endpoints passthrough error:', error);
+      return res.status(502).json({ error: 'Backend unavailable' });
+    }
+  });
+
   app.get('/health', (req, res) => {
     res.json({ status: 'UP', service: 'auth' });
   });
