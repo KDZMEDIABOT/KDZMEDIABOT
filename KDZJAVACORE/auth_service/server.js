@@ -528,11 +528,11 @@ export function createApp() {
     try {
       const bearerToken = null;
       const csrfToken = req.headers['x-xsrf-token']
-	  const payload1 = req.headers['content-type']?.includes('application/json')
-	    ? await req.body
-	    : {};
-	  const response = await adminFetchFromGenericBackend2(`/api/llm-endpoints${userId !== undefined ? `?userId=${userId}` : ''}`, 'POST', 
-		JSON.stringify(payload1), bearerToken, csrfToken);
+      const payload1 = req.headers['content-type']?.includes('application/json')
+        ? await req.body
+        : {};
+      const response = await adminFetchFromGenericBackend2(`/api/llm-endpoints${userId !== undefined ? `?userId=${userId}` : ''}`, 'POST', 
+        JSON.stringify(payload1), bearerToken, csrfToken);
       const payload = await response.payload;
       return res.status(response.status).json(payload);
     } catch (error) {
@@ -541,9 +541,23 @@ export function createApp() {
     }
   });
 
+  // Passthrough to Java backend for LLM endpoints
+  app.options('/api/llm-endpoints', async (req, res) => {
+    console.log('/api/llm-endpoints OPTIONS');
+    const userId = req.query.userId;
+    try {
+      //const bearerToken = null;
+      //const csrfToken = req.headers['x-xsrf-token']
+      return res.status(200).json({});
+    } catch (error) {
+      console.error('LLM endpoints passthrough error:', error);
+      return res.status(502).json({ error: 'Backend unavailable' });
+    }
+  });
+
   app.get('/api/llm-endpoints', async (req, res) => {
-    console.log('/api/llm-endpoints');
-  const userId = req.query.userId;
+    console.log('/api/llm-endpoints GET');
+    const userId = req.query.userId;
     try {
     
       const response = await fetch(buildGenericBackendUrl(`/api/llm-endpoints${userId !== undefined ? `?userId=${userId}` : ''}`));

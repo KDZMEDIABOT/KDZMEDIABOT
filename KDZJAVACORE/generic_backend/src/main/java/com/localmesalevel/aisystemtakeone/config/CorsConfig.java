@@ -20,10 +20,11 @@ public class CorsConfig {
     	System.out.println("corsConfigurationSource() enter");
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of(
-            "http://rig1.lan:8088",
-            "http://rig1.lan:9000",
-            "http://localhost:9000",
-            "http://localhost:8080"
+                "http://rig1.lan:8088",
+                "http://rig1.lan:9000",
+                "http://rig1.lan:3002",
+                "http://localhost:9000",
+                "http://localhost:8080"
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
