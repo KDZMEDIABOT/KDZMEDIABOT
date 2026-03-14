@@ -555,6 +555,26 @@ export function createApp() {
     }
   });
 
+  // Passthrough to Java backend for LLM endpoints
+  app.put('/api/llm-endpoints/current', async (req, res) => {
+    console.log('/api/llm-endpoints/current PUT');
+    const userId = req.query.userId;
+    try {
+      const bearerToken = null;
+      const csrfToken = req.headers['x-xsrf-token']
+      const payload1 = req.headers['content-type']?.includes('application/json')
+        ? await req.body
+        : {};
+      const response = await adminFetchFromGenericBackend2(`/api/llm-endpoints/current${userId !== undefined ? `?userId=${userId}` : ''}`, 'PUT', 
+        JSON.stringify(payload1), bearerToken, csrfToken);
+      const payload = await response.payload;
+      return res.status(response.status).json(payload);
+    } catch (error) {
+      console.error('LLM endpoints passthrough error:', error);
+      return res.status(502).json({ error: 'Backend unavailable' });
+    }
+  });
+
   app.get('/api/llm-endpoints', async (req, res) => {
     console.log('/api/llm-endpoints GET');
     const userId = req.query.userId;
