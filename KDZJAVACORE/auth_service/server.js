@@ -185,9 +185,9 @@ export function createApp() {
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === 'production',
+      secure: false, // Allow HTTP (behind reverse proxy)
       httpOnly: true,
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      sameSite: 'lax', // Less strict for cross-origin
     },
   };
 
