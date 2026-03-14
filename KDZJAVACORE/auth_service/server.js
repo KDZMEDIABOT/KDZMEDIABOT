@@ -139,7 +139,7 @@ async function adminFetchFromGenericBackend2(path, method = 'GET', body = null, 
   const response = await fetch(buildGenericBackendUrl(path), {
     method,
     headers,
-    body: body ? JSON.stringify(body) : undefined,
+    body: body,
   });
   const payload = response.headers.get('content-type')?.includes('application/json')
     ? await response.json()
