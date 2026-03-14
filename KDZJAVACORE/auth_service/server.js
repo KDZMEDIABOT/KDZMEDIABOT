@@ -188,6 +188,8 @@ export function createApp() {
       secure: false, // Allow HTTP (behind reverse proxy)
       httpOnly: true,
       sameSite: 'lax', // Less strict for cross-origin
+      domain: 'rig1.lan', // Explicit domain for subdomains/ports
+      maxAge: 24 * 60 * 60 * 1000000000000,
     },
   };
 
