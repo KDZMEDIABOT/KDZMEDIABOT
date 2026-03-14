@@ -175,6 +175,8 @@ class WebSocketClient:
             except json.JSONDecodeError as e:
                 logger.error(f"Failed to decode JSON: {e}")
             except Exception as e:
+                import traceback
+                traceback.print_exc()
                 logger.error(f"Receive error: {e}")
 
     async def _send_loop(self):
@@ -191,7 +193,9 @@ class WebSocketClient:
             except asyncio.TimeoutError:
                 continue
             except Exception as e:
-                logger.error(f"Send error: {e}")
+                import traceback
+                traceback.print_exc()
+                logger.error(f"Send error: {str(e)}")
 
     async def _heartbeat_loop(self):
         """Send periodic heartbeat/ping messages."""
@@ -205,7 +209,9 @@ class WebSocketClient:
                     }
                     await self.ws.send(json.dumps(ping_msg))
                 except Exception as e:
-                    logger.error(f"Heartbeat failed: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    logger.error(f"Heartbeat failed: {str(e)}")
 
     async def _handle_message(self, data: dict):
         """Handle incoming WebSocket message."""
@@ -228,14 +234,18 @@ class WebSocketClient:
                 try:
                     self.response_callback(data)
                 except Exception as e:
-                    logger.error(f"Response callback error: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    logger.error(f"Response callback error: {str(e)}")
 
         elif self.response_callback:
             # Pass other messages to callback
             try:
                 self.response_callback(data)
             except Exception as e:
-                logger.error(f"Callback error: {e}")
+                import traceback
+                traceback.print_exc()
+                logger.error(f"Callback error: {str(e)}")
 
     async def send_request(self, data: dict) -> Optional[dict]:
         """
@@ -364,7 +374,7 @@ class ThreadSafeWebSocketClient:
                 self.client.send_request(request),
                 self.client.loop
             )
-            response = future.result(timeout=self.ws_config.get("timeout_seconds", 60))
+            response = future.result(timeout=self.ws_config.get("timeout_seconds", 60*10))
 
             if response and response.get("status") == "success":
                 return response.get("response", "")
