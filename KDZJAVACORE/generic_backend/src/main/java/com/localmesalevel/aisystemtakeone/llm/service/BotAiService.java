@@ -107,7 +107,8 @@ public class BotAiService implements AiRequestCallback {
     	try {
     		LlmEndpointCredentials credentialsOpt = 
     				(LlmEndpointCredentials) entityManager.createQuery(
-    						"from LlmEndpointCredentials c, UserAccount u select c where u.current = c and u.username = 'KDZMEDIABOT'").getSingleResult();
+    						"select c from LlmEndpointCredentials c, UserAccount u where u.current = c and u.username = 'KDZMEDIABOT'", 
+    						LlmEndpointCredentials.class).getSingleResult();
             if (credentialsOpt == null) {
                 logger.error("credentialsOpt.isEmpty()");
                 return null;
