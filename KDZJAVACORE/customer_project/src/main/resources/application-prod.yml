@@ -1,5 +1,9 @@
 # Production profile - hosted at rig1.lan, WITH blue-green deployment
 spring:
+  security:
+    enabled: false
+    csrf:
+        enabled: false
   config:
     activate:
       on-profile: prod
