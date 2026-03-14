@@ -238,6 +238,7 @@ export function createApp() {
     return next();
   }
 
+  /*
   // ----- Routes (Passport.js session + openid-client flow) -----
   app.get('/auth/login', ensureSecureCredentialTransport, async (req, res) => {
     const rememberParam = String(req.query.remember || '').toLowerCase();
@@ -267,7 +268,7 @@ export function createApp() {
       res.redirect(`${FRONTEND_URL}/#/login?error=config`);
     }
   });
-
+*/
   app.get('/auth/callback', ensureSecureCredentialTransport, async (req, res) => {
     if (!hasOidcConfig) {
       return res.redirect(`${FRONTEND_URL}/#/login?error=no_sso_config`);
@@ -332,7 +333,7 @@ export function createApp() {
         username: backendUser.username || username,
         email: `${backendUser.username || username}@local`,
         role: backendUser.role || 'maintainer',
-        accessToken: backendUser.accessToken || null,
+        accessToken: backendUser.accessToken || `local-${backendUser.id}-${Date.now()}',
         idToken: backendUser.idToken || null,
       };
       await loginSession(req, user);
