@@ -172,7 +172,7 @@ export function createApp() {
   const app = express();
 
   app.use(cors({
-    origin: [FRONTEND_URL, 'http://localhost:9000', 'http://localhost:8080', 'http://127.0.0.1:9000', 'http://127.0.0.1:8080'],
+    origin: [FRONTEND_URL, 'http://localhost:9000', 'http://localhost:8080', 'http://127.0.0.1:9000', 'http://127.0.0.1:8080', 'http://rig1.lan:8088', 'http://rig1.lan:9000'],
     credentials: true,
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
