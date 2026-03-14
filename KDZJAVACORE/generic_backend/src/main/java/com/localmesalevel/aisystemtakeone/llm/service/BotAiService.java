@@ -3,10 +3,14 @@ package com.localmesalevel.aisystemtakeone.llm.service;
 import java.util.function.Consumer;
 
 import javax.annotation.PostConstruct;
+import javax.transaction.Transactional;
 
+import org.hibernate.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.orm.jpa.vendor.HibernateJpaSessionFactoryBean;
 import org.springframework.stereotype.Service;
 
 import com.localmesalevel.aisystemtakeone.llm.model.LlmEndpointCredentials;
@@ -79,14 +83,14 @@ public class BotAiService implements AiRequestCallback {
                     return null;
                 });
     }
-
+    
     /**
      * Get LLM connection for user "KDZMEDIABOT".
      * Extracts credentials from the user's current_llm_endpoint.
      */
-    @org.springframework.transaction.annotation.Transactional
+    @Transactional
     public LlmConnection getKdmediabotConnection() {
-        try {
+    	try {
             java.util.Optional<UserAccount> botUserOpt = userAccountRepository.findByUsername("KDZMEDIABOT");
             if (botUserOpt.isEmpty()) {
                 logger.error("User KDZMEDIABOT not found");
