@@ -17,7 +17,7 @@ import org.springframework.security.web.SecurityFilterChain;
 public class ResourceServerSecurityConfig {
 
     @Bean
-    @Order(1)
+    @Order(10)
     @Conditional(JwtIssuerConfiguredCondition.class)
     public SecurityFilterChain resourceServerChain(HttpSecurity http) throws Exception {
         http
