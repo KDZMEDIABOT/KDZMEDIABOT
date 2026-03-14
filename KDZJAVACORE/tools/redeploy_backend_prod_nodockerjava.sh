@@ -54,7 +54,7 @@ HOST_IP="${HOST_IP:-host.docker.internal}"
 docker compose -f "${COMPOSE_FILE}" \
     --env-file "${PROD_ENV_FILE}" \
     up -d --remove-orphans \
-    postgres redis #auth_sidecar readingplus_mcp_sidecar
+    postgres redis auth_sidecar readingplus_mcp_sidecar frontend
 
 # Network setup: backend is outside Docker, so auth_sidecar needs to reach host
 # Pause briefly to let containers start
@@ -93,7 +93,7 @@ echo "${JVM_PID}" > /tmp/aisystem-backend-prod.pid
 # Wait for JVM to be ready
 echo ""
 echo "Waiting for backend to start..."
-BACKEND_URL="http://localhost:${HTTPD_SERVER_PORT}/api/workflow/health"
+BACKEND_URL="http://localhost:${HTTPD_SERVER_PORT}/api/health"
 AUTH_URL="http://localhost:${AUTH_PORT}/health"
 
 for i in $(seq 1 180); do

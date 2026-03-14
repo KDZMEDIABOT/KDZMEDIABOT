@@ -64,65 +64,65 @@ services:
   #  expose:
   #    - "8443"
 
-  #auth_sidecar:
-  #  build:
-  #    context: ./auth_service
-  #    dockerfile: Dockerfile
-  #  container_name: aisystem-auth-sidecar-prod
-  #  restart: unless-stopped
-  #  env_file:
-  #    - .env.prod
-  #  environment:
-  #    PORT: ${AUTH_SERVICE_HTTPD_PORT:-3002}
-  #    FRONTEND_URL: ${AUTH_SERVICE_FRONTEND_URL}
-  #    AUTH_SERVICE_URL: ${AUTH_SERVICE_PUBLIC_URL}
-  #    GENERIC_BACKEND_URL: http://backend:${HTTPD_SERVER_PORT:-8443}
-  #    SESSION_SECRET: ${AUTH_SERVICE_SESSION_SECRET}
-  #    AUTH_SESSION_STORE: ${AUTH_SESSION_STORE:-redis}
-  #    AUTH_SERVICE_REDIS_URL: ${AUTH_SERVICE_REDIS_URL:-redis://redis:6379}
-  #    AUTH_SERVICE_REDIS_PREFIX: ${AUTH_SERVICE_REDIS_PREFIX:-aisystem:auth:sess:}
-  #    ISSUER_URI: ${SSO_ISSUER_URI:-}
-  #    CLIENT_ID: ${SSO_CLIENT_ID:-}
-  #    CLIENT_SECRET: ${SSO_CLIENT_SECRET:-}
-  #  expose:
-  #    - "${AUTH_SERVICE_HTTPD_PORT:-3002}"
+  auth_sidecar:
+    build:
+      context: ./auth_service
+      dockerfile: Dockerfile
+    container_name: aisystem-auth-sidecar-prod
+    restart: unless-stopped
+    env_file:
+      - .env.prod
+    environment:
+      PORT: ${AUTH_SERVICE_HTTPD_PORT:-3002}
+      FRONTEND_URL: ${AUTH_SERVICE_FRONTEND_URL}
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_PUBLIC_URL}
+      GENERIC_BACKEND_URL: http://rig1.lan:${HTTPD_SERVER_PORT:-8443}
+      SESSION_SECRET: ${AUTH_SERVICE_SESSION_SECRET}
+      AUTH_SESSION_STORE: ${AUTH_SESSION_STORE:-redis}
+      AUTH_SERVICE_REDIS_URL: ${AUTH_SERVICE_REDIS_URL:-redis://redis:6379}
+      AUTH_SERVICE_REDIS_PREFIX: ${AUTH_SERVICE_REDIS_PREFIX:-aisystem:auth:sess:}
+      ISSUER_URI: ${SSO_ISSUER_URI:-}
+      CLIENT_ID: ${SSO_CLIENT_ID:-}
+      CLIENT_SECRET: ${SSO_CLIENT_SECRET:-}
+    expose:
+      - "${AUTH_SERVICE_HTTPD_PORT:-3002}"
+    depends_on:
+      redis:
+        condition: service_healthy
+    # backend:
+    #   condition: service_started
+
+  readingplus_mcp_sidecar:
+    image: python:3.11-slim
+    container_name: aisystem-readingplus-mcp-sidecar-prod
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    command: >
+      sh -lc "
+      pip install --no-cache-dir mcp==${READINGPLUS_MCP_PROTOCOL_VERSION:-1.1.0} mcp-server-ds==${READINGPLUS_MCP_SERVER_VERSION:-0.1.5} &&
+      exec mcp-server-ds
+      "
+    environment:
+      PYTHONUNBUFFERED: "1"
   #  depends_on:
   #    backend:
   #      condition: service_started
-  #    redis:
-  #      condition: service_healthy
 
-  #readingplus_mcp_sidecar:
-  #  image: python:3.11-slim
-  #  container_name: aisystem-readingplus-mcp-sidecar-prod
-  #  restart: unless-stopped
-  #  stdin_open: true
-  #  tty: true
-  #  command: >
-  #    sh -lc "
-  #    pip install --no-cache-dir mcp==${READINGPLUS_MCP_PROTOCOL_VERSION:-1.1.0} mcp-server-ds==${READINGPLUS_MCP_SERVER_VERSION:-0.1.5} &&
-  #    exec mcp-server-ds
-  #    "
-  #  environment:
-  #    PYTHONUNBUFFERED: "1"
-  #  depends_on:
-  #    backend:
-  #      condition: service_started
-
-  #frontend:
-  #  build:
-  #    context: ./frontend
-  #    dockerfile: Dockerfile
-  #    args:
-  #      VITE_AUTH_SERVICE_URL: ${AUTH_SERVICE_PUBLIC_URL}
-  #  container_name: aisystem-frontend-prod
-  #  restart: unless-stopped
-  #  ports:
-  #    - "${FRONTEND_HTTPD_PORT:-8088}:80"
-  #  depends_on:
-  #    - backend
-  #    - auth_sidecar
-  #    - readingplus_mcp_sidecar
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_AUTH_SERVICE_URL: ${AUTH_SERVICE_PUBLIC_URL}
+    container_name: aisystem-frontend-prod
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:${FRONTEND_HTTPD_PORT:-8088}:80"
+    depends_on:
+      - auth_sidecar
+      - readingplus_mcp_sidecar
+      #- backend
 
 volumes:
   redis_prod_data:
