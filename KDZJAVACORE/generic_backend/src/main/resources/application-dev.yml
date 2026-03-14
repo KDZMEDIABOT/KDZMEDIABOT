@@ -18,10 +18,10 @@ server:
 bluegreen:
   enabled: false
 
-# SSO: validate JWT Bearer tokens (from Passport.js auth service / IdP). Omit for dev without IdP.
-spring.security.oauth2.resourceserver:
-  jwt:
-    issuer-uri: ${SSO_ISSUER_URI:}
+# SSO disabled - all endpoints permit all
+# spring.security.oauth2.resourceserver:
+#   jwt:
+#     issuer-uri: ${SSO_ISSUER_URI:}
 
 logging:
   level:
