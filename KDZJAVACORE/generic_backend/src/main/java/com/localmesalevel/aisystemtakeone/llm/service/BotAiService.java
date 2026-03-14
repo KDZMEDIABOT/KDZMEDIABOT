@@ -3,13 +3,18 @@ package com.localmesalevel.aisystemtakeone.llm.service;
 import java.util.function.Consumer;
 
 import javax.annotation.PostConstruct;
+import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
 
 import org.hibernate.Session;
+import org.hibernate.ejb.HibernateEntityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.data.jpa.provider.HibernateUtils;
+import org.springframework.orm.hibernate5.support.HibernateDaoSupport;
 import org.springframework.orm.jpa.vendor.HibernateJpaSessionFactoryBean;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +29,7 @@ import com.localmesalevel.aisystemtakeone.websocket.BotWebSocketHandler;
  * Implements AiRequestCallback to receive requests from WebSocket.
  */
 @Service
+@Configuration
 public class BotAiService implements AiRequestCallback {
 
     private static final Logger logger = LoggerFactory.getLogger(BotAiService.class);
@@ -32,6 +38,8 @@ public class BotAiService implements AiRequestCallback {
     private final LlmService llmService;
     private final UserAccountRepository userAccountRepository;
     private final LlmConnectionFactory llmConnectionFactory;
+
+	private EntityManager entityManager;
 
     public BotAiService(@Lazy BotWebSocketHandler webSocketHandler,
                         LlmService llmService,
@@ -84,14 +92,20 @@ public class BotAiService implements AiRequestCallback {
                 });
     }
     
+    @Bean
+    public void setEntityManager(EntityManager entityManager) {
+    	this.entityManager = entityManager;
+    }
+    
     /**
      * Get LLM connection for user "KDZMEDIABOT".
      * Extracts credentials from the user's current_llm_endpoint.
      */
-    @Transactional
     public LlmConnection getKdmediabotConnection() {
+    	Session session = entityManager.unwrap(Session.class);
+    	session.beginTransaction();
     	try {
-            java.util.Optional<UserAccount> botUserOpt = userAccountRepository.findByUsername("KDZMEDIABOT");
+    		java.util.Optional<UserAccount> botUserOpt = userAccountRepository.findByUsername("KDZMEDIABOT");
             if (botUserOpt.isEmpty()) {
                 logger.error("User KDZMEDIABOT not found");
                 return null;
@@ -104,10 +118,14 @@ public class BotAiService implements AiRequestCallback {
                 return null;
             }
 
-            return llmConnectionFactory.create(credentials);
+            LlmConnection llmConnection = llmConnectionFactory.create(credentials);
+            
+            return llmConnection;
         } catch (Throwable e) {
             logger.error("Failed to create LLM connection for KDZMEDIABOT", e);
             return null;
+        } finally {
+        	session.close();
         }
     }
 }
