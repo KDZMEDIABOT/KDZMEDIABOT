@@ -13,11 +13,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('pages/SignInPage.vue'),
         meta: { public: true },
       },
-      {
+      /*{
         path: 'signup',
         component: () => import('pages/SignUpPage.vue'),
         meta: { public: true },
-      },
+      },*/
       {
         path: 'change-password',
         component: () => import('pages/ChangePasswordPage.vue'),
