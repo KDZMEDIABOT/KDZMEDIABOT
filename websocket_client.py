@@ -333,7 +333,9 @@ class ThreadSafeWebSocketClient:
             try:
                 self.response_handler(data)
             except Exception as e:
-                logger.error(f"Response handler error: {e}")
+                import traceback
+                traceback.print_exc()
+                logger.error(f"Response handler error: {str(e)}")
 
     def ai_request(self, query: str, user_id: str, platform: str,
                    channel: str, system_prompt: str = "") -> Optional[str]:
@@ -374,8 +376,10 @@ class ThreadSafeWebSocketClient:
                 return "Error: Request timed out or no response"
 
         except Exception as e:
-            logger.error(f"AI request exception: {e}")
-            return f"Error: {e}"
+            import traceback
+            traceback.print_exc()
+            logger.error(f"AI request exception: {str(e)}")
+            return f"Error: {str(e)}"
 
     def is_connected(self) -> bool:
         """Check if connected."""
