@@ -87,6 +87,8 @@ class BichBot:
                 print(f"{self}: AI command handler initialized")
             except Exception as e:
                 print(f"{self}: Failed to initialize AI command handler: {e}")
+        else:
+        	print(f"{self}: AI command handler skipped")
 
     def settings_by_key(self, key):
         return self.getconfig()[key]
