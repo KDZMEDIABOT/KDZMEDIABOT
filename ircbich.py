@@ -863,9 +863,12 @@ class IrcBich(BichBot):
 
     def maybe_ai_command(self, data, sent_by, communicationsLineName):
         """Handle !ai command for IRC."""
-        print(f"maybe_ai_command p1", flush=True)
-        if self.ai_handler is None or not self.ai_handler.is_available():
-            print(f"maybe_ai_command p2", flush=True)
+        print(f"maybe_ai_command p1: entered", flush=True)
+        if self.ai_handler is None:
+            print(f"maybe_ai_command p2.1: self.ai_handler is None", flush=True)
+            return False
+        if not self.ai_handler.is_available():
+            print(f"maybe_ai_command p2.2: not self.ai_handler.is_available()", flush=True)
             return False
         
         # Parse the message
