@@ -13,7 +13,7 @@ import { Issuer, generators } from 'openid-client';
 import cors from 'cors';
 import { pathToFileURL } from 'url';
 
-const PORT = Number(process.env.PORT) || 3001;
+const PORT = Number(process.env.PORT) || 3002;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:9000';
 const ISSUER_URI = process.env.ISSUER_URI || process.env.SSO_ISSUER_URI;
 const CLIENT_ID = process.env.CLIENT_ID || process.env.SSO_CLIENT_ID;
@@ -23,7 +23,7 @@ const AUTH_SESSION_STORE = (process.env.AUTH_SESSION_STORE || 'redis').toLowerCa
 const AUTH_SERVICE_REDIS_URL = process.env.AUTH_SERVICE_REDIS_URL || 'redis://redis:6379';
 const AUTH_SERVICE_REDIS_PREFIX = process.env.AUTH_SERVICE_REDIS_PREFIX || 'aisystem:auth:sess:';
 const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || `http://localhost:${PORT}`;
-const GENERIC_BACKEND_URL = process.env.GENERIC_BACKEND_URL || 'http://backend:8080';
+const GENERIC_BACKEND_URL = process.env.GENERIC_BACKEND_URL || 'http://rig1.lan:8080';
 const REMEMBER_ME_MAX_AGE_MS = Number(process.env.REMEMBER_ME_MAX_AGE_MS) || (30 * 24 * 60 * 60 * 1000);
 const SERVER_PROFILE = (process.env.SERVER_PROFILE || '').toLowerCase();
 const IS_DEV_PROFILE = SERVER_PROFILE === 'dev';
@@ -170,9 +170,10 @@ function applyRememberMeCookie(req, rememberMe) {
 
 export function createApp() {
   const app = express();
+  console.log(`FE URL: '${FRONTEND_URL}'`);
 
   app.use(cors({
-    origin: [FRONTEND_URL, 'http://localhost:9000', 'http://localhost:8080', 'http://127.0.0.1:9000', 'http://127.0.0.1:8080', 'http://rig1.lan:8088', 'http://rig1.lan:9000'],
+    origin: [FRONTEND_URL],//, 'http://localhost:9000', 'http://localhost:8080', 'http://127.0.0.1:9000', 'http://127.0.0.1:8080', 'http://rig1.lan:8088', 'http://rig1.lan:9000'],
     credentials: true,
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

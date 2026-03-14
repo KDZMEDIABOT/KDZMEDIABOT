@@ -16,7 +16,7 @@ RUN chown -R app:app /app
 
 USER app
 
-EXPOSE 3001
-ENV PORT=3001
+EXPOSE 3002
+ENV PORT=3002
 ENV NODE_ENV=production
 CMD ["node", "server.js"]
