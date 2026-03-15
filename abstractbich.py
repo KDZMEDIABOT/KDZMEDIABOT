@@ -525,7 +525,7 @@ class BichBot:
         self.sendmsg(to_addr, f"{botnick} курс - prints financial report")
         self.sendmsg(to_addr, f"!!q <searchstr> or !!q <quoteid> - search quotes")
         self.sendmsg(to_addr, f"!!aq <quotetext> - add a quote")
-        self.sendmsg(to_addr, f"!ai ask an AI")
+        self.sendmsg(to_addr, f"!ai talk with an AI")
         self.sendmsg(to_addr, f"!help - prints help")
 
     def sendmsg(self, to_addr, msg):
