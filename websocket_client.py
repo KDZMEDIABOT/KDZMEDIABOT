@@ -121,9 +121,9 @@ class WebSocketClient:
 
             # Auto-reconnect with backoff
             self.reconnect_count += 1
-            if self.reconnect_count > self.max_reconnect_attempts:
-                logger.error(f"Max reconnect attempts ({self.max_reconnect_attempts}) reached")
-                break
+            #if self.reconnect_count > self.max_reconnect_attempts:
+            #    logger.error(f"Max reconnect attempts ({self.max_reconnect_attempts}) reached")
+            #    break
 
             delay = min(self.reconnect_delay * self.reconnect_count, 60)
             logger.info(f"Reconnecting in {delay}s (attempt {self.reconnect_count})...")

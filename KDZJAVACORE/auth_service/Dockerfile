@@ -12,9 +12,9 @@ RUN npm install --omit=dev && \
     npm cache clean --force
 
 COPY server.js ./
-RUN chown -R app:app /app
+#RUN chown -R app:app /app
 
-USER app
+#USER app
 
 EXPOSE 3002
 ENV PORT=3002

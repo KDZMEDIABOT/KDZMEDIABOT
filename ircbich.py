@@ -864,21 +864,16 @@ class IrcBich(BichBot):
     def maybe_ai_command(self, data, sent_by, communicationsLineName):
         """Handle !ai command for IRC."""
         print(f"maybe_ai_command p1: entered", flush=True)
-        if self.ai_handler is None:
-            print(f"maybe_ai_command p2.1: self.ai_handler is None", flush=True)
-            return False
-        if not self.ai_handler.is_available():
-            print(f"maybe_ai_command p2.2: not self.ai_handler.is_available()", flush=True)
-            return False
-        
+
         # Parse the message
         if 'PRIVMSG' not in data:
             print(f"maybe_ai_command p3", flush=True)
             return False
         
         # Check for !ai command
-        if ':!ai ' not in data and ' :!ai' not in data:
-            print(f"maybe_ai_command p4", flush=True)
+        if ( ':!ai ' not in data and ' :!ai' not in data and 
+             ':!ии ' not in data and ' :!ии' not in data ):
+            print(f"maybe_ai_command p4, data='{data}'", flush=True)
             return False
         
         try:
@@ -887,6 +882,10 @@ class IrcBich(BichBot):
             msg_start = data.find(' :!ai')
             if msg_start == -1:
                 msg_start = data.find(':!ai ')
+            if msg_start == -1:
+                msg_start = data.find(' :!ии')
+            if msg_start == -1:
+                msg_start = data.find(':!ии ')
             if msg_start == -1:
                 return False
             
@@ -898,6 +897,18 @@ class IrcBich(BichBot):
             
             # Get user info
             name = sent_by.split('!')[0] if '!' in sent_by else sent_by
+
+            if self.ai_handler is None:
+            	print(f"maybe_ai_command p2.1: self.ai_handler is None", flush=True)
+            	import random
+            	self.send(f'PRIVMSG {communicationsLineName} :Error: ai_handler isNone: cannot connect to Java websocket server. {random.random()}\r\n')
+            	return True
+            if not self.ai_handler.is_available():
+            	print(f"maybe_ai_command p2.2: not self.ai_handler.is_available()", flush=True)
+            	import random
+            	self.send(f'PRIVMSG {communicationsLineName} :Error: ai_handler is not available: cannot connect to Java websocket server. {random.random()}\r\n')
+            	return True
+        
             
             # Call AI handler
             response = self.ai_handler.handle_ai_command(

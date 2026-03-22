@@ -190,7 +190,52 @@ function applyRememberMeCookie(req, rememberMe) {
 
 export function createApp() {
   const app = express();
-  console.log(`FE URL: '${FRONTEND_URL}'`);
+  // Replace with your frontend origin
+  const FRONTEND_ORIGIN = FRONTEND_URL;
+  console.log(`FRONTEND_URL: ${FRONTEND_URL}`)
+
+// === CORS Middleware for Preflight & Actual Requests ===
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+
+  //if (origin && origin === FRONTEND_ORIGIN) {
+    res.setHeader('Access-Control-Allow-Origin', FRONTEND_ORIGIN);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader(
+      'Access-Control-Allow-Methods',
+      'GET,POST,PUT,DELETE,OPTIONS'
+    );
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'Content-Type,Authorization'
+    );
+  //}
+
+  // Handle preflight OPTIONS request
+  if (req.method === 'OPTIONS') {
+    // Must return 200 with body or empty JSON, not 204
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader(
+      'Access-Control-Allow-Methods',
+      'GET,POST,PUT,DELETE,OPTIONS'
+    );
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'Content-Type,Authorization'
+    );
+    return res.status(200).json({ ok: true });
+    // Force 200 and prevent Express from auto-204
+    //res.statusCode = 200;
+    //res.setHeader('Content-Type', 'application/json');
+    // **Force 200 and bypass Express 204 behavior**
+    //res.writeHead(200, { 'Content-Type': 'application/json' });
+    //return res.end(JSON.stringify({ ok: true }));
+  }
+
+  next();
+});
+
 
   app.use(cors({
     origin: [FRONTEND_URL, 'http://rig1.lan:8088', 'http://rig1.lan:9000'],
@@ -199,6 +244,7 @@ export function createApp() {
     allowedHeaders: ['Content-Type', 'Authorization'],
   }));
   app.use(express.json());
+
 
   const sessionConfig = {
     secret: SESSION_SECRET,
@@ -332,7 +378,7 @@ export function createApp() {
       res.redirect(`${FRONTEND_URL}/#/login?error=auth_failed`);
     }
   });
-
+  
   app.post('/api/auth/login', ensureSecureCredentialTransport, async (req, res) => {
     const username = typeof req.body?.username === 'string' ? req.body.username.trim() : '';
     const password = typeof req.body?.password === 'string' ? req.body.password : '';
@@ -359,7 +405,20 @@ export function createApp() {
       await loginSession(req, user);
       applyRememberMeCookie(req, rememberMe);
       await saveSession(req);
-      return res.json({ ok: true, user, rememberMe });
+      
+          res.setHeader('Access-Control-Allow-Origin', FRONTEND_URL);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader(
+      'Access-Control-Allow-Methods',
+      'GET,POST,PUT,DELETE,OPTIONS'
+    );
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'Content-Type,Authorization'
+    );
+
+      
+      return res.status(200).json({ ok: true, user, rememberMe });
     } catch (error) {
       const backendAuthUrl = `${GENERIC_BACKEND_URL}/api/users/authenticate`;
       // Keep raw error object in logs for full diagnostics (including socket/IP details).

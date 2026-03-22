@@ -1,26 +1,4 @@
 # Production profile - hosted at rig1.lan, WITH blue-green deployment
-spring:
-  mvc:
-    log-request-details: true
-    log-resolved-exception: true
-  security:
-    enabled: false
-  config:
-    activate:
-      on-profile: prod
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: false
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-  flyway:
-    enabled: true
-    locations: classpath:db/migration
-
-server:
-  port: ${HTTPD_SERVER_PORT:8443}
 
 # Blue-green deployment enabled for production
 bluegreen:

@@ -35,9 +35,11 @@ public class BotWebSocketHandler extends TextWebSocketHandler {
     private final ScheduledExecutorService heartbeatExecutor = Executors.newSingleThreadScheduledExecutor();
 
     public BotWebSocketHandler(ObjectMapper objectMapper) {
+        logger.info("Bot WebSocket handler starting");
         this.objectMapper = objectMapper;
         // Start heartbeat checker
-        heartbeatExecutor.scheduleAtFixedRate(this::checkHeartbeats, 30, 30, TimeUnit.SECONDS);
+        heartbeatExecutor.scheduleAtFixedRate(this::checkHeartbeats, 5, 5, TimeUnit.SECONDS);
+        logger.info("Bot WebSocket handler started");
     }
 
     public void setAiRequestCallback(AiRequestCallback callback) {
@@ -190,14 +192,33 @@ public class BotWebSocketHandler extends TextWebSocketHandler {
     private void checkHeartbeats() {
         Instant timeoutThreshold = Instant.now().minusSeconds(120);
         for (Map.Entry<String, SessionInfo> entry : sessionInfo.entrySet()) {
+            String sessionId = entry.getKey();
+            WebSocketSession session = sessions.get(sessionId);
+            if (session == null || !session.isOpen()) {
+                continue;
+            }
+            try {
+                // Send keepalive ping to all connected clients every 30 seconds
+                ObjectNode keepalive = objectMapper.createObjectNode();
+                keepalive.put("type", "ping");
+                keepalive.put("timestamp", Instant.now().getEpochSecond());
+                session.sendMessage(new TextMessage(keepalive.toString()));
+                logger.debug("Keepalive sent to session {}", sessionId);
+            } catch (IOException e) {
+                logger.warn("Failed to send keepalive to session {}, closing", sessionId, e);
+                try {
+                    session.close(CloseStatus.SESSION_NOT_RELIABLE);
+                } catch (IOException ignored) {
+                }
+                continue;
+            }
+
+            // Close sessions with no activity for 120 seconds
             if (entry.getValue().lastActivity.isBefore(timeoutThreshold)) {
-                WebSocketSession session = sessions.get(entry.getKey());
-                if (session != null && session.isOpen()) {
-                    try {
-                        session.close(CloseStatus.SESSION_NOT_RELIABLE);
-                    } catch (IOException e) {
-                        logger.debug("Error closing stale session", e);
-                    }
+                try {
+                    session.close(CloseStatus.SESSION_NOT_RELIABLE);
+                } catch (IOException e) {
+                    logger.debug("Error closing stale session", e);
                 }
             }
         }
