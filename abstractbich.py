@@ -77,6 +77,7 @@ class BichBot:
         self.measurementRur2 = self.gnome1rur
         self.quotes_array = []
         self.quotes_array1 = []
+        self.aiContext = []
 
         # Initialize AI command handler if available
         self.ai_handler = None
@@ -525,7 +526,8 @@ class BichBot:
         self.sendmsg(to_addr, f"{botnick} курс - prints financial report")
         self.sendmsg(to_addr, f"!!q <searchstr> or !!q <quoteid> - search quotes")
         self.sendmsg(to_addr, f"!!aq <quotetext> - add a quote")
-        self.sendmsg(to_addr, f"!ai talk with an AI")
+        self.sendmsg(to_addr, f"!ai or !ии talk with an AI")
+        self.sendmsg(to_addr, f"!к or !k translate from rhfrjpz,hbi")
         self.sendmsg(to_addr, f"!help - prints help")
 
     def sendmsg(self, to_addr, msg):

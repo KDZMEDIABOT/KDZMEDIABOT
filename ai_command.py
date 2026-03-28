@@ -106,8 +106,8 @@ class AiCommandHandler:
         """Check if AI command is available (WebSocket connected)."""
         return self.ws_client.is_connected()
 
-    def handle_ai_command(self, query: str, user_id: str, channel: str,
-                         platform: str) -> str:
+    def handle_ai_command(self, user_id: str, channel: str,
+                         platform: str, aiContext) -> str:
         """
         Handle the !ai /ai command.
 
@@ -123,9 +123,6 @@ class AiCommandHandler:
         # Check for prompt file reload
         self._check_prompt_reload()
 
-        if not query.strip():
-            return "Error: Please provide a question. Usage: !ai <your question>"
-
         if not self.is_available():
             return ("Error: AI service is not available. "
                    "WebSocket connection to backend is not established.")
@@ -135,11 +132,11 @@ class AiCommandHandler:
         # Send request and get response
         try:
             response = self.ws_client.ai_request(
-                query=query,
                 user_id=user_id,
                 platform=platform,
                 channel=channel,
-                system_prompt=self.system_prompt
+                system_prompt=self.system_prompt,
+                ai_context=aiContext
             )
 
             if response is None:

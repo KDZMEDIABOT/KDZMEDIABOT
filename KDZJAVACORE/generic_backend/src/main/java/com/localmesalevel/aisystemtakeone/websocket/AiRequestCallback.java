@@ -1,6 +1,9 @@
 package com.localmesalevel.aisystemtakeone.websocket;
 
+import java.util.Iterator;
 import java.util.function.Consumer;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 /**
  * Callback interface for AI requests from WebSocket.
@@ -25,8 +28,8 @@ public interface AiRequestCallback {
             String channel,
             String platform,
             String systemPrompt,
-            String userQuery,
             Consumer<String> onSuccess,
-            Consumer<String> onError
+            Consumer<String> onError,
+            Iterator<JsonNode> aiContext
     );
 }

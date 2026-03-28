@@ -5,7 +5,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import javax.annotation.PostConstruct;
+
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -39,15 +45,18 @@ public class LlmService {
     public CompletableFuture<String> processBotQuery(
             com.localmesalevel.aisystemtakeone.llm.service.LlmConnection llmConnection,
             String systemPrompt,
-            String userQuery) {
+            Iterator<JsonNode> aiContext) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                logger.debug("Calling LLM with system prompt [{} chars] and user query [{} chars]",
-                        systemPrompt.length(), userQuery.length());
+                logger.debug("Calling LLM with system prompt [{} chars] and user query [{} length]",
+                        systemPrompt.length(), aiContext.hasNext()?1:0);
 
+                List<String> aiContextAsList = new LinkedList<String>();
+                while(aiContext.hasNext())
+                	aiContextAsList.add(aiContext.next().asText(""));
                 return llmConnection.complete(
                         systemPrompt,
-                        userQuery,
+                        aiContextAsList.iterator(),
                         temperature,
                         maxTokens
                 );

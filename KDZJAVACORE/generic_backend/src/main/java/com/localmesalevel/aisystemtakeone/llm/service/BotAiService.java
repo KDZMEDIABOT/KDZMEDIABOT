@@ -1,5 +1,6 @@
 package com.localmesalevel.aisystemtakeone.llm.service;
 
+import java.util.Iterator;
 import java.util.function.Consumer;
 
 import javax.annotation.PostConstruct;
@@ -22,6 +23,7 @@ import org.springframework.orm.hibernate5.support.HibernateDaoSupport;
 import org.springframework.orm.jpa.vendor.HibernateJpaSessionFactoryBean;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.localmesalevel.aisystemtakeone.llm.model.LlmEndpointCredentials;
 import com.localmesalevel.aisystemtakeone.user.model.UserAccount;
 import com.localmesalevel.aisystemtakeone.user.repository.UserAccountRepository;
@@ -69,9 +71,9 @@ public class BotAiService implements AiRequestCallback {
             String channel,
             String platform,
             String systemPrompt,
-            String userQuery,
             Consumer<String> onSuccess,
-            Consumer<String> onError) {
+            Consumer<String> onError,
+            Iterator<JsonNode> aiContext) {
 
         logger.debug("Processing AI request {} from {} on {}", requestId, userId, platform);
 
@@ -84,7 +86,7 @@ public class BotAiService implements AiRequestCallback {
         }
 
         // Process in async way using CompletableFuture
-        llmService.processBotQuery(llmConnection, systemPrompt, userQuery)
+        llmService.processBotQuery(llmConnection, systemPrompt, aiContext)
                 .thenAccept(response -> {
                     logger.info("AI request {} completed, response length: {}",
                             requestId, response.length());

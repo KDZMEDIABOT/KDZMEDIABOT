@@ -39,11 +39,11 @@ public class LlmConnection {
         this.objectMapper = objectMapper;
     }
 
-    public String complete(String prompt) {
+    public String complete(Iterator<String> prompt) {
         return complete(null, prompt, 0.2, 1024);
     }
 
-    public String complete(String systemPrompt, String userPrompt, double temperature, int maxTokens) {
+    public String complete(String systemPrompt, Iterator<String> aiContext, double temperature, int maxTokens) {
         String effectiveModel = resolveEffectiveModel(model);
         logger.trace(
             "LlmConnection.complete called: apiType='{}', requestedModel='{}', effectiveModel='{}', baseURL='{}', hasSystemPrompt={}, userPromptLength={}, temperature={}, maxTokens={}",
@@ -52,31 +52,31 @@ public class LlmConnection {
             effectiveModel,
             baseURL,
             !isBlank(systemPrompt),
-            userPrompt == null ? 0 : userPrompt.length(),
+            !aiContext.hasNext() ? 0 : 1,
             temperature,
             maxTokens
         );
-        if (isBlank(userPrompt)) {
+        if (!aiContext.hasNext()) {
             throw new IllegalArgumentException("User prompt is required");
         }
 
         if (llmApiType == LlmApiType.OpenAICompatible) {
-            return callOpenAICompatible(effectiveModel, systemPrompt, userPrompt.trim(), temperature, maxTokens);
+            return callOpenAICompatible(effectiveModel, systemPrompt, aiContext, temperature, maxTokens);
         }
         if (llmApiType == LlmApiType.AnthropicCompatible) {
-            return callAnthropicCompatible(effectiveModel, systemPrompt, userPrompt.trim(), temperature, maxTokens);
+            return callAnthropicCompatible(effectiveModel, systemPrompt, aiContext, temperature, maxTokens);
         }
         throw new IllegalArgumentException("Unsupported API type: " + llmApiType);
     }
 
-    private String callOpenAICompatible(String model, String systemPrompt, String userPrompt, double temperature, int maxTokens) {
+    private String callOpenAICompatible(String model, String systemPrompt, Iterator<String> aiContext, double temperature, int maxTokens) {
         String url = baseURL + "/v1/chat/completions";
         logger.trace(
             "OpenAI-compatible request: url='{}', model='{}', hasSystemPrompt={}, userPromptLength={}, temperature={}, maxTokens={}, auth='{}'",
             url,
             model,
             !isBlank(systemPrompt),
-            userPrompt.length(),
+            aiContext.hasNext()?1:0,
             temperature,
             Math.max(maxTokens, 1),
             maskSecret(apiKey)
@@ -89,8 +89,10 @@ public class LlmConnection {
         if (!isBlank(systemPrompt)) {
             messages.add(Map.of("role", "system", "content", systemPrompt.trim()));
         }
-        messages.add(Map.of("role", "user", "content", userPrompt));
-
+        while(aiContext.hasNext()) {
+        	messages.add(Map.of("role", "user", "content", aiContext.next()));
+        }
+        
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("model", model);
         body.put("messages", messages);
@@ -129,14 +131,14 @@ public class LlmConnection {
         }
     }
 
-    private String callAnthropicCompatible(String model, String systemPrompt, String userPrompt, double temperature, int maxTokens) {
+    private String callAnthropicCompatible(String model, String systemPrompt, Iterator<String> aiContext, double temperature, int maxTokens) {
         String url = baseURL + "/v1/messages";
         logger.trace(
             "Anthropic-compatible request: url='{}', model='{}', hasSystemPrompt={}, userPromptLength={}, temperature={}, maxTokens={}, auth='x-api-key:{}', anthropic-version='{}'",
             url,
             model,
             !isBlank(systemPrompt),
-            userPrompt.length(),
+            aiContext.hasNext()?1:0,
             temperature,
             Math.max(maxTokens, 1),
             maskSecret(apiKey),
@@ -147,7 +149,9 @@ public class LlmConnection {
         headers.set("x-api-key", apiKey);
         headers.set("anthropic-version", ANTHROPIC_VERSION);
 
-        List<Map<String, String>> messages = List.of(Map.of("role", "user", "content", userPrompt));
+        List<Map<String, String>> messages = List.of();
+        while(aiContext.hasNext())
+        	messages.add(Map.of("role", "user", "content", aiContext.next()));
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("model", model);
         body.put("messages", messages);

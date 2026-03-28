@@ -48,6 +48,8 @@ except ImportError:
 from abstractbich import BichBot
 
 
+AI_CONTEXT_SIZE=40
+
 class IrcBich(BichBot):
 
     databuf = b''
@@ -235,6 +237,11 @@ class IrcBich(BichBot):
     # Function shortening of ic.self.send.  
     def send(self, msg):
         print(f"TX: {msg}")
+        if msg is not None: 
+            self.aiContext.append(f'AISystem KDZBot sent: {msg}')
+            if len(self.aiContext)>AI_CONTEXT_SIZE:
+                self.aiContext=self.aiContext[1:]
+
         retval = self.irc_socket.send(bytes(msg, 'utf-8'))
         return retval
 
@@ -431,6 +438,11 @@ class IrcBich(BichBot):
                         sys.stderr.flush()
 
                     where_message = "unknown_where"
+                    
+                    if message is not None: 
+                        self.aiContext.append(f'{sent_by} sent via {communicationsLineName}: {message}')
+                        if len(self.aiContext)>AI_CONTEXT_SIZE:
+                            self.aiContext=self.aiContext[1:]
 
                     if self.enableother1 or self.connection_setting_or_None("enable_krako_translation"):
                         # print(__file__, "krako test")
@@ -912,10 +924,10 @@ class IrcBich(BichBot):
             
             # Call AI handler
             response = self.ai_handler.handle_ai_command(
-                query=query,
                 user_id=name,
                 channel=communicationsLineName,
-                platform='irc'
+                platform='irc',
+                self.aiContext
             )
             
             # Truncate for IRC (max ~400 chars to be safe)

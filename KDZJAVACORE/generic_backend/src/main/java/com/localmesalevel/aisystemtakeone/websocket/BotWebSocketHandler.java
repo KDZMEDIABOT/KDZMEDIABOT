@@ -12,6 +12,10 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -128,9 +132,9 @@ public class BotWebSocketHandler extends TextWebSocketHandler {
         String channel = json.has("channel") ? json.get("channel").asText() : "unknown";
         String platform = json.has("platform") ? json.get("platform").asText() : "unknown";
         String systemPrompt = json.has("system_prompt") ? json.get("system_prompt").asText() : "";
-        String userQuery = json.has("user_query") ? json.get("user_query").asText() : "";
+        Iterator<JsonNode> aiContext = json.has("ai_context") ? json.get("ai_context").iterator() : new LinkedList<JsonNode>().iterator();
 
-        if (userQuery.isEmpty()) {
+        if (!aiContext.hasNext()) {
             WebSocketSession session = sessions.get(sessionId);
             if (session != null) {
                 sendError(session, "empty_query", "User query is empty");
@@ -138,14 +142,14 @@ public class BotWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
-        logger.info("AI request {} from {} on {}: {}",
-                requestId, userId, platform, userQuery.substring(0, Math.min(100, userQuery.length())));
+        logger.info("AI request {} from {} on {}",
+                requestId, userId, platform);
 
         Consumer<String> onSuccess = response -> sendAiResponse(sessionId, requestId, response, null);
         Consumer<String> onError = error -> sendAiResponse(sessionId, requestId, null, error);
 
         aiRequestCallback.onAiRequest(requestId, userId, channel, platform,
-                systemPrompt, userQuery, onSuccess, onError);
+                systemPrompt, onSuccess, onError, aiContext);
     }
 
     private void sendAiResponse(String sessionId, String requestId, String response, String error) {

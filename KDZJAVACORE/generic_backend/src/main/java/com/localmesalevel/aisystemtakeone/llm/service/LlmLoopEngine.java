@@ -105,9 +105,10 @@ public class LlmLoopEngine {
                     loopPrompt.length(),
                     conversationState.length()
                 );
+                final Iterator<String> aiContext = List.of(loopPrompt).iterator();
                 String llmRawResponse = llmConnection.complete(
                     systemPrompt,
-                    loopPrompt,
+                    aiContext,
                     DEFAULT_TEMPERATURE,
                     DEFAULT_MAX_TOKENS
                 );
