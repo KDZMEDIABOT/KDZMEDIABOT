@@ -5,27 +5,18 @@ import java.util.function.Consumer;
 
 import javax.annotation.PostConstruct;
 import javax.persistence.EntityManager;
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.transaction.Transactional;
 
-import org.hibernate.Hibernate;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
-import org.hibernate.ejb.HibernateEntityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.data.jpa.provider.HibernateUtils;
-import org.springframework.orm.hibernate5.support.HibernateDaoSupport;
-import org.springframework.orm.jpa.vendor.HibernateJpaSessionFactoryBean;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.localmesalevel.aisystemtakeone.llm.model.LlmEndpointCredentials;
-import com.localmesalevel.aisystemtakeone.user.model.UserAccount;
 import com.localmesalevel.aisystemtakeone.user.repository.UserAccountRepository;
 import com.localmesalevel.aisystemtakeone.websocket.AiRequestCallback;
 import com.localmesalevel.aisystemtakeone.websocket.BotWebSocketHandler;

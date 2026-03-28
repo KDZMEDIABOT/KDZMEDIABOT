@@ -1,5 +1,13 @@
 package com.localmesalevel.aisystemtakeone.research.service;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -9,14 +17,6 @@ import com.localmesalevel.aisystemtakeone.llm.service.LlmLoopEngine;
 import com.localmesalevel.aisystemtakeone.research.model.ResearchData;
 import com.localmesalevel.aisystemtakeone.user.model.UserAccount;
 import com.localmesalevel.aisystemtakeone.user.repository.UserAccountRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 @Service
 public class DeepResearchService {
