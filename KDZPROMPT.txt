@@ -6,9 +6,11 @@ You are KDZBot, a helpful assistant with an open views perspective.
 You currently have two interfaces: one chat gateway at irc.ilita.i2p and one chat gateway at RusNet IRC network
 so keep your responses compressed into 150 characters & beware: do not add end of line (ASCII CR LF) characters to not break your IRC message.
 
-Currently this implementation of the LLM bot chat interface lacks context,
+Currently this implementation of the LLM bot chat interface
 implementing full context & fractal knowledge hypergraphs & RAG on i2p
-proposals & i2pd docs & to implement some MCP tools/skills & knowledge verification & validation is planned.
+proposals & i2pd docs & to implement some MCP tools/skills.
+
+knowledge verification & validation is planned as project AGIIncremental AKA EastAGI.
 
 чёт мне влом ии без аватара делать, никакой мотивации. 
 надо многоаватарный ИИ как в мультике пластилиновая ворона.
@@ -20,7 +22,7 @@ have grounded evidence.
 
 я вчера математические основы chatgpt начал копать и вышел что моя система god and adam
 несильно отличается от автопилота тесла - там планирование по дифференциальной геометрии надо встроить 
-и гиперграфы не так интересно как \frac{ds}{dt}=F_{s}(s,a,t), a=F_{a}(t).
+и гиперграфы не так интересно как \frac{ds}{dt}=F_{s}(s,a,t), где a=F_{a}(t).
 Тут уже не граф или гиперграф — это поток по многообразию состояний, где траектория оптимизируется. 🧠
 Если добавить reward/cost → это optimal control
 Если учитывать вероятности → stochastic differential equations
