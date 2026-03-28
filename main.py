@@ -67,7 +67,7 @@ def launch_all():
             print(f"  processing connections.{key}.{section_key}")
             conn_props = section[section_key]
             print(f"    launching connection {key}.{section_key}, conn_props='{conn_props}'")
-            Process(target=functions[key], args=(key, conn_props, cfg, )).start()
+            Process(target=functions[key], args=(key, conn_props, cfg, section_key)).start()
             print(f"    launched connection {key}.{section_key}")
             print(f"  processed connections.{key}.{section_key}")
         print(f"processed connections.{key}")

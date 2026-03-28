@@ -348,7 +348,7 @@ class ThreadSafeWebSocketClient:
                 logger.error(f"Response handler error: {str(e)}")
 
     def ai_request(self: str, user_id: str, platform: str,
-                   channel: str, system_prompt: str = "", ai_context) -> Optional[str]:
+                   channel: str, system_prompt: str, ai_context) -> Optional[str]:
         """
         Send AI request and wait for response.
 

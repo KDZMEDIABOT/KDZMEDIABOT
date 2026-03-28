@@ -107,7 +107,7 @@ class AiCommandHandler:
         return self.ws_client.is_connected()
 
     def handle_ai_command(self, user_id: str, channel: str,
-                         platform: str, aiContext) -> str:
+                         platform: str, ai_context) -> str:
         """
         Handle the !ai /ai command.
 
@@ -127,7 +127,7 @@ class AiCommandHandler:
             return ("Error: AI service is not available. "
                    "WebSocket connection to backend is not established.")
 
-        logger.info(f"AI request from {user_id} on {platform}/{channel}: {query[:100]}...")
+        logger.info(f"AI request from {user_id} on {platform}/{channel}...")
 
         # Send request and get response
         try:
@@ -136,7 +136,7 @@ class AiCommandHandler:
                 platform=platform,
                 channel=channel,
                 system_prompt=self.system_prompt,
-                ai_context=aiContext
+                ai_context=ai_context
             )
 
             if response is None:

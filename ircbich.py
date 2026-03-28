@@ -58,8 +58,8 @@ class IrcBich(BichBot):
     irc_socket = None
 
 
-    def __init__(self, settings_key, connection_settings: dict, config):
-        super(IrcBich, self).__init__(settings_key, connection_settings, config)
+    def __init__(self, settings_key, connection_settings: dict, config, section_key):
+        super(IrcBich, self).__init__(settings_key, connection_settings, config, section_key)
         self.irc_server_hostname = self.connection_settings('irc_server_hostname')
         self.port = int(self.connection_settings('port'))
         self.channelsProps = self.connection_settings('channelsProps')
@@ -238,9 +238,10 @@ class IrcBich(BichBot):
     def send(self, msg):
         print(f"TX: {msg}")
         if msg is not None: 
-            self.aiContext.append(f'AISystem KDZBot sent: {msg}')
+            self.aiContext.append(f'KDZBot sent: {msg}')
             if len(self.aiContext)>AI_CONTEXT_SIZE:
                 self.aiContext=self.aiContext[1:]
+            self._save_ai_context()
 
         retval = self.irc_socket.send(bytes(msg, 'utf-8'))
         return retval
@@ -443,6 +444,7 @@ class IrcBich(BichBot):
                         self.aiContext.append(f'{sent_by} sent via {communicationsLineName}: {message}')
                         if len(self.aiContext)>AI_CONTEXT_SIZE:
                             self.aiContext=self.aiContext[1:]
+                        self._save_ai_context()
 
                     if self.enableother1 or self.connection_setting_or_None("enable_krako_translation"):
                         # print(__file__, "krako test")
@@ -927,7 +929,7 @@ class IrcBich(BichBot):
                 user_id=name,
                 channel=communicationsLineName,
                 platform='irc',
-                self.aiContext
+                ai_context=self.aiContext
             )
             
             # Truncate for IRC (max ~400 chars to be safe)
@@ -946,11 +948,11 @@ class IrcBich(BichBot):
             self.send(f'PRIVMSG {communicationsLineName} :\x02AI Error\x02: {str(e)}\r\n')
             return True
 
-def ircbich_init_and_loop(settings_key, connection_settings: dict, config):
+def ircbich_init_and_loop(settings_key, connection_settings: dict, config, section_key):
     connection_props = connection_settings
     print(f'ircbich_init_and_loop settings_key="{settings_key}"')
     print(f'{settings_key}.parent pid: {os.getppid()}')
     print(f'{settings_key}.pid: {os.getpid()}')
-    bot = IrcBich(settings_key, connection_settings, config)
+    bot = IrcBich(settings_key, connection_settings, config, section_key)
     bot.login_and_loop()
 

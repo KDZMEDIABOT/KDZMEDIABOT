@@ -50,6 +50,7 @@ class BichBot:
 
     wheelGrants = {}
 
+
     old_news_cache = {}
     old_news_cache_index = {}
 
@@ -59,10 +60,13 @@ class BichBot:
 
     btcToRurFloat = "Unknown"
 
-    def __init__(self, settings_key, connection_settings: dict, config):
+    def __init__(self, settings_key, connection_settings: dict, config, section_key):
         self.config = config
         self.connection_props = connection_settings
         self.settings_key = settings_key
+
+        # File to persist AI context between restarts
+        self.AI_CONTEXT_FILE = f"ai_context_{settings_key}_{section_key}.json"
 
         self.coinmarketcap_apikey = settings.settings('coinmarketcap_apikey')
         self.rapidapi_appkey = settings.settings('rapidapi_appkey')
@@ -77,7 +81,8 @@ class BichBot:
         self.measurementRur2 = self.gnome1rur
         self.quotes_array = []
         self.quotes_array1 = []
-        self.aiContext = []
+        # Load aiContext from file if it exists
+        self.aiContext = self._load_ai_context()
 
         # Initialize AI command handler if available
         self.ai_handler = None
@@ -92,6 +97,34 @@ class BichBot:
                 print(f"{self}: Failed to initialize AI command handler: {e}")
         else:
         	print(f"{self}: AI command handler skipped")
+
+    def _get_ai_context_file(self):
+        """Get the file path for persisting aiContext"""
+        return self.AI_CONTEXT_FILE
+
+    def _load_ai_context(self):
+        """Load aiContext from file if it exists"""
+        import os
+        file_path = self._get_ai_context_file()
+        if os.path.exists(file_path):
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    if isinstance(data, list):
+                        return data
+            except (json.JSONDecodeError, IOError) as e:
+                print(f"ai_context_load_error: {e}")
+        return []
+
+    def _save_ai_context(self):
+        """Save aiContext to file"""
+        import os
+        file_path = self._get_ai_context_file()
+        try:
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump(self.aiContext, f, ensure_ascii=False, indent=2)
+        except IOError as e:
+            print(f"ai_context_save_error: {e}")
 
     def settings_by_key(self, key):
         return self.getconfig()[key]

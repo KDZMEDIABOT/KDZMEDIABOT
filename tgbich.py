@@ -171,7 +171,7 @@ If you send a crypto ticker to the bot, it will query its price at CoinMarketCap
 
 
 
-def run_tgbich(settings_key, connection_settings: dict, config):
+def run_tgbich(settings_key, connection_settings: dict, config, section_key):
     connection_props = connection_settings
     print(f'run_tgbich settings_key="{settings_key}"')
     print(f'{settings_key}.parent pid: {os.getppid()}')
