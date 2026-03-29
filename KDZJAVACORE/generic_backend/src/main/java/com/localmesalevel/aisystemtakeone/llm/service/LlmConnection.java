@@ -432,4 +432,8 @@ public class LlmConnection {
             return reasoningText;
         }
     }
+
+	public String getModelName() {
+		return resolveEffectiveModel(model);
+	}
 }

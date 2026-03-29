@@ -75,6 +75,8 @@ public class BotAiService implements AiRequestCallback {
             onError.accept("Error: LLM connection not configured for bot");
             return;
         }
+        
+        systemPrompt = systemPrompt + "\n\nLLM model name is: " + llmConnection.getModelName();
 
         // Process in async way using CompletableFuture
         llmService.processBotQuery(llmConnection, systemPrompt, aiContext)
