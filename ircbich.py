@@ -13,6 +13,9 @@ from threading import Thread
 from urllib.parse import quote as urlencode
 from urllib.parse import unquote
 from urllib.error import URLError
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 
 import os
 import pytz
@@ -75,6 +78,74 @@ class IrcBich(BichBot):
 
         self.master_secret = settings.settings('master_secret')
 
+        # Async executor for socket operations
+        self._executor = ThreadPoolExecutor(max_workers=2)
+
+    async def recv_async(self, bufsize=81920):
+        """Async wrapper for socket recv using thread pool."""
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            self._executor,
+            partial(self.irc_socket.recv, bufsize)
+        )
+
+    async def send_async(self, msg):
+        """Async wrapper for socket send using thread pool."""
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            self._executor,
+            partial(self.irc_socket.send, bytes(msg, 'utf-8'))
+        )
+
+    async def get_line_async(self, client_socket):
+        """Async version of get_line using thread pool."""
+        if self.socket_closed:
+            return self.extract_line()
+        line = self.extract_line_1()
+        if line is not None:
+            return line
+        while True:
+            try:
+                r = await self.recv_async(81920)
+                if len(r) == 0:
+                    if LOG_TRACE: print("EOF")
+                    self.socket_closed = True
+                    return self.extract_line()
+                if LOG_TRACE: print("RX:", r)
+                self.databuf += r
+                line = self.extract_line_1()
+                if line is not None:
+                    return line
+            except KeyboardInterrupt as e:
+                import traceback as tb
+                tb.print_exc()
+                import sys
+                sys.stderr.flush()
+                raise e
+            except:
+                import traceback as tb
+                tb.print_exc()
+                import sys
+                sys.stderr.flush()
+                try:
+                    self.socket_closed = True
+                    self.irc_socket.close()
+                except KeyboardInterrupt as e:
+                    import traceback as tb
+                    tb.print_exc()
+                    import sys
+                    sys.stderr.flush()
+                    raise e
+                except:
+                    import traceback as tb
+                    tb.print_exc()
+                    import sys
+                    sys.stderr.flush()
+                self.irc_socket = None
+                line = self.extract_line_1()
+                if line is not None:
+                    return line
+                return b""
 
     def needs_irc_markup(self):
         return True
@@ -246,15 +317,16 @@ class IrcBich(BichBot):
         retval = self.irc_socket.send(bytes(msg, 'utf-8'))
         return retval
 
-    def login_and_loop(self):
+
+    async def login_and_loop_async(self):
         global sys, tb
         while True:
             print("---new iter---", flush=True)
             try:
                 mask2ctx = {}
-                from time import sleep as sleep_seconds
+                pass
                 print("sleeping 1s...")
-                sleep_seconds(1)
+                await asyncio.sleep(1)
                 if self.connection_setting_or_None('socks5_host'):
                     host = self.connection_option('socks5_host')
                     print(f"new socks.socksocket({host})")
@@ -327,7 +399,7 @@ class IrcBich(BichBot):
                 while keepingConnection:
                     try:
                         print(__name__, f"pp3 self.irc_socket='{self.irc_socket}'", flush=True)
-                        data = self.get_line(self.irc_socket).decode("UTF-8")
+                        data = (await self.get_line_async(self.irc_socket)).decode("UTF-8")
                         print("got line:[" + data + "]", flush=True)
                         if data == "":
                             print("data=='', self.irc_socket.close(), keepingConnection=False, iterating...", flush=True)
@@ -954,5 +1026,5 @@ def ircbich_init_and_loop(settings_key, connection_settings: dict, config, secti
     print(f'{settings_key}.parent pid: {os.getppid()}')
     print(f'{settings_key}.pid: {os.getpid()}')
     bot = IrcBich(settings_key, connection_settings, config, section_key)
-    bot.login_and_loop()
+    asyncio.run(bot.login_and_loop_async())
 
