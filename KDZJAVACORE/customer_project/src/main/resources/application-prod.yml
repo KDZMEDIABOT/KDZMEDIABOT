@@ -46,3 +46,4 @@ logging:
     org.springframework.web: INFO
     com.customer1org.aisystem: INFO
     com.localmesalevel.aisystemtakeone: DEBUG
+    com.localmesalevel.aisystemtakeone.llm.service: TRACE

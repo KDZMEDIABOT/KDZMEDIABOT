@@ -253,8 +253,8 @@ class IrcBich(BichBot):
             try:
                 mask2ctx = {}
                 from time import sleep as sleep_seconds
-                print("sleeping 50ms...")
-                sleep_seconds(0.05)
+                print("sleeping 1s...")
+                sleep_seconds(1)
                 if self.connection_setting_or_None('socks5_host'):
                     host = self.connection_option('socks5_host')
                     print(f"new socks.socksocket({host})")

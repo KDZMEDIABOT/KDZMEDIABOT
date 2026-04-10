@@ -98,6 +98,12 @@ public class LlmConnection {
         body.put("messages", messages);
         body.put("temperature", temperature);
         body.put("max_tokens", Math.max(maxTokens, 1));
+        
+        logger.trace(
+                "OpenAI-compatible request: headers='{}', body={}",
+                headers,
+                body
+            );
 
         try {
             ResponseEntity<String> response = restTemplate.exchange(
