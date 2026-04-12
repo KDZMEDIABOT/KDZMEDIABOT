@@ -1,4 +1,1 @@
-
-<овощ> нада бы на стрим попробовать его
-<овощ> чтоб пореже мысли выдавал
-
+нада пер-юзер RAG collections OpenLink virtuozzo stores & RAG
