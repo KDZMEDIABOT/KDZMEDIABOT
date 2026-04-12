@@ -3,6 +3,8 @@ package com.localmesalevel.aisystemtakeone.llm.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.localmesalevel.aisystemtakeone.llm.model.LlmApiType;
+import com.localmesalevel.aisystemtakeone.llm.model.LlmEndpointCredentials;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
@@ -22,6 +24,7 @@ public class LlmConnection {
     private final String model;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+	private final LlmEndpointCredentials endpointCredentials;
 
     public LlmConnection(
         LlmApiType llmApiType,
@@ -29,7 +32,8 @@ public class LlmConnection {
         String apiKey,
         String model,
         RestTemplate restTemplate,
-        ObjectMapper objectMapper
+        ObjectMapper objectMapper,
+        LlmEndpointCredentials endpointCredentials
     ) {
         this.llmApiType = llmApiType;
         this.baseURL = normalizeBaseURL(baseURL);
@@ -37,6 +41,7 @@ public class LlmConnection {
         this.model = normalizeModelName(model);
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
+        this.endpointCredentials = endpointCredentials;
     }
 
     public String complete(Iterator<String> prompt) {
@@ -441,5 +446,9 @@ public class LlmConnection {
 
 	public String getModelName() {
 		return resolveEffectiveModel(model);
+	}
+
+	public LlmEndpointCredentials getCredentials() {
+		return endpointCredentials;
 	}
 }

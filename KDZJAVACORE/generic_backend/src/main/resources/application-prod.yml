@@ -19,3 +19,8 @@ logging:
     com.localmesalevel.aisystemtakeone.llm.service: TRACE
     org.springframework.web: TRACE
     org.springframework.web.filter.CommonsRequestLoggingFilter: DEBUG
+
+bot:
+  mcp:
+    openserp:
+      container-name: aisystem-openserp-mcp-sidecar-prod

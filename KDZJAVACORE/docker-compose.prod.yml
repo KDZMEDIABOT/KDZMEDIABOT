@@ -109,6 +109,27 @@ services:
   #    backend:
   #      condition: service_started
 
+  openserp_mcp_sidecar:
+    build:
+      context: ./openserp-mcp
+      dockerfile: Dockerfile
+      args:
+        OPENSERP_PROVIDER: ${OPENSERP_PROVIDER:-ddg}
+    image: aisystem-openserp-mcp-sidecar:custom
+    container_name: aisystem-openserp-mcp-sidecar-prod
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    environment:
+      PYTHONUNBUFFERED: "1"
+      OPENSERP_API_KEY: ${OPENSERP_API_KEY:-}
+      OPENSERP_PROVIDER: ${OPENSERP_PROVIDER:-ddg}
+      OPENSERP_TIMEOUT: ${OPENSERP_TIMEOUT:-30}
+      OPENSERP_HTTP_PORT: 7000
+    # depends_on:
+    #   backend:
+    #   condition: service_started
+
   frontend:
     build:
       context: ./frontend

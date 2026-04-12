@@ -114,14 +114,16 @@ class DeepResearchServiceTest {
         when(llmEndpointCredentialsRepository.findById(10L)).thenReturn(Optional.of(endpoint));
 
         return new DeepResearchService(
-            llmLoopEngine,
-            llmEndpointCredentialsRepository,
-            userAccountRepository,
-            new ObjectMapper(),
-            "readingplus-deepresearch",
-            "",
-            "aisystem-readingplus-mcp-sidecar-dev",
-            8
+                llmLoopEngine,
+                llmEndpointCredentialsRepository,
+                userAccountRepository,
+                new ObjectMapper(),
+                "readingplus-deepresearch",
+                "",
+                "aisystem-readingplus-mcp-sidecar-dev",
+                8,
+                "openserp-websearch",
+                "aisystem-openserp-mcp-sidecar-dev"
         );
     }
 
@@ -144,31 +146,33 @@ class DeepResearchServiceTest {
         when(llmEndpointCredentialsRepository.findById(10L)).thenReturn(Optional.of(endpoint));
 
         return new DeepResearchService(
-            llmLoopEngine,
-            llmEndpointCredentialsRepository,
-            userAccountRepository,
-            new ObjectMapper(),
-            "readingplus-deepresearch",
-            "",
-            "aisystem-readingplus-mcp-sidecar-dev",
-            8
+                llmLoopEngine,
+                llmEndpointCredentialsRepository,
+                userAccountRepository,
+                new ObjectMapper(),
+                "readingplus-deepresearch",
+                "",
+                "aisystem-readingplus-mcp-sidecar-dev",
+                8,
+                "openserp-websearch",
+                "aisystem-openserp-mcp-sidecar-dev"
         );
     }
 
     private void stubLlmLoopJson(String json) {
         when(llmLoopEngine.run(any(), anyString(), anyString(), anyString(), anyList(), anyInt()))
-            .thenReturn(new LlmLoopEngine.LoopResult(json, List.of()));
+        .thenReturn(new LlmLoopEngine.LoopResult(json, List.of()));
     }
 
     private String mockLoopJson(String expertQuotes, String statistics) {
         return "{\n" +
-            "  \"summary\": \"Research summary\",\n" +
-            "  \"expertQuotes\": \"" + expertQuotes + "\",\n" +
-            "  \"statistics\": \"" + statistics + "\",\n" +
-            "  \"citations\": [\"Citation One\", \"Citation Two\"],\n" +
-            "  \"sources\": [\n" +
-            "    {\"url\":\"https://example.org/a\",\"title\":\"Source A\",\"author\":\"Author A\",\"year\":\"2024\"}\n" +
-            "  ]\n" +
+            " \"summary\": \"Research summary\",\n" +
+            " \"expertQuotes\": \"" + expertQuotes + "\",\n" +
+            " \"statistics\": \"" + statistics + "\",\n" +
+            " \"citations\": [\"Citation One\", \"Citation Two\"],\n" +
+            " \"sources\": [\n" +
+            " {\"url\":\"https://example.org/a\",\"title\":\"Source A\",\"author\":\"Author A\",\"year\":\"2024\"}\n" +
+            " ]\n" +
             "}";
     }
 }

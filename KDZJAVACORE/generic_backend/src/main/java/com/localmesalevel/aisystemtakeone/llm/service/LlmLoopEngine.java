@@ -1054,7 +1054,7 @@ public class LlmLoopEngine {
                 if (config.stdioEnv != null && !config.stdioEnv.isEmpty()) {
                     processBuilder.environment().putAll(config.stdioEnv);
                 }
-                processBuilder.redirectErrorStream(true);
+                // Don't combine stderr with stdout - MCP server logs to stderr\n        // processBuilder.redirectErrorStream(true);
                 return processBuilder.start();
             } catch (IOException e) {
                 throw new IllegalStateException(

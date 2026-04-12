@@ -24,6 +24,8 @@ public class DeepResearchService {
     private static final Logger logger = LoggerFactory.getLogger(DeepResearchService.class);
     private static final String DEFAULT_SERVER_NAME = "readingplus-deepresearch";
     private static final String DEFAULT_STDIN_CONTAINER = "aisystem-readingplus-mcp-sidecar-dev";
+    private static final String DEFAULT_OPENSERP_SERVER_NAME = "openserp-websearch";
+    private static final String DEFAULT_OPENSERP_STDIN_CONTAINER = "aisystem-openserp-mcp-sidecar-dev";
 
     private final LlmLoopEngine llmLoopEngine;
     private final LlmEndpointCredentialsRepository llmEndpointCredentialsRepository;
@@ -33,16 +35,20 @@ public class DeepResearchService {
     private final String mcpBearerToken;
     private final String mcpStdioContainerName;
     private final int maxSteps;
+    private final String openserpMcpServerName;
+    private final String openserpMcpStdioContainerName;
 
     public DeepResearchService(
-        LlmLoopEngine llmLoopEngine,
-        LlmEndpointCredentialsRepository llmEndpointCredentialsRepository,
-        UserAccountRepository userAccountRepository,
-        ObjectMapper objectMapper,
-        @Value("${research.deepresearch.mcp.server-name:" + DEFAULT_SERVER_NAME + "}") String mcpServerName,
-        @Value("${research.deepresearch.mcp.bearer-token:}") String mcpBearerToken,
-        @Value("${research.deepresearch.mcp.stdio.container-name:${READINGPLUS_MCP_CONTAINER_NAME:" + DEFAULT_STDIN_CONTAINER + "}}") String mcpStdioContainerName,
-        @Value("${research.deepresearch.max-steps:8}") int maxSteps
+            LlmLoopEngine llmLoopEngine,
+            LlmEndpointCredentialsRepository llmEndpointCredentialsRepository,
+            UserAccountRepository userAccountRepository,
+            ObjectMapper objectMapper,
+            @Value("${research.deepresearch.mcp.server-name:" + DEFAULT_SERVER_NAME + "}") String mcpServerName,
+            @Value("${research.deepresearch.mcp.bearer-token:}") String mcpBearerToken,
+            @Value("${research.deepresearch.mcp.stdio.container-name:${READINGPLUS_MCP_CONTAINER_NAME:" + DEFAULT_STDIN_CONTAINER + "}}") String mcpStdioContainerName,
+            @Value("${research.deepresearch.max-steps:8}") int maxSteps,
+            @Value("${openserp.mcp.server-name:" + DEFAULT_OPENSERP_SERVER_NAME + "}") String openserpMcpServerName,
+            @Value("${openserp.mcp.stdio.container-name:${OPENSERP_MCP_CONTAINER_NAME:" + DEFAULT_OPENSERP_STDIN_CONTAINER + "}}") String openserpMcpStdioContainerName
     ) {
         this.llmLoopEngine = llmLoopEngine;
         this.llmEndpointCredentialsRepository = llmEndpointCredentialsRepository;
@@ -52,90 +58,120 @@ public class DeepResearchService {
         this.mcpBearerToken = mcpBearerToken;
         this.mcpStdioContainerName = mcpStdioContainerName;
         this.maxSteps = maxSteps;
+        this.openserpMcpServerName = openserpMcpServerName;
+        this.openserpMcpStdioContainerName = openserpMcpStdioContainerName;
     }
 
     public ResearchData conductResearch(Long topicId, String topicTitle, Long requesterUserId) {
         logger.info("Conducting deep research for topic: {} as userId={}", topicTitle, requesterUserId);
         logger.trace(
-            "DeepResearchService.conductResearch entry: topicId={}, topicTitleChars={}, requesterUserId={}",
-            topicId,
-            topicTitle == null ? 0 : topicTitle.length(),
-            requesterUserId
+                "DeepResearchService.conductResearch entry: topicId={}, topicTitleChars={}, requesterUserId={}",
+                topicId,
+                topicTitle == null ? 0 : topicTitle.length(),
+                requesterUserId
         );
 
         LlmEndpointCredentials llmCredentials = resolveLlmCredentials(requesterUserId);
         String modelForRequest = resolveModelFromCredentials(llmCredentials);
         logger.trace(
-            "DeepResearchService resolved credentials: endpointId={}, apiType={}, baseUrl='{}', model='{}'",
-            llmCredentials.getId(),
-            llmCredentials.getLlmApiType(),
-            llmCredentials.getBaseURL(),
-            modelForRequest
+                "DeepResearchService resolved credentials: endpointId={}, apiType={}, baseUrl='{}', model='{}'",
+                llmCredentials.getId(),
+                llmCredentials.getLlmApiType(),
+                llmCredentials.getBaseURL(),
+                modelForRequest
         );
         return conductResearch(topicId, topicTitle, llmCredentials, modelForRequest);
     }
 
     private ResearchData conductResearch(
-        Long topicId,
-        String topicTitle,
-        LlmEndpointCredentials llmCredentials,
-        String modelName
+            Long topicId,
+            String topicTitle,
+            LlmEndpointCredentials llmCredentials,
+            String modelName
     ) {
         if (isBlank(modelName)) {
             throw new IllegalArgumentException("modelName is required for conductResearch");
         }
         logger.trace(
-            "DeepResearchService executing LLM loop: topicId={}, model='{}', maxSteps={}, mcpServer='{}'",
-            topicId,
-            modelName,
-            maxSteps,
-            isBlank(mcpServerName) ? DEFAULT_SERVER_NAME : mcpServerName.trim()
+                "DeepResearchService executing LLM loop: topicId={}, model='{}', maxSteps={}, mcpServer='{}'",
+                topicId,
+                modelName,
+                maxSteps,
+                isBlank(mcpServerName) ? DEFAULT_SERVER_NAME : mcpServerName.trim()
         );
         String finalJson = llmLoopEngine.run(
-            llmCredentials,
-            modelName,
-            buildSystemPrompt(),
-            buildUserPrompt(topicTitle),
-            List.of(buildMcpServerConfig()),
-            maxSteps
+                llmCredentials,
+                modelName,
+                buildSystemPrompt(),
+                buildUserPrompt(topicTitle),
+                buildMcpServerConfigs(),
+                maxSteps
         ).getFinalAnswer();
         logger.trace(
-            "DeepResearchService loop completed: topicId={}, finalJsonChars={}, finalJsonPreview='{}'",
-            topicId,
-            finalJson == null ? 0 : finalJson.length(),
-            preview(finalJson, 600)
+                "DeepResearchService loop completed: topicId={}, finalJsonChars={}, finalJsonPreview='{}'",
+                topicId,
+                finalJson == null ? 0 : finalJson.length(),
+                preview(finalJson, 600)
         );
 
         ResearchData research = new ResearchData();
         research.setTopicId(topicId);
         applyLoopOutput(research, finalJson);
         logger.trace(
-            "DeepResearchService parsed output: topicId={}, citations={}, sources={}",
-            topicId,
-            research.getCitations() == null ? 0 : research.getCitations().size(),
-            research.getSources() == null ? 0 : research.getSources().size()
+                "DeepResearchService parsed output: topicId={}, citations={}, sources={}",
+                topicId,
+                research.getCitations() == null ? 0 : research.getCitations().size(),
+                research.getSources() == null ? 0 : research.getSources().size()
         );
         return research;
     }
 
-    private LlmLoopEngine.McpServerConfig buildMcpServerConfig() {
+    private List<LlmLoopEngine.McpServerConfig> buildMcpServerConfigs() {
+        List<LlmLoopEngine.McpServerConfig> configs = new ArrayList<>();
+        configs.add(buildReadingPlusMcpConfig());
+        configs.add(buildOpenSerpMcpConfig());
+        return configs;
+    }
+
+    private LlmLoopEngine.McpServerConfig buildReadingPlusMcpConfig() {
         String serverName = isBlank(mcpServerName) ? DEFAULT_SERVER_NAME : mcpServerName.trim();
         String containerName = trimToNull(mcpStdioContainerName);
         if (containerName == null) {
             throw new IllegalStateException(
-                "research.deepresearch.mcp.stdio.container-name is required for stdio MCP deep research"
+                    "research.deepresearch.mcp.stdio.container-name is required for stdio MCP deep research"
             );
         }
         logger.trace(
-            "DeepResearchService MCP config: server='{}', container='{}', transport=STDIO_LOCAL, framing={}",
-            serverName,
-            containerName,
-            LlmLoopEngine.McpServerConfig.StdioMessageFraming.NEWLINE_DELIMITED_JSON
+                "DeepResearchService MCP config: server='{}', container='{}', transport=STDIO_LOCAL, framing={}",
+                serverName,
+                containerName,
+                LlmLoopEngine.McpServerConfig.StdioMessageFraming.NEWLINE_DELIMITED_JSON
         );
         return LlmLoopEngine.McpServerConfig.stdioLocal(
-            serverName,
-            List.of("docker", "exec", "-i", containerName, "mcp-server-ds"),
-            LlmLoopEngine.McpServerConfig.StdioMessageFraming.NEWLINE_DELIMITED_JSON
+                serverName,
+                List.of("docker", "exec", "-i", containerName, "mcp-server-ds"),
+                LlmLoopEngine.McpServerConfig.StdioMessageFraming.NEWLINE_DELIMITED_JSON
+        );
+    }
+
+    private LlmLoopEngine.McpServerConfig buildOpenSerpMcpConfig() {
+        String serverName = isBlank(openserpMcpServerName) ? DEFAULT_OPENSERP_SERVER_NAME : openserpMcpServerName.trim();
+        String containerName = trimToNull(openserpMcpStdioContainerName);
+        if (containerName == null) {
+            throw new IllegalStateException(
+                    "openserp.mcp.stdio.container-name is required for OpenSERP MCP websearch"
+            );
+        }
+        logger.trace(
+                "OpenSERP MCP config: server='{}', container='{}', transport=STDIO_LOCAL, framing={}",
+                serverName,
+                containerName,
+                LlmLoopEngine.McpServerConfig.StdioMessageFraming.NEWLINE_DELIMITED_JSON
+        );
+        return LlmLoopEngine.McpServerConfig.stdioLocal(
+                serverName,
+                List.of("docker", "exec", "-i", containerName, "mcp-server-ds"),
+                LlmLoopEngine.McpServerConfig.StdioMessageFraming.NEWLINE_DELIMITED_JSON
         );
     }
 
@@ -145,28 +181,28 @@ public class DeepResearchService {
         }
         logger.trace("Resolving LLM credentials for requesterUserId={}", requesterUserId);
         UserAccount user = userAccountRepository.findById(requesterUserId)
-            .orElseThrow(() -> new IllegalStateException("Deep research user not found for id " + requesterUserId));
+                .orElseThrow(() -> new IllegalStateException("Deep research user not found for id " + requesterUserId));
 
         LlmEndpointCredentials current = user.getCurrentLlmEndpoint();
         if (current == null || current.getId() == null) {
             throw new IllegalStateException(
-                "No LLM connection found. Tap Settings and specify LLM API Key and select it as current LLM endpoint."
+                    "No LLM connection found. Tap Settings and specify LLM API Key and select it as current LLM endpoint."
             );
         }
 
         Long endpointId = current.getId();
         logger.trace("Requester user {} points to current LLM endpoint id={}", requesterUserId, endpointId);
         return llmEndpointCredentialsRepository.findById(endpointId)
-            .orElseThrow(() -> new IllegalStateException(
-                "No LLM connection found. Tap Settings and specify LLM API Key and select it as current LLM endpoint."
-            ));
+                .orElseThrow(() -> new IllegalStateException(
+                        "No LLM connection found. Tap Settings and specify LLM API Key and select it as current LLM endpoint."
+                ));
     }
 
     private String resolveModelFromCredentials(LlmEndpointCredentials credentials) {
         String modelName = trimToNull(credentials.getModelName());
         if (modelName == null) {
             throw new IllegalStateException(
-                "No model configured for current LLM endpoint. Open Settings and set Model name."
+                    "No model configured for current LLM endpoint. Open Settings and set Model name."
             );
         }
         logger.trace("Resolved model '{}' from endpoint id={}", modelName, credentials.getId());
@@ -228,10 +264,10 @@ public class DeepResearchService {
         List<ResearchData.Source> sources = new ArrayList<>();
         for (JsonNode item : node) {
             sources.add(new ResearchData.Source(
-                requiredField(item, "url"),
-                requiredField(item, "title"),
-                requiredField(item, "author"),
-                requiredField(item, "year")
+                    requiredField(item, "url"),
+                    requiredField(item, "title"),
+                    requiredField(item, "author"),
+                    requiredField(item, "year")
             ));
         }
         return sources;
@@ -247,25 +283,25 @@ public class DeepResearchService {
 
     private String buildSystemPrompt() {
         return "You are an evidence-focused mental-health research assistant. " +
-            "Use available MCP tools to gather authoritative sources and produce structured research output.";
+                "Use available MCP tools to gather authoritative sources and produce structured research output.";
     }
 
     private String buildUserPrompt(String topicTitle) {
         return "Conduct deep research for topic: " + topicTitle + "\n" +
-            "Requirements:\n" +
-            "1) Use MCP tools for evidence gathering.\n" +
-            "2) Prioritize authoritative, expert, and recent sources.\n" +
-            "3) Return JSON only with this schema:\n" +
-            "{\n" +
-            "  \"summary\": \"string\",\n" +
-            "  \"expertQuotes\": \"string\",\n" +
-            "  \"statistics\": \"string\",\n" +
-            "  \"citations\": [\"string\", \"...\"],\n" +
-            "  \"sources\": [\n" +
-            "    {\"url\":\"string\",\"title\":\"string\",\"author\":\"string\",\"year\":\"string\"}\n" +
-            "  ]\n" +
-            "}\n" +
-            "4) Ensure all arrays are non-empty.";
+                "Requirements:\n" +
+                "1) Use MCP tools for evidence gathering.\n" +
+                "2) Prioritize authoritative, expert, and recent sources.\n" +
+                "3) Return JSON only with this schema:\n" +
+                "{\n" +
+                "  \"summary\": \"string\",\n" +
+                "  \"expertQuotes\": \"string\",\n" +
+                "  \"statistics\": \"string\",\n" +
+                "  \"citations\": [\"string\", \"...\"],\n" +
+                "  \"sources\": [\n" +
+                "    {\"url\":\"string\",\"title\":\"string\",\"author\":\"string\",\"year\":\"string\"}\n" +
+                "  ]\n" +
+                "}\n" +
+                "4) Ensure all arrays are non-empty.";
     }
 
     private String stripMarkdownJsonFence(String raw) {
@@ -299,16 +335,16 @@ public class DeepResearchService {
     public boolean validateEEAT(Long topicId, ResearchData research) {
         logger.debug("Validating E-E-A-T compliance for topic {}", topicId);
         logger.trace(
-            "EEAT input stats: topicId={}, hasCitations={}, citationsCount={}, hasExpertQuotes={}, hasStatistics={}",
-            topicId,
-            research.getCitations() != null,
-            research.getCitations() == null ? 0 : research.getCitations().size(),
-            research.getExpertQuotes() != null,
-            research.getStatistics() != null
+                "EEAT input stats: topicId={}, hasCitations={}, citationsCount={}, hasExpertQuotes={}, hasStatistics={}",
+                topicId,
+                research.getCitations() != null,
+                research.getCitations() == null ? 0 : research.getCitations().size(),
+                research.getExpertQuotes() != null,
+                research.getStatistics() != null
         );
         // Check Experience, Expertise, Authority, Trust signals
         return research.getCitations() != null && !research.getCitations().isEmpty()
-            && research.getExpertQuotes() != null && research.getStatistics() != null;
+                && research.getExpertQuotes() != null && research.getStatistics() != null;
     }
 
     private String preview(String value, int maxChars) {

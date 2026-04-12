@@ -57,7 +57,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/aisystem_dev
       SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:-cust1dev}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-cust1devpassw}
-      READINGPLUS_MCP_CONTAINER_NAME: aisystem-readingplus-mcp-sidecar-dev
+      READINGPLUS_MCP_CONTAINER_NAME: aisystem-readingplus-mcp-sidecar-dev\n    OPENSERP_MCP_CONTAINER_NAME: aisystem-openserp-mcp-sidecar-dev
       # Dev local auth flow uses auth_sidecar session + local credentials.
       # Keep issuer empty so JWT resource-server mode is not force-enabled by placeholders.
       SSO_ISSUER_URI: ""
@@ -116,6 +116,27 @@ services:
       backend:
         condition: service_started
 
+  openserp_mcp_sidecar:
+    image: karust/openserp:latest
+    container_name: aisystem-openserp-mcp-sidecar-dev
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    command: >
+      sh -lc "
+      if ! command -v python -m openmcp_server >/dev/null 2>&1; then
+        pip install --no-cache-dir mcp==${OPENSERP_MCP_PROTOCOL_VERSION:-1.1.0};
+      fi &&\n      exec python -m openmcp_server --mode=stdio --provider=${OPENSERP_PROVIDER:-ddg}
+      "
+    environment:
+      PYTHONUNBUFFERED: "1"
+      OPENSERP_API_KEY: ${OPENSERP_API_KEY:-}
+      OPENSERP_PROVIDER: ${OPENSERP_PROVIDER:-ddg}
+      OPENSERP_TIMEOUT: ${OPENSERP_TIMEOUT:-30}
+    depends_on:
+      backend:
+        condition: service_started
+
   frontend:
     build:
       context: ./frontend
@@ -130,6 +151,7 @@ services:
       - backend
       - auth_sidecar
       - readingplus_mcp_sidecar
+  - openserp_mcp_sidecar
 
 volumes:
   redis_dev_data:

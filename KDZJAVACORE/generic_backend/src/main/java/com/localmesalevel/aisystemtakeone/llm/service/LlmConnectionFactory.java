@@ -29,7 +29,8 @@ public class LlmConnectionFactory {
             credentials.getApiKey(),
             credentials.getModelName(),
             restTemplate,
-            objectMapper
+            objectMapper,
+                credentials
         );
     }
 }

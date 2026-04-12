@@ -36,6 +36,13 @@ except ImportError:
     print("from ai_command import AiCommandHandler ImportError")
     AiCommandHandler = None
 
+# MCP tools integration
+try:
+    from mcp_tools_command import McpToolsCommandHandler
+except ImportError as e:
+    print(f"from mcp_tools_command import McpToolsCommandHandler ImportError: {e}")
+    McpToolsCommandHandler = None
+
 from requests import Request, Session
 from requests.exceptions import ConnectionError, Timeout, TooManyRedirects
 # pip3 install xlrd pandas

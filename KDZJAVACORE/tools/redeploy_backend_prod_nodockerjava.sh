@@ -46,21 +46,21 @@ mvn -f "${PROJECT_ROOT}/customer_project/pom.xml" \
 # Start only Docker infra (no backend JVM)
 echo ""
 echo "=============================================="
-echo "Restarting Docker infrastructure (PostgreSQL, Redis, auth_sidecar)"
+echo "Restarting Docker infrastructure (PostgreSQL, Redis, auth_sidecar, readingplus, openserp)"
 echo "=============================================="
 
 # Get host IP for auth_sidecar to connect to host JVM
 HOST_IP="${HOST_IP:-host.docker.internal}"
 
-# Start only postgres, redis, auth_sidecar, readingplus_mcp_sidecar - NOT the backend
+# Start only postgres, redis, auth_sidecar, readingplus_mcp_sidecar, openserp_mcp_sidecar - NOT the backend
 docker compose -f "${COMPOSE_FILE}" \
     --env-file "${PROD_ENV_FILE}" \
     down --remove-orphans \
-    postgres redis auth_sidecar readingplus_mcp_sidecar frontend
+    postgres redis auth_sidecar readingplus_mcp_sidecar openserp_mcp_sidecar frontend
 docker compose -f "${COMPOSE_FILE}" \
     --env-file "${PROD_ENV_FILE}" \
     up -d --build --remove-orphans \
-    postgres redis auth_sidecar readingplus_mcp_sidecar frontend
+    postgres redis auth_sidecar readingplus_mcp_sidecar openserp_mcp_sidecar frontend
 
 # Network setup: backend is outside Docker, so auth_sidecar needs to reach host
 # Pause briefly to let containers start
@@ -108,6 +108,7 @@ SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:15432/'"$DB_NAME"'" \
 SPRING_DATASOURCE_USERNAME="'"$DB_USERNAME"'" \
 SPRING_DATASOURCE_PASSWORD="'"$DB_PASSWORD"'" \
 SPRING_FLYWAY_LOCATIONS=db/migration \
+OPENSERP_MCP_CONTAINER_NAME=aisystem-openserp-mcp-sidecar-prod \
 java -jar "$JAR_FILE" >/var/log/kdzbot_java_srv.log 2>&1 &
 echo $!')
 
