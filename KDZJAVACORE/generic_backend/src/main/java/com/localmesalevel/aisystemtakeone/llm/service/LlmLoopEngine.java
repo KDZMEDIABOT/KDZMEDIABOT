@@ -259,10 +259,13 @@ public class LlmLoopEngine {
             sb.append("\nCurrent tool-call state:\n").append(state).append('\n');
         }
 
-        sb.append("\nRespond with JSON only, no markdown fences.\n");
-        sb.append("Two valid response shapes:\n");
+        sb.append("\n=== RESPONSE INSTRUCTIONS ===\n");
+        sb.append("You MUST respond with EXACTLY ONE JSON object.\n");
+        sb.append("NO thinking, NO explanation, NO markdown, ONLY JSON.\n");
+        sb.append("\nTwo valid response shapes:\n");
         sb.append("1) {\"action\":\"tool_call\",\"tool\":\"serverName/toolName\",\"arguments\":{...}}\n");
         sb.append("2) {\"action\":\"final\",\"final\":\"final answer text\"}\n");
+        sb.append("\nSTART WITH { AND END WITH } NOTHING BEFORE OR AFTER.\n");
         return sb.toString();
     }
 
@@ -315,6 +318,19 @@ public class LlmLoopEngine {
 
     private String stripMarkdownJsonFence(String raw) {
         String trimmed = raw.trim();
+
+        // First, try to extract JSON from within text by finding outermost braces
+        int firstBrace = trimmed.indexOf('{');
+        int lastBrace = trimmed.lastIndexOf('}');
+        if (firstBrace >= 0 && lastBrace > firstBrace) {
+            String jsonCandidate = trimmed.substring(firstBrace, lastBrace + 1);
+            // Validate it looks like JSON by checking for action field
+            if (jsonCandidate.contains("\"action\"") || jsonCandidate.contains("'action'")) {
+                return jsonCandidate;
+            }
+        }
+
+        // Fall back to markdown fence stripping
         if (!trimmed.startsWith("```")) {
             return trimmed;
         }

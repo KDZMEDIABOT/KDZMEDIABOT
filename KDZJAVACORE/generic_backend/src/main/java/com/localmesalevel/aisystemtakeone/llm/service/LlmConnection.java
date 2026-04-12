@@ -8,9 +8,13 @@ import com.localmesalevel.aisystemtakeone.llm.model.LlmEndpointCredentials;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
+import org.springframework.web.client.ResponseExtractor;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.*;
 
 public class LlmConnection {
@@ -66,7 +70,7 @@ public class LlmConnection {
         }
 
         if (llmApiType == LlmApiType.OpenAICompatible) {
-            return callOpenAICompatible(effectiveModel, systemPrompt, aiContext, temperature, maxTokens);
+            return callOpenAICompatibleStreaming(effectiveModel, systemPrompt, aiContext, temperature, maxTokens);
         }
         if (llmApiType == LlmApiType.AnthropicCompatible) {
             return callAnthropicCompatible(effectiveModel, systemPrompt, aiContext, temperature, maxTokens);
@@ -139,6 +143,150 @@ public class LlmConnection {
         } catch (RestClientException e) {
             logger.trace("OpenAI-compatible request failed for url='{}': {}", url, e.getMessage(), e);
             throw new IllegalStateException("OpenAI-compatible request failed: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Call OpenAI-compatible API with streaming.
+     * Accumulates content tokens while skipping reasoning tokens until content arrives.
+     */
+    private String callOpenAICompatibleStreaming(String model, String systemPrompt, Iterator<String> aiContext,
+                                                   double temperature, int maxTokens) {
+        String url = baseURL + "/v1/chat/completions";
+        logger.trace(
+            "OpenAI-compatible streaming request: url='{}', model='{}', hasSystemPrompt={}, userPromptLength={}, temperature={}, maxTokens={}",
+            url, model, !isBlank(systemPrompt), aiContext.hasNext() ? 1 : 0, temperature, Math.max(maxTokens, 1)
+        );
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(apiKey);
+
+        List<Map<String, String>> messages = new ArrayList<>();
+        if (!isBlank(systemPrompt)) {
+            messages.add(Map.of("role", "system", "content", systemPrompt.trim()));
+        }
+        while (aiContext.hasNext()) {
+            messages.add(Map.of("role", "user", "content", aiContext.next()));
+        }
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("model", model);
+        body.put("messages", messages);
+        body.put("temperature", temperature);
+        body.put("max_tokens", Math.max(maxTokens, 1));
+        body.put("stream", true);
+
+        ResponseStreamAccumulator accumulator = new ResponseStreamAccumulator();
+
+        ResponseExtractor<Void> extractor = response -> {
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(response.getBody(), java.nio.charset.StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    accumulator.processLine(line);
+                }
+            }
+            return null;
+        };
+
+        try {
+            restTemplate.execute(url, HttpMethod.POST, request -> {
+                request.getHeaders().putAll(headers);
+                String jsonBody;
+                try {
+                    jsonBody = objectMapper.writeValueAsString(body);
+                } catch (Exception e) {
+                    throw new RuntimeException("Failed to serialize request body", e);
+                }
+                request.getBody().write(jsonBody.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            }, extractor);
+
+            String result = accumulator.getContent();
+            if (isBlank(result)) {
+                result = accumulator.getReasoning();
+            }
+            if (isBlank(result)) {
+                throw new IllegalStateException("OpenAI-compatible streaming response did not contain content");
+            }
+            logger.trace("OpenAI-compatible streaming completed: contentChars={}, reasoningChars={}",
+                accumulator.getContent().length(), accumulator.getReasoning().length());
+            return result;
+        } catch (RestClientException e) {
+            logger.trace("OpenAI-compatible streaming request failed: {}", e.getMessage(), e);
+            throw new IllegalStateException("OpenAI-compatible streaming request failed: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Accumulates streaming response tokens, tracking content vs reasoning separately.
+     */
+    private static class ResponseStreamAccumulator {
+        private final StringBuilder contentBuilder = new StringBuilder();
+        private final StringBuilder reasoningBuilder = new StringBuilder();
+        private boolean contentStarted = false;
+        private boolean inReasoningBlock = false;
+
+        void processLine(String line) {
+            if (isBlank(line) || !line.startsWith("data:")) {
+                return;
+            }
+
+            String data = line.substring(5).trim();
+            if ("[DONE]".equals(data)) {
+                return;
+            }
+
+            try {
+                JsonNode root = new ObjectMapper().readTree(data);
+                JsonNode choices = root.path("choices");
+                if (!choices.isArray() || choices.size() == 0) {
+                    return;
+                }
+
+                JsonNode delta = choices.get(0).path("delta");
+                if (delta.isMissingNode()) {
+                    return;
+                }
+
+                // Check for reasoning content
+                JsonNode reasoning = delta.path("reasoning");
+                if (!reasoning.isMissingNode() && reasoning.isTextual()) {
+                    String reasoningText = reasoning.asText();
+                    if (!isBlank(reasoningText)) {
+                        reasoningBuilder.append(reasoningText);
+                        inReasoningBlock = true;
+                    }
+                }
+
+                // Check for regular content
+                JsonNode content = delta.path("content");
+                if (!content.isMissingNode() && content.isTextual()) {
+                    String contentText = content.asText();
+                    if (!isBlank(contentText)) {
+                        // If we were in reasoning and now got content, mark content as started
+                        if (inReasoningBlock) {
+                            contentStarted = true;
+                            inReasoningBlock = false;
+                        }
+                        contentBuilder.append(contentText);
+                    }
+                }
+            } catch (Exception e) {
+                // Skip malformed lines
+            }
+        }
+
+        String getContent() {
+            return contentBuilder.toString();
+        }
+
+        String getReasoning() {
+            return reasoningBuilder.toString();
+        }
+
+        private static boolean isBlank(String s) {
+            return s == null || s.trim().isEmpty();
         }
     }
 
