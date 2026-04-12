@@ -17,7 +17,7 @@ whoami
 #export PYTHONPATH="$PYTHONHOME"
 
 # export CL="strace ./venv/bin/python ./launch_all.py"
-export CL="./venv_rig1_ubuntu20_04/local/bin/python3 ./launch_all.py"
+export CL="./venv3.11/bin/python3 ./launch_all.py"
 echo "launching $CL"
 $CL
 

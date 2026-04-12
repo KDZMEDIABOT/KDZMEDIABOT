@@ -33,6 +33,7 @@ from helpers import format_currency
 try:
     from ai_command import AiCommandHandler
 except ImportError:
+    print("from ai_command import AiCommandHandler ImportError")
     AiCommandHandler = None
 
 from requests import Request, Session
@@ -84,19 +85,11 @@ class BichBot:
         # Load aiContext from file if it exists
         self.aiContext = self._load_ai_context()
 
-        # Initialize AI command handler if available
+        # Don't initialize AI handler here - this runs before multiprocessing fork
+        # and WebSocket connections don't survive fork. Initialize lazily later.
         self.ai_handler = None
-        if AiCommandHandler is not None:
-            try:
-                self.ai_handler = AiCommandHandler(self.config)
-                self.ai_handler.start()
-                print(f"{self}: AI command handler initialized")
-            except Exception as e:
-                import traceback
-                traceback.print_exc()
-                print(f"{self}: Failed to initialize AI command handler: {e}")
-        else:
-        	print(f"{self}: AI command handler skipped")
+        self._ai_handler_initialized = False
+        print(f"{self}: AI handler will be initialized lazily after fork")
 
     def _get_ai_context_file(self):
         """Get the file path for persisting aiContext"""
@@ -126,6 +119,25 @@ class BichBot:
         except IOError as e:
             print(f"ai_context_save_error: {e}")
 
+    def _ensure_ai_handler(self):
+        """Lazy initialization of AI handler - must be called after fork."""
+        if self._ai_handler_initialized:
+            return
+        self._ai_handler_initialized = True
+        if AiCommandHandler is not None:
+            try:
+                print(f"{self}: AiCommand handler initializing")
+                self.ai_handler = AiCommandHandler(self.config)
+                print(f"{self}: AiCommand handler starting")
+                self.ai_handler.start()
+                print(f"{self}: AiCommand handler started (after fork)")
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                print(f"{self}: Failed to initialize AiCommand handler: {e}")
+        else:
+            print(f"{self}: AiCommandHandler is None")
+        
     def settings_by_key(self, key):
         return self.getconfig()[key]
 

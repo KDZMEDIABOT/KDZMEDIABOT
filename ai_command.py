@@ -58,8 +58,9 @@ class AiCommandHandler:
 
     def start(self):
         """Start the WebSocket connection."""
+        print("AiCommandHandler WebSocket starting")
         self.ws_client.start()
-        logger.info("AiCommandHandler WebSocket started")
+        print("AiCommandHandler WebSocket started")
 
     def stop(self):
         """Stop the WebSocket connection."""

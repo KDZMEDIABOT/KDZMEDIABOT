@@ -67,18 +67,21 @@ class WebSocketClient:
 
     def start(self):
         """Start the WebSocket client in a background thread."""
+        print(f"WebSocket starting p1")
         if not WEBSOCKETS_AVAILABLE:
-            logger.error("Cannot start WebSocket: websockets library not installed")
+            print("Cannot start WebSocket: websockets library not installed")
             return False
 
         if self.running:
-            logger.warning("WebSocket client already running")
+            print("WebSocket client already running")
             return True
 
+        print(f"WebSocket starting p2")
         self.running = True
         self.thread = Thread(target=self._run, daemon=True)
+        print(f"WebSocket starting p3")
         self.thread.start()
-        logger.info(f"WebSocket client thread started, connecting to {self.url}")
+        print(f"WebSocket client thread started, connecting to {self.url}")
         return True
 
     def stop(self):
@@ -91,6 +94,7 @@ class WebSocketClient:
 
     def _run(self):
         """Main thread entry point."""
+        print(f"WebSocket thread executing")
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
         self.loop.run_until_complete(self._main_loop())
@@ -109,9 +113,18 @@ class WebSocketClient:
                     self._heartbeat_loop()
                 )
 
+            except websockets.exceptions.InvalidHandshake as e:
+                logger.error(f"WebSocket handshake failed: {e}")
+                logger.error(f"Traceback: {traceback.format_exc()}")
+            except websockets.exceptions.ConnectionClosed as e:
+                logger.error(f"WebSocket connection closed: code={e.code}, reason={e.reason}")
+            except ConnectionRefusedError as e:
+                logger.error(f"Connection refused to {self.url}: {e}")
+            except OSError as e:
+                logger.error(f"Network error connecting to {self.url}: {e}")
             except Exception as e:
-                logger.error(f"WebSocket error: {e}")
-                logger.debug(traceback.format_exc())
+                logger.error(f"WebSocket error: {type(e).__name__}: {e}")
+                logger.error(f"Traceback: {traceback.format_exc()}")
 
             self.connected = False
             self.ws = None
@@ -131,16 +144,35 @@ class WebSocketClient:
 
     async def _connect(self):
         """Establish WebSocket connection."""
-        logger.info(f"Connecting to {self.url}...")
+        logger.info(f"WebSocket: Connecting to {self.url}...")
+        print(f"WebSocket: Connecting to {self.url}...", flush=True)
 
-        self.ws = await websockets.connect(
-            self.url,
-            ping_interval=None,  # We'll handle heartbeat manually
-            close_timeout=5
-        )
+        try:
+            self.ws = await websockets.connect(
+                self.url,
+                ping_interval=None,  # We'll handle heartbeat manually
+                close_timeout=5
+            )
 
-        self.connected = True
-        logger.info("WebSocket connected")
+            self.connected = True
+            logger.info(f"WebSocket: Connected successfully to {self.url}")
+            print(f"WebSocket: Connected successfully to {self.url}", flush=True)
+        except websockets.exceptions.InvalidStatus as e:
+            logger.error(f"WebSocket: HTTP {e.status_code} from server: {e}")
+            print(f"WebSocket: HTTP {e.status_code} from server: {e}", flush=True)
+            raise
+        except websockets.exceptions.InvalidHandshake as e:
+            logger.error(f"WebSocket: Handshake failed - {e}")
+            print(f"WebSocket: Handshake failed - {e}", flush=True)
+            raise
+        except ConnectionRefusedError as e:
+            logger.error(f"WebSocket: Connection refused to {self.url} - {e}")
+            print(f"WebSocket: Connection refused to {self.url} - {e}", flush=True)
+            raise
+        except OSError as e:
+            logger.error(f"WebSocket: Network error to {self.url} - {e}")
+            print(f"WebSocket: Network error to {self.url} - {e}", flush=True)
+            raise
 
         # Send identification message
         identify_msg = {

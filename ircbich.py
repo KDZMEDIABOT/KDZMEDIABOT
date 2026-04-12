@@ -828,8 +828,8 @@ class IrcBich(BichBot):
                     self.maybe_print_calc(self.botName, data)
                     self.maybe_print_help(self.botName, data)
                     self.maybe_print_search(self.botName, data, sent_by)
-                    if self.maybe_ai_command(data, sent_by, communicationsLineName):
-                        print("maybe_ai_command() returned True, continuing loop", flush=True)
+                    if await self.maybe_ai_command_async(data, sent_by, communicationsLineName):
+                        print("maybe_ai_command_async() returned True, continuing loop", flush=True)
                         continue
                     
                     if self.maybe_quotes(data, sent_by, communicationsLineName):
@@ -947,23 +947,72 @@ class IrcBich(BichBot):
 
 
 
-    def maybe_ai_command(self, data, sent_by, communicationsLineName):
-        """Handle !ai command for IRC."""
-        print(f"maybe_ai_command p1: entered", flush=True)
+    def _send_ai_response_thread(self, name, communicationsLineName, user_id, channel, platform, ai_context):
+        """Run in thread pool: call AI handler and send response to IRC."""
+        try:
+            # Ensure AI handler is initialized in this thread/process
+            self._ensure_ai_handler()
+
+            # Wait for AI handler to become available (WebSocket connection)
+            retries = 0
+            max_retries = 30
+            while (self.ai_handler is None or not self.ai_handler.is_available()) and retries < max_retries:
+                retries += 1
+                if retries == 1:
+                    print(f"AI handler waiting for WebSocket... (attempt {retries}/{max_retries})", flush=True)
+                elif retries % 5 == 0:
+                    print(f"AI handler still waiting... ({retries}/{max_retries})", flush=True)
+                time.sleep(0.5)
+
+            if self.ai_handler is None or not self.ai_handler.is_available():
+                print(f"AI handler not available in thread for {name} after {retries} retries", flush=True)
+                self.send(f'PRIVMSG {communicationsLineName} :\x02AI Error\x02: AI service not available - cannot connect to Java backend\r\n')
+                return
+
+            print(f"AI handler ready after {retries} retries, processing request for {name}", flush=True)
+
+            # Call AI handler (blocking call that waits for WebSocket response)
+            response = self.ai_handler.handle_ai_command(
+                user_id=user_id,
+                channel=channel,
+                platform=platform,
+                ai_context=ai_context
+            )
+
+            # Truncate for IRC (max ~400 chars to be safe)
+            if len(response) > 400:
+                response = response[:397] + '...'
+
+            # Send response (synchronous send from thread)
+            self.send(f'PRIVMSG {communicationsLineName} :\x02AI\x02: {response}\r\n')
+            print(f"Sent AI response to {name} in {communicationsLineName}", flush=True)
+
+        except Exception as e:
+            print(f"Error in AI thread for {name}: {e}", flush=True)
+            import traceback
+            traceback.print_exc()
+            try:
+                self.send(f'PRIVMSG {communicationsLineName} :\x02AI Error\x02: {str(e)}\r\n')
+            except:
+                pass
+
+    async def maybe_ai_command_async(self, data, sent_by, communicationsLineName):
+        """Handle !ai command for IRC. Fire-and-forget - returns immediately, response sent from thread."""
+        print(f"maybe_ai_command_async p1: entered", flush=True)
 
         # Parse the message
         if 'PRIVMSG' not in data:
-            print(f"maybe_ai_command p3", flush=True)
+            print(f"maybe_ai_command_async p3", flush=True)
             return False
-        
+
         # Check for !ai command
-        if ( ':!ai ' not in data and ' :!ai' not in data and 
-             ':!ии ' not in data and ' :!ии' not in data ):
-            print(f"maybe_ai_command p4, data='{data}'", flush=True)
+        if ( ':!ai ' not in data and ' :!ai' not in data and
+            ':!ии ' not in data and ' :!ии' not in data ):
+            print(f"maybe_ai_command_async p4, data='{data}'", flush=True)
             return False
-        
+
         try:
-            print(f"maybe_ai_command p5", flush=True)
+            print(f"maybe_ai_command_async p5", flush=True)
             # Extract the query after !ai
             msg_start = data.find(' :!ai')
             if msg_start == -1:
@@ -974,51 +1023,53 @@ class IrcBich(BichBot):
                 msg_start = data.find(':!ии ')
             if msg_start == -1:
                 return False
-            
+
             # Extract query
-            query = data[msg_start + 5:].strip()  # Skip " :!ai " or ":!ai "
+            query = data[msg_start + 5:].strip() # Skip " :!ai " or ":!ai "
             if not query:
-                self.send(f'PRIVMSG {communicationsLineName} :Usage: !ai <your question>\r\n')
+                await self.send_async(f'PRIVMSG {communicationsLineName} :Usage: !ai <your question>\r\n')
                 return True
-            
+
             # Get user info
             name = sent_by.split('!')[0] if '!' in sent_by else sent_by
 
-            if self.ai_handler is None:
-            	print(f"maybe_ai_command p2.1: self.ai_handler is None", flush=True)
-            	import random
-            	self.send(f'PRIVMSG {communicationsLineName} :Error: ai_handler isNone: cannot connect to Java websocket server. {random.random()}\r\n')
-            	return True
-            if not self.ai_handler.is_available():
-            	print(f"maybe_ai_command p2.2: not self.ai_handler.is_available()", flush=True)
-            	import random
-            	self.send(f'PRIVMSG {communicationsLineName} :Error: ai_handler is not available: cannot connect to Java websocket server. {random.random()}\r\n')
-            	return True
-        
-            
-            # Call AI handler
-            response = self.ai_handler.handle_ai_command(
-                user_id=name,
-                channel=communicationsLineName,
-                platform='irc',
-                ai_context=self.aiContext
+            # Lazy initialize AI handler (must be done after fork)
+            #self._ensure_ai_handler()
+
+            #if self.ai_handler is None:
+            #    print(f"maybe_ai_command_async p2.1: self.ai_handler is None", flush=True)
+            #    import random
+            #    await self.send_async(f'PRIVMSG {communicationsLineName} :Error: ai_handler isNone: cannot connect to Java websocket server. {random.random()}\r\n')
+            #    return True
+            #if not self.ai_handler.is_available():
+            #    print(f"maybe_ai_command_async p2.2: not self.ai_handler.is_available()", flush=True)
+            #    import random
+            #    await self.send_async(f'PRIVMSG {communicationsLineName} :Error: ai_handler is not available: cannot connect to Java websocket server. {random.random()}\r\n')
+            #    return True
+
+            # Submit AI call to thread pool and return immediately (fire-and-forget)
+            self._executor.submit(
+                self._send_ai_response_thread,
+                name,
+                communicationsLineName,
+                name,  # user_id
+                communicationsLineName,  # channel
+                'irc',  # platform
+                self.aiContext.copy()  # ai_context (copy to avoid mutation issues)
             )
-            
-            # Truncate for IRC (max ~400 chars to be safe)
-            if len(response) > 400:
-                response = response[:397] + '...'
-            
-            # Send response
-            self.send(f'PRIVMSG {communicationsLineName} :\x02AI\x02: {response}\r\n')
-            print(f"Sent AI response to {name} in {communicationsLineName}", flush=True)
+            print(f"AI request submitted for {name}, returning immediately", flush=True)
             return True
-            
+
         except Exception as e:
-            print(f"Error in maybe_ai_command: {e}", flush=True)
+            print(f"Error in maybe_ai_command_async: {e}", flush=True)
             import traceback
             traceback.print_exc()
-            self.send(f'PRIVMSG {communicationsLineName} :\x02AI Error\x02: {str(e)}\r\n')
+            await self.send_async(f'PRIVMSG {communicationsLineName} :\x02AI Error\x02: {str(e)}\r\n')
             return True
+
+    def maybe_ai_command(self, data, sent_by, communicationsLineName):
+        """Handle !ai command for IRC. (Synchronous version - deprecated)"""
+        raise NotImplementedError("Use maybe_ai_command_async in async context")
 
 def ircbich_init_and_loop(settings_key, connection_settings: dict, config, section_key):
     connection_props = connection_settings
