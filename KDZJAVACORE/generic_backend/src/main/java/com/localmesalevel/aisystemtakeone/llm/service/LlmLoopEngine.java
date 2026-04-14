@@ -306,7 +306,14 @@ public class LlmLoopEngine {
                 throw new IllegalStateException("LLM response did not include action");
             }
 
+            // Handle case where LLM puts qualified tool name in action field
+            // e.g., "websearch/webpage_fetch" instead of "tool_call"
             String tool = root.path("tool").asText(null);
+            if (action.contains("/") && tool == null) {
+                tool = action;
+                action = "tool_call";
+            }
+
             JsonNode args = root.path("arguments");
             if (args.isMissingNode() || args.isNull()) {
                 args = objectMapper.createObjectNode();
