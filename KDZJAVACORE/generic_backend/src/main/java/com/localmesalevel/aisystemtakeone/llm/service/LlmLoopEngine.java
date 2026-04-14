@@ -140,12 +140,14 @@ public class LlmLoopEngine {
                     return new LoopResult(instruction.finalAnswer.trim(), executedSteps);
                 }
 
-                if (!"tool_call".equalsIgnoreCase(instruction.action)) {
-                    throw new IllegalStateException("Unsupported action from LLM: " + instruction.action);
-                }
-                if (isBlank(instruction.tool)) {
-                    throw new IllegalStateException("LLM returned tool_call action without tool name");
-                }
+
+        String action = instruction.action == null ? "" : instruction.action.trim().toLowerCase();
+        if (!action.equals("tool_call") && !action.equals("tool") && !action.equals("call_tool")) {
+            throw new IllegalStateException("Unsupported action from LLM: " + instruction.action);
+        }
+        if (isBlank(instruction.tool)) {
+            throw new IllegalStateException("LLM returned tool_call action without tool name");
+        }
 
                 ToolRoute route = resolveTool(toolRegistry, instruction.tool.trim());
                 JsonNode toolArguments = instruction.arguments == null ? objectMapper.createObjectNode() : instruction.arguments;

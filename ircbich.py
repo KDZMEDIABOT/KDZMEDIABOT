@@ -983,8 +983,10 @@ class IrcBich(BichBot):
             if len(response) > 400:
                 response = response[:397] + '...'
 
+        
+            from random import random
             # Send response (synchronous send from thread)
-            self.send(f'PRIVMSG {communicationsLineName} :\x02AI\x02: {response}\r\n')
+            self.send(f'PRIVMSG {communicationsLineName} :\x02AI\x02: {response} {str(random())}\r\n')
             print(f"Sent AI response to {name} in {communicationsLineName}", flush=True)
 
         except Exception as e:

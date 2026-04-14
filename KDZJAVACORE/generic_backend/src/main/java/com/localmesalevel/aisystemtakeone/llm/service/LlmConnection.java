@@ -161,6 +161,7 @@ public class LlmConnection {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(apiKey);
+        headers.setAccept(List.of(MediaType.TEXT_EVENT_STREAM));
 
         List<Map<String, String>> messages = new ArrayList<>();
         if (!isBlank(systemPrompt)) {
@@ -176,6 +177,10 @@ public class LlmConnection {
         body.put("temperature", temperature);
         body.put("max_tokens", Math.max(maxTokens, 1));
         body.put("stream", true);
+        body.put("temperature", temperature);
+        Map<String, Object> chat_template_kwargs = new LinkedHashMap<>();
+        chat_template_kwargs.put("thinking", false);
+        body.put("chat_template_kwargs", chat_template_kwargs);
 
         ResponseStreamAccumulator accumulator = new ResponseStreamAccumulator();
 

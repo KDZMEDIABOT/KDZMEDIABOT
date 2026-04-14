@@ -36,7 +36,7 @@ public class LlmService {
     @Value("${ai.max-tokens:300}")
     private int maxTokens;
 
-    @Value("${bot.mcp.max-steps:4}")
+    @Value("${bot.mcp.max-steps:10}")
     private int botMcpMaxSteps;
 
     @Value("${bot.mcp.openserp.server-name:websearch}")
@@ -103,7 +103,6 @@ public class LlmService {
             LlmConnection llmConnection,
             String systemPrompt,
             Iterator<JsonNode> aiContext) {
-        // Use default empty MCP servers list - implementation will fall back to direct LLM call
         return processBotQuery(llmConnection, systemPrompt, aiContext, getDefaultBotMcpServers());
     }
 
@@ -243,19 +242,5 @@ public class LlmService {
             logger.error("Direct LLM call failed", e);
             throw new RuntimeException("Failed to get AI response: " + e.getMessage(), e);
         }
-    }
-
-    /**
-     * Create synthetic credentials from LlmConnection for MCP tool execution.
-     * This is a workaround - ideally LlmConnection should expose its credentials.
-     */
-    private LlmEndpointCredentials createSyntheticCredentials(LlmConnection llmConnection) {
-        // Unfortunately LlmConnection doesn't expose its internal state
-        // This method should be removed once LlmConnection stores credentials reference
-        // For now, throw exception to trigger fallback
-        throw new UnsupportedOperationException(
-            "LlmConnection-based MCP execution requires credentials. " +
-            "Use credentials-based overload or ensure LlmConnection stores credentials reference."
-        );
     }
 }
