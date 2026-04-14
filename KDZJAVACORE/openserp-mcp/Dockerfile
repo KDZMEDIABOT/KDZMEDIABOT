@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python MCP library and DuckDuckGo search
-RUN pip install --no-cache-dir mcp==1.1.0 ddgs
+RUN pip install --no-cache-dir mcp==1.1.0 ddgs requests beautifulsoup4
 
 # Create MCP wrapper
 COPY openmcp_server.py /opt/openmcp_server.py
