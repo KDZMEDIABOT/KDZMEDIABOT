@@ -115,3 +115,5 @@ tunnels.conf
 eclipse-workspace*
 *quotes.json
 ai_context_*
+
+data

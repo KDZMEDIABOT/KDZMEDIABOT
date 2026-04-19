@@ -988,13 +988,13 @@ class IrcBich(BichBot):
             SZ=230
             MAX=2500
             ACC=0
-            lines = response.replace('\\r', '\\n').split('\\n')
+            lines = response.replace('\r', '\n').split('\n')
             for line in lines:
-            	line = line.strip()
+            	line=line.replace('\n','')
             	if not line:
             	    continue
             	while len(line)>0 and ACC<=MAX:
-            		print(f'sending AI resp: PRIVMSG {communicationsLineName} :\x02AI\x02: {line[:SZ]} {"(trimmed)" if ACC+SZ>MAX else ""} {str(random())}\r\n', flush=True)
+            		print(f'sending AI resp: PRIVMSG {communicationsLineName} :AI: {line[:SZ]} {"(trimmed)" if ACC+SZ>MAX else ""} {str(random())}', flush=True)
 
             		# Send response (synchronous send from thread)
             		self.send(f'PRIVMSG {communicationsLineName} :\x02AI\x02: {line[:SZ]} {"(trimmed)" if ACC+SZ>MAX else ""} {str(random())}\r\n')
