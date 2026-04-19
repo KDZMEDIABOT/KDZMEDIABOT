@@ -23,3 +23,4 @@ generic_backend/target
 customer_project/target
 
 *.code-workspace
+.claude/settings.local.json

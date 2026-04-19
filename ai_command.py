@@ -147,8 +147,8 @@ class AiCommandHandler:
                 return response
 
             # Truncate if too long
-            if len(response) > self.max_length:
-                response = response[:self.max_length] + "... [truncated]"
+            #if len(response) > self.max_length:
+            #    response = response[:self.max_length] + "... [truncated]"
 
             logger.info(f"AI response sent to {user_id}: {response[:100]}...")
             return response

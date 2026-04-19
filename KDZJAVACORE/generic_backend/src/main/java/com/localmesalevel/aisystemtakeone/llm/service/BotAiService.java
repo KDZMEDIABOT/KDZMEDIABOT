@@ -76,7 +76,9 @@ public class BotAiService implements AiRequestCallback {
             return;
         }
         
-        systemPrompt = systemPrompt + "\n\nLLM model name is: " + llmConnection.getModelName();
+        systemPrompt = systemPrompt + 
+        		"\n\nLLM model name is: " + llmConnection.getModelName() + 
+        		"\n\nCurrent time is: "+(new java.util.Date());
 
         // Process in async way using CompletableFuture
         llmService.processBotQuery(llmConnection, systemPrompt, aiContext)

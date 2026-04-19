@@ -980,13 +980,30 @@ class IrcBich(BichBot):
             )
 
             # Truncate for IRC (max ~400 chars to be safe)
-            if len(response) > 400:
-                response = response[:397] + '...'
+            #if len(response) > 400:
+            #    response = response[:397] + '...'
 
         
             from random import random
-            # Send response (synchronous send from thread)
-            self.send(f'PRIVMSG {communicationsLineName} :\x02AI\x02: {response} {str(random())}\r\n')
+            SZ=230
+            MAX=2500
+            ACC=0
+            lines = response.replace('\\r', '\\n').split('\\n')
+            for line in lines:
+            	line = line.strip()
+            	if not line:
+            	    continue
+            	while len(line)>0 and ACC<=MAX:
+            		print(f'sending AI resp: PRIVMSG {communicationsLineName} :\x02AI\x02: {line[:SZ]} {"(trimmed)" if ACC+SZ>MAX else ""} {str(random())}\r\n', flush=True)
+
+            		# Send response (synchronous send from thread)
+            		self.send(f'PRIVMSG {communicationsLineName} :\x02AI\x02: {line[:SZ]} {"(trimmed)" if ACC+SZ>MAX else ""} {str(random())}\r\n')
+            		if len(line)>=SZ:
+            			line=line[SZ:]
+            			ACC=ACC+SZ
+            		else:
+            			ACC=ACC+len(line)
+            			line=""	            	
             print(f"Sent AI response to {name} in {communicationsLineName}", flush=True)
 
         except Exception as e:
@@ -1008,26 +1025,21 @@ class IrcBich(BichBot):
             return False
 
         # Check for !ai command
-        if ( ':!ai ' not in data and ' :!ai' not in data and
-            ':!ии ' not in data and ' :!ии' not in data ):
+        if ( '!ai ' not in data and '!ии ' not in data):
             print(f"maybe_ai_command_async p4, data='{data}'", flush=True)
             return False
 
         try:
             print(f"maybe_ai_command_async p5", flush=True)
             # Extract the query after !ai
-            msg_start = data.find(' :!ai')
+            msg_start = data.find('!ai')
             if msg_start == -1:
-                msg_start = data.find(':!ai ')
-            if msg_start == -1:
-                msg_start = data.find(' :!ии')
-            if msg_start == -1:
-                msg_start = data.find(':!ии ')
+                msg_start = data.find('!ии')
             if msg_start == -1:
                 return False
 
             # Extract query
-            query = data[msg_start + 5:].strip() # Skip " :!ai " or ":!ai "
+            query = data[msg_start + 3:].strip() # Skip "!ai" 
             if not query:
                 await self.send_async(f'PRIVMSG {communicationsLineName} :Usage: !ai <your question>\r\n')
                 return True
