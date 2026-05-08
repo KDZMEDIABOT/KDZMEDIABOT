@@ -1044,7 +1044,7 @@ class BichBot:
 
     def maybe_quotes(self, str_incoming_line, sent_by, commLineName):
       try:
-        print("maybe_quotes", str_incoming_line)
+        #print("maybe_quotes", str_incoming_line)
         # :x!~x@x::::x:::x PRIVMSG #magi :!q задрюк:
         # 0                1       2     3          4
         tok1 = str_incoming_line.split(" ")
@@ -1054,15 +1054,15 @@ class BichBot:
         cmdtok = tok_msg.split(" ")
         if len(cmdtok) < 1: return False
         cmd = cmdtok[0]
-        if cmd == "!!aq" or cmd == "!aq":
+        if cmd == "!!aq": # or cmd == "!aq":
             if self.grantCommand(sent_by, commLineName):
                 self.add_quote(tok1, commLineName, cmd == "!aq")
                 return True
-        if cmd == "!!lq" or cmd == "!!ql" or cmd == "!lq" or cmd == '!ql':
+        if cmd == "!!lq" or cmd == "!!ql": # or cmd == "!lq" or cmd == '!ql':
             if self.grantCommand(sent_by, commLineName):
                 self.print_last_quote(tok1, cmd == "!lq" or cmd == '!ql')
                 return True
-        if re.search("^!!q(\\d+)*$", cmd) or re.search("^!q(\\d+)*$", cmd):
+        if re.search("^!!q(\\d+)*$", cmd): # or re.search("^!q(\\d+)*$", cmd):
             if self.grantCommand(sent_by, commLineName):
                 self.print_spec_quote(tok1,tok_msg)
                 return True

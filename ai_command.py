@@ -24,6 +24,7 @@ class AiCommandHandler:
     """
 
     DEFAULT_PROMPT_FILE = "KDZPROMPT.txt"
+    LOCAL_PROMPT_FILE = "LOCALPROMPT.txt"
     DEFAULT_TIMEOUT = 60
 
     def __init__(self, config: dict, response_callback: Optional[Callable] = None):
@@ -40,8 +41,9 @@ class AiCommandHandler:
         # Load AI-specific config
         ai_config = self.config.get("ai", {})
         self.prompt_file = ai_config.get("prompt_file", self.DEFAULT_PROMPT_FILE)
+        self.local_prompt_file = ai_config.get("prompt_file", self.LOCAL_PROMPT_FILE)
         self.timeout = ai_config.get("timeout_seconds", self.DEFAULT_TIMEOUT)
-        self.max_length = ai_config.get("max_response_length", 2000)
+        self.max_length = ai_config.get("max_response_length", 2500)
 
         # Load system prompt
         self.system_prompt = self._load_prompt()
@@ -74,9 +76,12 @@ class AiCommandHandler:
                 with open(self.prompt_file, 'r', encoding='utf-8') as f:
                     prompt = f.read().strip()
                 self.prompt_last_modified = os.path.getmtime(self.prompt_file)
+                with open(self.local_prompt_file, 'r', encoding='utf-8') as f:
+                    local_prompt = f.read().strip()
+                self.local_prompt_last_modified = os.path.getmtime(self.local_prompt_file)
                 logger.info(f"Loaded system prompt from {self.prompt_file} "
                            f"({len(prompt)} chars)")
-                return prompt
+                return f"Local prompt: {local_prompt}\n\nSystem prompt: {prompt}"
             else:
                 logger.warning(f"Prompt file {self.prompt_file} not found, using default")
                 return self._default_prompt()
