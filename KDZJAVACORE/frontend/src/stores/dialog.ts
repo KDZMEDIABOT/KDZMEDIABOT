@@ -158,6 +158,10 @@ export const useDialogStore = defineStore('dialog', () => {
     }
 
     async function selectThread(id: number) {
+        // If we're already on this thread, don't clear messages
+        if (currentThread.value && currentThread.value.id === id) {
+            return;
+        }
         let thread = threads.value.find(t => t.id === id) || null;
         if (!thread) {
             // Deep-link: fetch thread from server if not loaded locally

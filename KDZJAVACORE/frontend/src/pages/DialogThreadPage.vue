@@ -1,16 +1,15 @@
 <template>
-  <q-page class="column full-height">
+  <q-page class="column full-height" style="flex-wrap: nowrap;">
     <!-- Thread header -->
-    <q-bar class="bg-primary text-white q-py-sm">
-      <div class="q-px-md text-weight-bold text-subtitle1 ellipsis">
+    <q-bar class="bg-primary text-white q-py-sm" style="width: 100%;">
+      <div class="q-px-md text-weight-bold text-subtitle1 ellipsis" style="width: 100%;">
         {{ dialogStore.currentThread?.title || 'Conversation' }}
       </div>
       <q-space />
-      <q-btn flat dense icon="close" @click="onClose" label="Close" size="sm" />
     </q-bar>
 
     <!-- Messages -->
-    <q-scroll-area ref="scrollAreaRef" class="col q-pa-md" style="background-color: #f5f5f5;">
+    <div ref="scrollAreaRef" class="q-pa-md" style="background-color: #f5f5f5; width: 100%">
       <div>
         <div v-if="!dialogStore.currentThread" class="flex flex-center full-height">
           <div class="text-center text-grey-6">
@@ -63,11 +62,11 @@
           </div>
         </template>
       </div>
-    </q-scroll-area>
+    </div>
 
     <!-- Input -->
     <q-separator />
-    <div class="q-pa-sm bg-white">
+    <div class="q-pa-sm bg-white" style="width: 100%;">
       <q-input
         v-model="newMessage"
         placeholder="Type a message..."
@@ -122,7 +121,7 @@ watch(
   async () => {
     await nextTick();
     if (scrollAreaRef.value) {
-      scrollAreaRef.value.setScrollPosition('vertical', 99999999, 300);
+      scrollAreaRef.value.scrollTop = scrollAreaRef.value.scrollHeight;
     }
   }
 );
