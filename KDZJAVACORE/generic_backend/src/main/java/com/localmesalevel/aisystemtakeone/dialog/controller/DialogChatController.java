@@ -36,6 +36,19 @@ public class DialogChatController {
         this.llmLoopEngine = llmLoopEngine;
     }
 
+    private java.util.Map<String, Object> toMessageMap(DialogMessage msg) {
+        java.util.Map<String, Object> map = new java.util.LinkedHashMap<>();
+        map.put("id", msg.getId());
+        map.put("threadId", msg.getThreadId());
+        map.put("role", msg.getRole());
+        map.put("content", msg.getContent());
+        map.put("toolName", msg.getToolName());
+        map.put("toolResult", msg.getToolResult());
+        map.put("tokensUsed", msg.getTokensUsed());
+        map.put("createdAt", msg.getCreatedAt());
+        return map;
+    }
+
     @PostMapping("/{id}/chat")
     public ResponseEntity<?> sendChatMessage(
             @PathVariable Long id,
@@ -73,9 +86,12 @@ public class DialogChatController {
             );
 
             List<DialogMessage> messages = dialogService.getMessages(id);
+            if (messages.isEmpty()) {
+                return ResponseEntity.ok(java.util.Collections.emptyMap());
+            }
             DialogMessage lastMessage = messages.get(messages.size() - 1);
 
-            return ResponseEntity.ok(lastMessage);
+            return ResponseEntity.ok(toMessageMap(lastMessage));
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Chat error: " + e.getMessage());
         }

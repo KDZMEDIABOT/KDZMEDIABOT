@@ -92,55 +92,79 @@ public class DialogService {
                                           LlmLoopEngine llmLoopEngine) {
         // 1. Persist user message
         DialogMessage userMsg = addMessage(threadId, "user", userContent);
+        String errorMessage = null;
+        String aiResponse = null;
 
-        // 2. Build context from history
-        List<DialogMessage> history = getMessages(threadId);
-        StringBuilder historyBuilder = new StringBuilder();
-        for (DialogMessage msg : history) {
-            if (!"user".equals(msg.getRole()) && !"assistant".equals(msg.getRole())) {
-                continue;
-            }
-            historyBuilder.append(msg.getRole()).append(": ").append(msg.getContent()).append("\n");
-        }
-
-        // 3. Enhance with RAG context
-        String enhancedQuery = ragService.enhancePromptWithRAG(userContent, userId);
-
-        // 4. Build full user prompt with context
-        String fullUserPrompt = historyBuilder.toString() + "\n" + enhancedQuery;
-
-        // 5. Call LLM with MCP tools
-        String aiResponse;
         try {
-            LlmLoopEngine.LoopResult result = llmLoopEngine.run(
-                    credentials,
-                    modelName,
-                    systemPrompt,
-                    fullUserPrompt,
-                    mcpServers,
-                    8
-            );
-            aiResponse = result.getFinalAnswer();
-        } catch (RuntimeException e) {
-            logger.error("LLM call failed for dialog thread {}: {}", threadId, e.getMessage(), e);
-            aiResponse = "I apologize, but I encountered an error processing your request. Please try again.";
+            // 2. Build context from history
+            List<DialogMessage> history = getMessages(threadId);
+            StringBuilder historyBuilder = new StringBuilder();
+            for (DialogMessage msg : history) {
+                if (!"user".equals(msg.getRole()) && !"assistant".equals(msg.getRole())) {
+                    continue;
+                }
+                historyBuilder.append(msg.getRole()).append(": ").append(msg.getContent()).append("\n");
+            }
+
+            // 3. Enhance with RAG context
+            String enhancedQuery = ragService.enhancePromptWithRAG(userContent, userId);
+
+            // 4. Build full user prompt with context
+            String fullUserPrompt = historyBuilder.toString() + "\n" + enhancedQuery;
+
+            // 5. Call LLM with MCP tools
+            try {
+                LlmLoopEngine.LoopResult result = llmLoopEngine.run(
+                        credentials,
+                        modelName,
+                        systemPrompt,
+                        fullUserPrompt,
+                        mcpServers,
+                        8
+                );
+                aiResponse = result.getFinalAnswer();
+            } catch (RuntimeException e) {
+                logger.error("LLM call failed for dialog thread {}: {}", threadId, e.toString(), e);
+                errorMessage = "Chat error: " + e;
+                aiResponse = errorMessage;
+            }
+
+            // 6. Persist response (as assistant or system, depending on success)
+            String role = errorMessage != null ? "system" : "assistant";
+            DialogMessage assistantMsg = addMessage(threadId, role, aiResponse);
+
+            // 7. Update thread timestamp
+            Optional<DialogThread> threadOpt = threadRepository.findById(threadId);
+            if (threadOpt.isPresent()) {
+                DialogThread thread = threadOpt.get();
+                thread.setLastMessageAt(Instant.now());
+                threadRepository.save(thread);
+            }
+
+            // 8. Index for RAG (always index user message, error messages also useful for RAG contextually)
+            ragService.indexMessage(userMsg, userId);
+            // Only index assistant messages if no error, or index error if useful; keep it simple for now
+            if (errorMessage == null) {
+                ragService.indexMessage(assistantMsg, userId);
+            }
+
+            return threadOpt.orElse(null);
+
+        } catch (Throwable e) {
+            logger.error("Unexpected error in sendChatMessage for thread {}: {}", threadId, e.toString(), e);
+            // Persist error as system message
+            errorMessage = "Chat error: " + e;
+            addMessage(threadId, "system", errorMessage);
+
+            // Update thread timestamp even on error
+            Optional<DialogThread> threadOpt = threadRepository.findById(threadId);
+            if (threadOpt.isPresent()) {
+                DialogThread thread = threadOpt.get();
+                thread.setLastMessageAt(Instant.now());
+                threadRepository.save(thread);
+            }
+
+            return threadOpt.orElse(null);
         }
-
-        // 6. Persist assistant response
-        DialogMessage assistantMsg = addMessage(threadId, "assistant", aiResponse);
-
-        // 7. Update thread timestamp
-        Optional<DialogThread> threadOpt = threadRepository.findById(threadId);
-        if (threadOpt.isPresent()) {
-            DialogThread thread = threadOpt.get();
-            thread.setLastMessageAt(Instant.now());
-            threadRepository.save(thread);
-        }
-
-        // 8. Index for RAG
-        ragService.indexMessage(userMsg, userId);
-        ragService.indexMessage(assistantMsg, userId);
-
-        return threadOpt.orElse(null);
     }
 }

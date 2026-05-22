@@ -79,12 +79,12 @@
           </q-item>
 
           <q-item
-            v-for="thread in dialogStore.sortedThreads"
+            v-for="thread in dialogStore.paginatedThreads"
             :key="thread.id"
             clickable v-ripple
             :to="`/dialogs/${thread.id}`"
             :active="currentThreadId === thread.id"
-            @click="leftDrawerOpen = false"
+            @click=""
           >
             <q-item-section avatar>
               <q-icon name="chat_bubble" />
@@ -104,6 +104,17 @@
               />
             </q-item-section>
           </q-item>
+
+          <div class="q-pa-sm flex flex-center">
+            <q-pagination
+              v-model="dialogStore.threadsPage"
+              :max="dialogStore.totalThreadPages"
+              direction-links
+              boundary-links
+              :max-pages="6"
+              size="sm"
+            />
+          </div>
 
           <q-separator spaced />
         </template>
@@ -173,6 +184,22 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- Delete Thread Confirmation Dialog -->
+    <q-dialog v-model="showDeleteThreadDialog" persistent>
+      <q-card style="min-width: 300px; max-width: 90vw;">
+        <q-card-section>
+          <div class="text-h6">Delete Thread</div>
+        </q-card-section>
+        <q-card-section>
+          <p>Are you sure you want to delete this thread? This action cannot be undone.</p>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" color="primary" v-close-popup />
+          <q-btn flat label="Delete" color="negative" @click="confirmDeleteThread" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-layout>
 </template>
 
@@ -233,8 +260,20 @@ async function createNewThread() {
   }
 }
 
-async function onDeleteThread(id: number) {
-  await dialogStore.deleteThread(id);
+const showDeleteThreadDialog = ref(false);
+const threadToDeleteId = ref<number | null>(null);
+
+function onDeleteThread(id: number) {
+  threadToDeleteId.value = id;
+  showDeleteThreadDialog.value = true;
+}
+
+async function confirmDeleteThread() {
+  if (threadToDeleteId.value != null) {
+    await dialogStore.deleteThread(threadToDeleteId.value);
+  }
+  showDeleteThreadDialog.value = false;
+  threadToDeleteId.value = null;
 }
 
 // Rename thread

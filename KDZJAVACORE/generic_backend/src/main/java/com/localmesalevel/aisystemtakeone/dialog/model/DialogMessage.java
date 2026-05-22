@@ -36,6 +36,7 @@ public class DialogMessage {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "thread_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private DialogThread thread;
 
     public Long getId() {

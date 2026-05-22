@@ -42,6 +42,16 @@ export const useDialogStore = defineStore('dialog', () => {
         });
     });
 
+    // Pagination state
+    const threadsPerPage = ref(10);
+    const threadsPage = ref(1);
+    const paginatedThreads = computed(() => {
+        const start = (threadsPage.value - 1) * threadsPerPage.value;
+        const end = start + threadsPerPage.value;
+        return sortedThreads.value.slice(start, end);
+    });
+    const totalThreadPages = computed(() => Math.ceil(sortedThreads.value.length / threadsPerPage.value) || 1);
+
     function getToken(): string {
         const auth = useAuthStore();
         const token = auth.accessToken || sessionStorage.getItem('aisystem_bearer_token') || '';
@@ -62,11 +72,14 @@ export const useDialogStore = defineStore('dialog', () => {
     async function fetchThreads() {
         isLoading.value = true;
         try {
+            const headers: Record<string, string> = {};
+            const token = getToken();
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
             const response = await fetch(`${API_BASE}/api/dialogs`, {
                 credentials: 'include',
-                headers: {
-                    'Authorization': `Bearer ${getToken()}`,
-                },
+                headers,
             });
             if (response.ok) {
                 const fetched: DialogThread[] = await response.json();
@@ -89,13 +102,17 @@ export const useDialogStore = defineStore('dialog', () => {
     async function createThread(title: string, systemPrompt?: string) {
         console.log('[DIALOG] createThread() called with title:', title);
         try {
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+            };
+            const token = getToken();
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
             const response = await fetch(`${API_BASE}/api/dialogs`, {
                 method: 'POST',
                 credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${getToken()}`,
-                },
+                headers,
                 body: JSON.stringify({ title, systemPrompt }),
             });
             console.log('[DIALOG] createThread() response status:', response.status, response.ok);
@@ -103,6 +120,7 @@ export const useDialogStore = defineStore('dialog', () => {
                 const thread: DialogThread = await response.json();
                 console.log('[DIALOG] createThread() success, thread:', thread);
                 threads.value.push(thread);
+                threadsPage.value = 1;
                 return thread;
             } else {
                 handleAuthError(response);
@@ -115,12 +133,15 @@ export const useDialogStore = defineStore('dialog', () => {
 
     async function deleteThread(id: number) {
         try {
+            const headers: Record<string, string> = {};
+            const token = getToken();
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
             const response = await fetch(`${API_BASE}/api/dialogs/${id}`, {
                 method: 'DELETE',
                 credentials: 'include',
-                headers: {
-                    'Authorization': `Bearer ${getToken()}`,
-                },
+                headers,
             });
             if (response.ok) {
                 threads.value = threads.value.filter(t => t.id !== id);
@@ -141,15 +162,20 @@ export const useDialogStore = defineStore('dialog', () => {
         if (!thread) {
             // Deep-link: fetch thread from server if not loaded locally
             try {
+                const headers: Record<string, string> = {};
+                const token = getToken();
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
                 const response = await fetch(`${API_BASE}/api/dialogs/${id}`, {
                     credentials: 'include',
-                    headers: {
-                        'Authorization': `Bearer ${getToken()}`,
-                    },
+                    headers,
                 });
                 if (response.ok) {
                     thread = await response.json();
-                    threads.value.push(thread);
+                    if (thread && !threads.value.some(t => t.id === (thread as DialogThread).id)) {
+                        threads.value.push(thread);
+                    }
                 } else {
                     handleAuthError(response);
                 }
@@ -167,11 +193,14 @@ export const useDialogStore = defineStore('dialog', () => {
     async function fetchMessages(threadId: number) {
         isLoading.value = true;
         try {
+            const headers: Record<string, string> = {};
+            const token = getToken();
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
             const response = await fetch(`${API_BASE}/api/dialogs/${threadId}/messages`, {
                 credentials: 'include',
-                headers: {
-                    'Authorization': `Bearer ${getToken()}`,
-                },
+                headers,
             });
             if (response.ok) {
                 messages.value = await response.json();
@@ -204,13 +233,17 @@ export const useDialogStore = defineStore('dialog', () => {
         messages.value.push(userMessage);
 
         try {
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+            };
+            const token = getToken();
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
             const response = await fetch(`${API_BASE}/api/dialogs/${threadId}/chat`, {
                 method: 'POST',
                 credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${getToken()}`,
-                },
+                headers,
                 body: JSON.stringify({ content }),
             });
             if (response.ok) {
@@ -260,13 +293,17 @@ export const useDialogStore = defineStore('dialog', () => {
 
     async function renameThread(id: number, title: string) {
         try {
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+            };
+            const token = getToken();
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
             const response = await fetch(`${API_BASE}/api/dialogs/${id}`, {
                 method: 'PUT',
                 credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${getToken()}`,
-                },
+                headers,
                 body: JSON.stringify({ title }),
             });
             if (response.ok) {
@@ -293,6 +330,9 @@ export const useDialogStore = defineStore('dialog', () => {
         isLoading,
         isSending,
         sortedThreads,
+        paginatedThreads,
+        threadsPage,
+        totalThreadPages,
         fetchThreads,
         createThread,
         deleteThread,

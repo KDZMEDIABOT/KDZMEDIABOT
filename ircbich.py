@@ -73,6 +73,7 @@ class IrcBich(BichBot):
         self.botIrcUserName = self.connection_settings('IrcUserName')
         self.botNickSalt = 0
         self.nickserv_password = self.connection_setting_or_None('nickserv_password')
+        self.nickserv_account = self.connection_setting_or_None('nickserv_account')
 
         self.titleEnabled = bool(self.connection_settings('titleEnabled'))
 
@@ -444,7 +445,8 @@ class IrcBich(BichBot):
                     #
                     if self.nickserv_password is not None and len(tokens1) > 1 and tokens1[
                         1] == "001":  # 001 nick :Welcome to the Internet Relay Network
-                        self.send('NICKSERV IDENTIFY ' + self.nickserv_password + '\r\n')
+                        account = self.nickserv_account or self.botName
+                        self.send(f'NICKSERV IDENTIFY {account} {self.nickserv_password}\r\n')
                     if data.find('PING') != -1:
                         try:
                             print("ping_received")

@@ -39,6 +39,7 @@ public class DialogThread {
 
     @OneToMany(mappedBy = "thread", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("createdAt ASC")
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private List<DialogMessage> messages = new ArrayList<>();
 
     public Long getId() {

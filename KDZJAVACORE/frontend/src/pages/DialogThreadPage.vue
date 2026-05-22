@@ -11,59 +11,58 @@
 
     <!-- Messages -->
     <q-scroll-area ref="scrollAreaRef" class="col q-pa-md" style="background-color: #f5f5f5;">
-      <!-- Empty state when no thread selected -->
-      <div v-if="!dialogStore.currentThread" class="flex flex-center full-height">
-        <div class="text-center text-grey-6">
-          <q-icon name="chat_bubble" size="4em" />
-          <div class="text-h6 q-mt-sm">Select a thread</div>
-          <div class="text-body2">Choose an existing conversation or create a new one from the sidebar.</div>
-        </div>
-      </div>
-
-      <!-- Loading state -->
-      <div v-else-if="dialogStore.isLoading && dialogStore.messages.length === 0" class="flex flex-center full-height">
-        <div class="text-center text-grey-6">
-          <q-spinner-dots color="primary" size="3em" />
-          <div class="text-body2 q-mt-sm">Loading messages...</div>
-        </div>
-      </div>
-
-      <template v-else>
-        <div v-for="msg in dialogStore.messages" :key="msg.id" class="q-mb-md">
-          <div
-            :class="[
-              'row',
-              msg.role === 'user' ? 'justify-end' : 'justify-start'
-            ]"
-          >
-            <div
-              :class="[
-                'q-pa-md rounded-borders',
-                msg.role === 'user'
-                  ? 'bg-primary text-white'
-                  : 'bg-white text-dark shadow-1'
-              ]"
-              style="max-width: 80%; min-width: 120px;"
-            >
-              <div class="text-caption text-weight-bold q-mb-xs" :class="msg.role === 'user' ? 'text-white' : 'text-grey-7'">
-                {{ msg.role === 'user' ? 'You' : 'AI' }}
-              </div>
-              <div class="text-body2" style="white-space: pre-wrap;">{{ msg.content }}</div>
-              <div v-if="msg.toolName" class="text-caption q-mt-xs" :class="msg.role === 'user' ? 'text-blue-2' : 'text-grey-6'">
-                Tool: {{ msg.toolName }}
-              </div>
-            </div>
+      <div>
+        <div v-if="!dialogStore.currentThread" class="flex flex-center full-height">
+          <div class="text-center text-grey-6">
+            <q-icon name="chat_bubble" size="4em" />
+            <div class="text-h6 q-mt-sm">Select a thread</div>
+            <div class="text-body2">Choose an existing conversation or create a new one from the sidebar.</div>
           </div>
         </div>
 
-      <!-- Loading indicator -->
-      <div v-if="dialogStore.isSending" class="row justify-start q-mt-md">
-        <div class="q-pa-md rounded-borders bg-white shadow-1" style="max-width: 80%;">
-          <q-spinner-dots color="primary" size="2em" />
-          <span class="q-ml-sm text-grey-6">AI is thinking...</span>
+        <div v-else-if="dialogStore.isLoading && dialogStore.messages.length === 0" class="flex flex-center full-height">
+          <div class="text-center text-grey-6">
+            <q-spinner-dots color="primary" size="3em" />
+            <div class="text-body2 q-mt-sm">Loading messages...</div>
+          </div>
         </div>
+
+        <template v-else>
+          <div v-for="msg in dialogStore.messages" :key="msg.id" class="q-mb-md">
+            <div
+              :class="[
+                'row',
+                msg.role === 'user' ? 'justify-end' : 'justify-start'
+              ]"
+            >
+              <div
+                :class="[
+                  'q-pa-md rounded-borders',
+                  msg.role === 'user'
+                    ? 'bg-primary text-white'
+                    : 'bg-white text-dark shadow-1'
+                ]"
+                style="max-width: 80%; min-width: 120px;"
+              >
+                <div class="text-caption text-weight-bold q-mb-xs" :class="msg.role === 'user' ? 'text-white' : 'text-grey-7'">
+                  {{ msg.role }}</div>
+                <div class="text-body2" style="white-space: pre-wrap;">{{ msg.content }}</div>
+                <div v-if="msg.toolName" class="text-caption q-mt-xs" :class="msg.role === 'user' ? 'text-blue-2' : 'text-grey-6'">
+                  Tool: {{ msg.toolName }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Loading indicator -->
+          <div v-if="dialogStore.isSending" class="row justify-start q-mt-md">
+            <div class="q-pa-md rounded-borders bg-white shadow-1" style="max-width: 80%;">
+              <q-spinner-dots color="primary" size="2em" />
+              <span class="q-ml-sm text-grey-6">AI is thinking...</span>
+            </div>
+          </div>
+        </template>
       </div>
-      </template>
     </q-scroll-area>
 
     <!-- Input -->
@@ -123,7 +122,7 @@ watch(
   async () => {
     await nextTick();
     if (scrollAreaRef.value) {
-      scrollAreaRef.value.setScrollPosition('vertical', 999999, 300);
+      scrollAreaRef.value.setScrollPosition('vertical', 99999999, 300);
     }
   }
 );
