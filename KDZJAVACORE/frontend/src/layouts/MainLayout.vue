@@ -65,6 +65,49 @@
           <q-item-section>Sign In</q-item-section>
         </q-item>
 
+        <template v-if="auth.isLoggedIn">
+          <q-separator spaced />
+          <q-item-label header class="text-uppercase text-caption text-grey-7 q-pa-sm">
+            Dialog Threads
+          </q-item-label>
+
+          <q-item clickable v-ripple @click="onNewThread">
+            <q-item-section avatar>
+              <q-icon name="add_circle" color="primary" />
+            </q-item-section>
+            <q-item-section class="text-primary">New Thread</q-item-section>
+          </q-item>
+
+          <q-item
+            v-for="thread in dialogStore.sortedThreads"
+            :key="thread.id"
+            clickable v-ripple
+            :to="`/dialogs/${thread.id}`"
+            :active="currentThreadId === thread.id"
+            @click="leftDrawerOpen = false"
+          >
+            <q-item-section avatar>
+              <q-icon name="chat_bubble" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label class="ellipsis" style="max-width: 180px;">{{ thread.title }}</q-item-label>
+              <q-item-label caption>{{ formatDate(thread.lastMessageAt) }}</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-btn
+                flat round dense icon="edit" size="sm"
+                @click.prevent.stop="onRenameThread(thread.id, thread.title)"
+              />
+              <q-btn
+                flat round dense icon="close" size="sm"
+                @click.prevent.stop="onDeleteThread(thread.id)"
+              />
+            </q-item-section>
+          </q-item>
+
+          <q-separator spaced />
+        </template>
+
         <q-item v-if="auth.isLoggedIn" clickable v-ripple to="/settings" @click="leftDrawerOpen = false">
           <q-item-section avatar>
             <q-icon name="settings" />
@@ -84,16 +127,76 @@
     <q-page-container>
       <router-view />
     </q-page-container>
+
+    <!-- New Thread Dialog -->
+    <q-dialog v-model="showNewThreadDialog" persistent>
+      <q-card style="min-width: 300px; max-width: 90vw;">
+        <q-card-section>
+          <div class="text-h6">New Thread</div>
+        </q-card-section>
+        <q-card-section>
+          <q-input
+            v-model="newThreadTitle"
+            label="Thread title"
+            outlined
+            dense
+            autofocus
+            @keyup.enter="createNewThread"
+          />
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" color="primary" v-close-popup />
+          <q-btn flat label="Create" color="primary" @click="createNewThread" :disable="!newThreadTitle.trim()" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- Rename Thread Dialog -->
+    <q-dialog v-model="showRenameThreadDialog" persistent>
+      <q-card style="min-width: 300px; max-width: 90vw;">
+        <q-card-section>
+          <div class="text-h6">Rename Thread</div>
+        </q-card-section>
+        <q-card-section>
+          <q-input
+            v-model="renameThreadTitle"
+            label="New title"
+            outlined
+            dense
+            autofocus
+            @keyup.enter="confirmRenameThread"
+          />
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" color="primary" v-close-popup />
+          <q-btn flat label="Rename" color="primary" @click="confirmRenameThread" :disable="!renameThreadTitle.trim()" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-layout>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
+import { useDialogStore } from '../stores/dialog';
 
 const auth = useAuthStore();
+const dialogStore = useDialogStore();
 const leftDrawerOpen = ref(false);
 const canManageContent = computed(() => auth.isAdmin || auth.isMaintainer);
+const route = useRoute();
+const router = useRouter();
+const currentThreadId = ref<number | null>(null);
+
+watch(
+  () => route.params.id,
+  (id) => {
+    currentThreadId.value = id ? Number(id) : null;
+  },
+  { immediate: true }
+);
 
 function toggleLeftDrawer() {
   leftDrawerOpen.value = !leftDrawerOpen.value;
@@ -107,4 +210,61 @@ async function onLogoutFromDrawer() {
   leftDrawerOpen.value = false;
   await onLogout();
 }
+
+// Dialog thread functions
+const newThreadTitle = ref('');
+const showNewThreadDialog = ref(false);
+
+async function onNewThread() {
+  newThreadTitle.value = '';
+  showNewThreadDialog.value = true;
+}
+
+async function createNewThread() {
+  const title = newThreadTitle.value.trim();
+  console.log('[LAYOUT] createNewThread() title=', title);
+  if (!title) return;
+  const thread = await dialogStore.createThread(title);
+  console.log('[LAYOUT] createNewThread() dialogStore.createThread returned:', thread);
+  if (thread) {
+    newThreadTitle.value = '';
+    showNewThreadDialog.value = false;
+    router.push(`/dialogs/${thread.id}`);
+  }
+}
+
+async function onDeleteThread(id: number) {
+  await dialogStore.deleteThread(id);
+}
+
+// Rename thread
+const showRenameThreadDialog = ref(false);
+const renameThreadTitle = ref('');
+const threadToRenameId = ref<number | null>(null);
+
+function onRenameThread(id: number, currentTitle: string) {
+  threadToRenameId.value = id;
+  renameThreadTitle.value = currentTitle;
+  showRenameThreadDialog.value = true;
+}
+
+async function confirmRenameThread() {
+  const title = renameThreadTitle.value.trim();
+  if (!title || threadToRenameId.value == null) return;
+  await dialogStore.renameThread(threadToRenameId.value, title);
+  showRenameThreadDialog.value = false;
+  threadToRenameId.value = null;
+}
+
+function formatDate(dateStr: string | null) {
+  if (!dateStr) return 'New';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+onMounted(() => {
+  if (auth.isLoggedIn) {
+    dialogStore.fetchThreads();
+  }
+});
 </script>

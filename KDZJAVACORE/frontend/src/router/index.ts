@@ -55,6 +55,14 @@ const routes: RouteRecordRaw[] = [
         component: () => import('pages/RunningKieProcessesPage.vue'),
         meta: { roles: ['admin'] },
       },
+      {
+        path: 'dialogs',
+        component: () => import('pages/DialogThreadPage.vue'),
+      },
+      {
+        path: 'dialogs/:id',
+        component: () => import('pages/DialogThreadPage.vue'),
+      },
     ],
   },
   {
@@ -71,11 +79,13 @@ const router = createRouter({
 let authBootstrapPromise: Promise<boolean> | null = null;
 
 router.beforeEach(async (to) => {
+  console.log('[ROUTER] beforeEach to=', to.path, 'public=', to.meta.public);
   if (to.meta.public) {
     return true;
   }
 
   const auth = useAuthStore();
+  console.log('[ROUTER] beforeEach auth.isLoggedIn=', auth.isLoggedIn, 'auth.isAuthenticated=', auth.isAuthenticated);
   if (auth.isLoggedIn) {
     const roles = to.meta.roles as string[] | undefined;
     if (!roles || roles.length === 0) {
@@ -89,10 +99,12 @@ router.beforeEach(async (to) => {
   }
 
   if (!authBootstrapPromise) {
+    console.log('[ROUTER] beforeEach calling fetchFromAuthService');
     authBootstrapPromise = auth.fetchFromAuthService();
   }
   const restored = await authBootstrapPromise;
   authBootstrapPromise = null;
+  console.log('[ROUTER] beforeEach restored=', restored);
 
   if (!restored) {
     return '/login';

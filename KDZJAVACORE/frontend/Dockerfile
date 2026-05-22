@@ -6,7 +6,9 @@ COPY package*.json ./
 RUN npm ci
 COPY . .
 ARG VITE_AUTH_SERVICE_URL=/auth-api
+ARG SERVER_HOST=localhost
 ENV VITE_AUTH_SERVICE_URL=$VITE_AUTH_SERVICE_URL
+ENV SERVER_HOST=$SERVER_HOST
 RUN npm run build
 
 # Serve stage
@@ -15,7 +17,9 @@ WORKDIR /usr/share/nginx/html
 
 RUN rm -rf /usr/share/nginx/html/*
 COPY nginx-default.conf /etc/nginx/conf.d/default.conf
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 COPY --from=builder /app/dist/spa .
 
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["/docker-entrypoint.sh"]

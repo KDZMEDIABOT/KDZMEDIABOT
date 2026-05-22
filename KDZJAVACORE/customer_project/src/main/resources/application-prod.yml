@@ -21,7 +21,7 @@ spring:
     enabled: true
     locations: classpath:db/migration
   datasource:
-    url: jdbc:postgresql://rig1.lan:5432/customer_aisystem_prod
+    url: jdbc:postgresql://${SERVER_HOST:rig1.lan}:5432/customer_aisystem_prod
     username: ${DB_USERNAME:customer_prod}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver

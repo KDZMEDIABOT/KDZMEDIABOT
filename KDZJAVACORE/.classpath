@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="src" path="customer_project/src/main/java"/>
+	<classpathentry kind="src" path="customer_project/src/test/java"/>
+	<classpathentry kind="src" path="generic_backend/src/main/java"/>
+	<classpathentry kind="src" path="generic_backend/src/test/java"/>
+	<classpathentry kind="lib" path="customer_project/target/aisystem-0.1.33-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="generic_backend/target/aisystemtakeone-0.1.33-SNAPSHOT.jar"/>
+	<classpathentry kind="output" path="customer_project/target/classes"/>
+</classpath>

@@ -57,7 +57,9 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/aisystem_dev
       SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:-cust1dev}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-cust1devpassw}
-      READINGPLUS_MCP_CONTAINER_NAME: aisystem-readingplus-mcp-sidecar-dev\n    OPENSERP_MCP_CONTAINER_NAME: aisystem-openserp-mcp-sidecar-dev
+      READINGPLUS_MCP_CONTAINER_NAME: aisystem-readingplus-mcp-sidecar-dev
+      OPENSERP_MCP_CONTAINER_NAME: aisystem-openserp-mcp-sidecar-dev
+      AUTH_SERVICE_URL: http://auth_sidecar:3001
       # Dev local auth flow uses auth_sidecar session + local credentials.
       # Keep issuer empty so JWT resource-server mode is not force-enabled by placeholders.
       SSO_ISSUER_URI: ""

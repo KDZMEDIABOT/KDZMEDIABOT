@@ -5,7 +5,7 @@
 Current production deployment is on `rig1.lan`:
 - **Frontend**: http://rig1.lan:8088 (nginx serving SPA)
 - **Auth Service**: http://rig1.lan:3002 (Node.js/Passport.js sidecar)
-- **Backend**: http://rig1.lan:8443 (Spring Boot Java)
+- **Backend**: http://rig1.lan:8443 (Spring Boot Java, deployed outside Docker via `tools/redeploy_backend_prod_nodockerjava.sh`)
 - **PostgreSQL**: rig1.lan:5432 (port 15432 externally exposed)
 - **Redis**: rig1.lan:6379 (used for session storage)
 
@@ -35,6 +35,20 @@ sudo ssh -o PasswordAuthentication=false -i /home/rig1_ubuntu16_root root@rig1.l
 
 # Check Redis sessions
 sudo ssh -o PasswordAuthentication=false -i /home/rig1_ubuntu16_root root@rig1.lan -c "docker exec aisystem-redis-prod redis-cli KEYS 'aisystem:auth:sess:*'"
+```
+
+## Frontend Development (JS/TS)
+
+Use `nvm` for Node version management, `yarn` for package management, and `quasar` for the CLI.
+
+```bash
+cd frontend
+nvm use
+yarn install
+yarn quasar dev       # dev server
+yarn quasar build     # production build
+yarn quasar test      # run tests
+npx tsc --noEmit       # type check
 ```
 
 ## Beware

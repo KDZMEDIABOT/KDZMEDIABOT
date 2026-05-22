@@ -25,16 +25,23 @@ export const useAuthStore = defineStore('auth', () => {
   /** Fetch token and user from Passport.js auth service (with credentials for session cookie). */
   async function fetchFromAuthService(): Promise<boolean> {
     loading.value = true;
+    console.log('[AUTH] fetchFromAuthService: calling /api/auth/me');
     try {
       const meRes = await fetch(`${AUTH_SERVICE_URL}/api/auth/me`, { credentials: 'include' });
+      console.log('[AUTH] /api/auth/me status:', meRes.status, meRes.ok);
       if (!meRes.ok) {
+        console.log('[AUTH] /api/auth.me not ok, clearing auth');
         clearAuth();
         return false;
       }
       const me = await meRes.json();
+      console.log('[AUTH] /api/auth.me user:', me);
       const tokenRes = await fetch(`${AUTH_SERVICE_URL}/api/auth/token`, { credentials: 'include' });
-      const tokenData = tokenRes.ok ? await tokenRes.json() : {};
+      console.log('[AUTH] /api/auth/token status:', tokenRes.status, tokenRes.ok);
+      // Token may be null for local login (no OAuth IdP); that's fine.
+      const tokenData = tokenRes.ok ? await tokenRes.json().catch(() => ({})) : {};
       const token = tokenData.accessToken || null;
+      console.log('[AUTH] token resolved=', token);
       user.value = {
         id: me.id,
         name: me.name,
@@ -48,8 +55,10 @@ export const useAuthStore = defineStore('auth', () => {
         try { sessionStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ }
       }
       isAuthenticated.value = true;
+      console.log('[AUTH] fetchFromAuthService success, isAuthenticated=', isAuthenticated.value);
       return true;
-    } catch {
+    } catch (e) {
+      console.log('[AUTH] fetchFromAuthService catch:', e);
       clearAuth();
       return false;
     } finally {
@@ -87,6 +96,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function login(username: string, password: string, rememberMe = false): Promise<LoginResult> {
     loading.value = true;
+    console.log('[AUTH] login() start', { username, rememberMe });
     try {
       const response = await fetch(`${AUTH_SERVICE_URL}/api/auth/login`, {
         method: 'POST',
@@ -94,9 +104,11 @@ export const useAuthStore = defineStore('auth', () => {
         credentials: 'include',
         body: JSON.stringify({ username, password, rememberMe }),
       });
+      console.log('[AUTH] /api/auth/login response status:', response.status, response.ok);
       if (!response.ok) {
         const payload = await response.json().catch(() => ({}));
         const backendError = typeof payload?.error === 'string' ? payload.error : undefined;
+        console.log('[AUTH] /api/auth/login not ok, clearing auth. payload:', payload);
         clearAuth();
         return {
           ok: false,
@@ -105,19 +117,41 @@ export const useAuthStore = defineStore('auth', () => {
           error: buildDetailedLoginError(response.status, backendError),
         };
       }
-      // Consume JSON body to keep fetch semantics explicit, then hydrate auth
-      // from the sidecar session so reloads can restore state consistently.
-      await response.json().catch(() => ({}));
-      const restored = await fetchFromAuthService();
-      if (!restored) {
-        clearAuth();
-        return {
-          ok: false,
-          error: 'Login succeeded, but session bootstrap failed. Please retry.',
+      // Hydrate auth from the login response directly (avoids race condition
+      // where fetch to /api/auth/me fires before browser processes Set-Cookie).
+      const payload = await response.json().catch(() => ({}));
+      console.log('[AUTH] /api/auth/login payload:', payload);
+      const loginUser = payload?.user;
+      if (loginUser && loginUser.id) {
+        console.log('[AUTH] login() hydrating from loginUser:', loginUser);
+        user.value = {
+          id: loginUser.id,
+          name: loginUser.name,
+          email: loginUser.email,
+          role: loginUser.role || 'maintainer',
         };
+        accessToken.value = loginUser.accessToken || null;
+        if (accessToken.value) {
+          try { sessionStorage.setItem(TOKEN_KEY, accessToken.value); } catch { /* ignore */ }
+        }
+        isAuthenticated.value = true;
+        console.log('[AUTH] login() success, user:', user.value, 'isAuthenticated:', isAuthenticated.value);
+      } else {
+        console.log('[AUTH] login() no loginUser found, falling back to fetchFromAuthService');
+        // Fallback: wait for cookie then boot from session
+        await new Promise(r => setTimeout(r, 200));
+        const restored = await fetchFromAuthService();
+        if (!restored) {
+          clearAuth();
+          return {
+            ok: false,
+            error: 'Login succeeded, but session bootstrap failed. Please retry.',
+          };
+        }
       }
       return { ok: true };
-    } catch {
+    } catch (e) {
+      console.log('[AUTH] login() catch:', e);
       clearAuth();
       return {
         ok: false,

@@ -72,7 +72,9 @@ onMounted(async () => {
 
 async function onSubmit() {
   loading.value = true;
+  console.log('[SIGNIN] onSubmit login called');
   const result = await auth.login(username.value, password.value, rememberMe.value);
+  console.log('[SIGNIN] onSubmit login result:', result, 'auth.isLoggedIn now:', auth.isLoggedIn, 'auth.user:', auth.user);
   loading.value = false;
   if (!result.ok) {
     $q.notify({

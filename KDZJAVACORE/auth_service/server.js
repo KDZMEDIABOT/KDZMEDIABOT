@@ -23,7 +23,8 @@ const AUTH_SESSION_STORE = (process.env.AUTH_SESSION_STORE || 'redis').toLowerCa
 const AUTH_SERVICE_REDIS_URL = process.env.AUTH_SERVICE_REDIS_URL || 'redis://redis:6379';
 const AUTH_SERVICE_REDIS_PREFIX = process.env.AUTH_SERVICE_REDIS_PREFIX || 'aisystem:auth:sess:';
 const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || `http://localhost:${PORT}`;
-const GENERIC_BACKEND_URL = process.env.GENERIC_BACKEND_URL || 'http://rig1.lan:8080';
+const SERVER_HOST = process.env.SERVER_HOST || 'rig1.lan';
+const GENERIC_BACKEND_URL = process.env.GENERIC_BACKEND_URL || `http://${SERVER_HOST}:8080`;
 const REMEMBER_ME_MAX_AGE_MS = Number(process.env.REMEMBER_ME_MAX_AGE_MS) || (30 * 24 * 60 * 60 * 1000);
 const SERVER_PROFILE = (process.env.SERVER_PROFILE || '').toLowerCase();
 const IS_DEV_PROFILE = SERVER_PROFILE === 'dev';
@@ -238,7 +239,7 @@ app.use((req, res, next) => {
 
 
   app.use(cors({
-    origin: [FRONTEND_URL, 'http://rig1.lan:8088', 'http://rig1.lan:9000'],
+    origin: [FRONTEND_URL, `http://${SERVER_HOST}:8088`, `http://${SERVER_HOST}:9000`],
     credentials: true,
     methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -254,7 +255,7 @@ app.use((req, res, next) => {
       secure: false, // Allow HTTP (behind reverse proxy)
       httpOnly: true,
       sameSite: 'lax', // Less strict for cross-origin
-      domain: 'rig1.lan', // Explicit domain for subdomains/ports
+      domain: SERVER_HOST, // Explicit domain for subdomains/ports
       maxAge: 24 * 60 * 60 * 1000000, // 24000 hours
       path: '/', // Cookie valid for entire domain
     },
@@ -440,9 +441,13 @@ app.use((req, res, next) => {
   });
 
   app.get('/api/auth/me', (req, res) => {
+    console.log('[AUTH_SVC] /api/auth/me headers.cookie=', req.headers.cookie);
+    console.log('[AUTH_SVC] /api/auth.me isAuthenticated=', req.isAuthenticated ? req.isAuthenticated() : 'no-method', 'user=', req.user ? 'present' : 'missing');
     if (!req.isAuthenticated || !req.isAuthenticated() || !req.user) {
+      console.log('[AUTH_SVC] /api/auth.me returning 401');
       return res.status(401).json({ error: 'Not authenticated' });
     }
+    console.log('[AUTH_SVC] /api/auth.me returning user id=', req.user.id);
     res.json({
       id: req.user.id,
       name: req.user.name,
@@ -452,13 +457,13 @@ app.use((req, res, next) => {
   });
 
   app.get('/api/auth/token', (req, res) => {
+    console.log('[AUTH_SVC] /api/auth/token isAuthenticated=', req.isAuthenticated ? req.isAuthenticated() : 'no-method');
     if (!req.isAuthenticated || !req.isAuthenticated() || !req.user) {
+      console.log('[AUTH_SVC] /api/auth/token returning 401');
       return res.status(401).json({ error: 'Not authenticated' });
     }
-    const token = req.user.accessToken || req.user.idToken;
-    if (!token) {
-      return res.status(401).json({ error: 'No token in session' });
-    }
+    const token = req.user.accessToken || req.user.idToken || null;
+    console.log('[AUTH_SVC] /api/auth/token returning token=', token ? 'present' : 'null');
     res.json({ accessToken: token });
   });
 
