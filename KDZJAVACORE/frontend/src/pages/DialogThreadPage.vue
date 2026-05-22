@@ -66,27 +66,26 @@
 
     <!-- Input -->
     <q-separator />
-    <div class="q-pa-sm bg-white" style="width: 100%;">
+    <div class="q-pa-sm bg-white row items-center q-gutter-x-sm" style="width: 100%;">
       <q-input
         v-model="newMessage"
         placeholder="Type a message..."
+        type="textarea"
+        autogrow
         outlined
         dense
-        class="full-width"
-        @keyup.enter="send"
+        class="col"
+        @keydown.enter="send"
         :disable="dialogStore.isSending || !dialogStore.currentThread"
-      >
-        <template v-slot:after>
-          <q-btn
-            color="primary"
-            icon="send"
-            @click="send"
-            :disable="!newMessage.trim() || dialogStore.isSending"
-            round
-            dense
-          />
-        </template>
-      </q-input>
+      />
+      <q-btn
+        color="primary"
+        icon="send"
+        @click="send"
+        :disable="!newMessage.trim() || dialogStore.isSending"
+        round
+        dense
+      />
     </div>
   </q-page>
 </template>
@@ -103,7 +102,10 @@ const router = useRouter();
 const newMessage = ref('');
 const scrollAreaRef = ref<any>(null);
 
-function send() {
+function send(event?: KeyboardEvent) {
+  if (event && !event.ctrlKey) {
+    return;
+  }
   const content = newMessage.value.trim();
   if (!content || !dialogStore.currentThread) return;
   newMessage.value = '';
