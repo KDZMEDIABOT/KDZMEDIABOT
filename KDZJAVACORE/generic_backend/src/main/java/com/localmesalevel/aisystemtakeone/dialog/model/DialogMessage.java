@@ -1,9 +1,12 @@
 package com.localmesalevel.aisystemtakeone.dialog.model;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.localmesalevel.aisystemtakeone.workspace.model.WorkspaceFile;
 
 import javax.persistence.*;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "dialog_messages")
@@ -36,8 +39,17 @@ public class DialogMessage {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "thread_id", nullable = false)
-    @com.fasterxml.jackson.annotation.JsonIgnore
+    @JsonIgnore
     private DialogThread thread;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "dialog_message_attachments",
+        joinColumns = @JoinColumn(name = "message_id"),
+        inverseJoinColumns = @JoinColumn(name = "file_id")
+    )
+    @JsonIgnore
+    private List<WorkspaceFile> attachedFiles = new ArrayList<>();
 
     public Long getId() {
         return id;
@@ -109,5 +121,13 @@ public class DialogMessage {
 
     public void setThread(DialogThread thread) {
         this.thread = thread;
+    }
+
+    public List<WorkspaceFile> getAttachedFiles() {
+        return attachedFiles;
+    }
+
+    public void setAttachedFiles(List<WorkspaceFile> attachedFiles) {
+        this.attachedFiles = attachedFiles;
     }
 }

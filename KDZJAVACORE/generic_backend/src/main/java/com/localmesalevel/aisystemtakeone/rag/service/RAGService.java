@@ -67,6 +67,17 @@ public class RAGService {
         return ragAdapter != null && ragAdapter.isAvailable();
     }
 
+    public void indexFile(String fileContent, Long fileId, Long userId) {
+        if (fileContent == null || fileId == null || userId == null) {
+            return;
+        }
+        try {
+            ragAdapter.indexFileContent(fileContent, fileId, userId);
+        } catch (Exception e) {
+            logger.warn("Failed to index file {} for RAG: {}", fileId, e.getMessage());
+        }
+    }
+
     public List<RAGResult> retrieveRelevantContext(String query, Long userId, int maxResults) {
         if (!isAvailable()) {
             logger.trace("RAG adapter not available, skipping context retrieval");

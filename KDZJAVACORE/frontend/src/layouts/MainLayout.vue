@@ -65,6 +65,13 @@
           <q-item-section>Sign In</q-item-section>
         </q-item>
 
+        <q-item v-if="auth.isLoggedIn" clickable v-ripple to="/workspaces" @click="leftDrawerOpen = false">
+          <q-item-section avatar>
+            <q-icon name="folder" />
+          </q-item-section>
+          <q-item-section>Workspaces</q-item-section>
+        </q-item>
+
         <template v-if="auth.isLoggedIn">
           <q-separator spaced />
           <q-item-label header class="text-uppercase text-caption text-grey-7 q-pa-sm">

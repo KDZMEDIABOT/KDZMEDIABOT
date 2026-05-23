@@ -49,6 +49,11 @@ public class DialogService {
     }
 
     public DialogMessage addMessage(Long threadId, String role, String content) {
+        return addMessage(threadId, role, content, java.util.Collections.emptyList());
+    }
+
+    public DialogMessage addMessage(Long threadId, String role, String content,
+                                    java.util.List<com.localmesalevel.aisystemtakeone.workspace.model.WorkspaceFile> attachedFiles) {
         DialogThread thread = threadRepository.findById(threadId).orElse(null);
         if (thread == null) {
             throw new IllegalArgumentException("Thread not found: " + threadId);
@@ -58,6 +63,9 @@ public class DialogService {
         message.setRole(role);
         message.setContent(content);
         message.setCreatedAt(Instant.now());
+        if (attachedFiles != null && !attachedFiles.isEmpty()) {
+            message.getAttachedFiles().addAll(attachedFiles);
+        }
         return messageRepository.save(message);
     }
 
@@ -95,8 +103,16 @@ public class DialogService {
                                           LlmEndpointCredentials credentials, String modelName,
                                           String systemPrompt, List<McpServerConfig> mcpServers,
                                           LlmLoopEngine llmLoopEngine) {
-        // 1. Persist user message
-        DialogMessage userMsg = addMessage(threadId, "user", userContent);
+        return sendChatMessage(threadId, userContent, userId, credentials, modelName, systemPrompt, mcpServers, llmLoopEngine, java.util.Collections.emptyList());
+    }
+
+    public DialogThread sendChatMessage(Long threadId, String userContent, Long userId,
+                                          LlmEndpointCredentials credentials, String modelName,
+                                          String systemPrompt, List<McpServerConfig> mcpServers,
+                                          LlmLoopEngine llmLoopEngine,
+                                          java.util.List<com.localmesalevel.aisystemtakeone.workspace.model.WorkspaceFile> attachedFiles) {
+        // 1. Persist user message (with attached files)
+        DialogMessage userMsg = addMessage(threadId, "user", userContent, attachedFiles);
         String errorMessage = null;
         String aiResponse = null;
 
@@ -187,7 +203,21 @@ public class DialogService {
                 threadRepository.save(thread);
             }
 
-            // 9. Index for RAG (always index user message, error messages also useful for RAG contextually)
+            // 9. Index attached files for RAG
+            if (attachedFiles != null && !attachedFiles.isEmpty()) {
+                for (com.localmesalevel.aisystemtakeone.workspace.model.WorkspaceFile attachedFile : attachedFiles) {
+                    if (attachedFile.getFileData() != null && attachedFile.getFileData().length > 0) {
+                        try {
+                            String fileText = new String(attachedFile.getFileData(), java.nio.charset.StandardCharsets.UTF_8);
+                            ragService.indexFile(fileText, attachedFile.getId(), userId);
+                        } catch (Exception e) {
+                            logger.warn("Failed to index file {} for RAG: {}", attachedFile.getId(), e.getMessage());
+                        }
+                    }
+                }
+            }
+
+            // 10. Index for RAG (always index user message, error messages also useful for RAG contextually)
             ragService.indexMessage(userMsg, userId);
             if (errorMessage == null) {
                 ragService.indexMessage(assistantMsg, userId);

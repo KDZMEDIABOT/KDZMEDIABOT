@@ -49,6 +49,10 @@
                 <div v-if="msg.toolName" class="text-caption q-mt-xs" :class="msg.role === 'user' ? 'text-blue-2' : 'text-grey-6'">
                   Tool: {{ msg.toolName }}
                 </div>
+                <!-- File attachments -->
+                <div v-if="msg.attachedFiles && msg.attachedFiles.length" class="text-caption q-mt-xs" :class="msg.role === 'user' ? 'text-blue-2' : 'text-grey-6'">
+                  Files: {{ msg.attachedFiles.map(f => f.fileName).join(', ') }}
+                </div>
               </div>
             </div>
           </div>
@@ -66,41 +70,92 @@
 
     <!-- Input -->
     <q-separator />
-    <div class="q-pa-sm bg-white row items-center q-gutter-x-sm" style="width: 100%;">
-      <q-input
-        v-model="newMessage"
-        placeholder="Type a message..."
-        type="textarea"
-        autogrow
-        outlined
-        dense
-        class="col"
-        @keydown.enter="send"
-        :disable="dialogStore.isSending || !dialogStore.currentThread"
-      />
-      <q-btn
-        color="primary"
-        icon="send"
-        @click="send"
-        :disable="!newMessage.trim() || dialogStore.isSending"
-        round
-        dense
-      />
+    <div class="q-pa-sm bg-white column" style="width: 100%;">
+      <!-- Selected file chips -->
+      <div v-if="selectedFiles.length" class="row q-gutter-x-sm q-mb-xs">
+        <q-chip
+          v-for="f in selectedFiles"
+          :key="f.id"
+          removable
+          dense
+          color="primary"
+          text-color="white"
+          :label="f.fileName"
+          @remove="removeFile(f)"
+        />
+      </div>
+      <div class="row items-center q-gutter-x-sm">
+        <q-select
+          v-model="selectedFileModel"
+          label="Attach files..."
+          :options="workspaceStore.files"
+          option-value="id"
+          option-label="fileName"
+          use-input
+          outlined
+          dense
+          style="min-width: 200px"
+          @update:model-value="onFileSelected"
+          clearable
+        />
+        <q-input
+          v-model="newMessage"
+          placeholder="Type a message..."
+          type="textarea"
+          autogrow
+          outlined
+          dense
+          class="col"
+          @keydown.enter="send"
+          :disable="dialogStore.isSending || !dialogStore.currentThread"
+        />
+        <q-btn
+          color="primary"
+          icon="send"
+          @click="send"
+          :disable="!newMessage.trim() || dialogStore.isSending"
+          round
+          dense
+        />
+      </div>
     </div>
   </q-page>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue';
+import { ref, watch, nextTick, onMounted } from 'vue';
 import { useDialogStore } from '../stores/dialog';
+import { useWorkspaceStore, type WorkspaceFile } from '../stores/workspace';
 import { useRoute, useRouter } from 'vue-router';
 
 const dialogStore = useDialogStore();
+const workspaceStore = useWorkspaceStore();
 const route = useRoute();
 const router = useRouter();
 
 const newMessage = ref('');
 const scrollAreaRef = ref<any>(null);
+const selectedFiles = ref<WorkspaceFile[]>([]);
+const selectedFileModel = ref<WorkspaceFile | null>(null);
+
+onMounted(async () => {
+  await workspaceStore.fetchWorkspaces();
+  if (workspaceStore.currentWorkspace) {
+    await workspaceStore.fetchFiles(workspaceStore.currentWorkspace.id);
+  }
+});
+
+function onFileSelected(file: WorkspaceFile | null) {
+  if (!file) return;
+  if (!selectedFiles.value.some((f) => f.id === file.id)) {
+    selectedFiles.value.push(file);
+  }
+  selectedFileModel.value = null;
+}
+
+function removeFile(file: WorkspaceFile) {
+  selectedFiles.value = selectedFiles.value.filter((f) => f.id !== file.id);
+}
 
 function send(event?: KeyboardEvent) {
   if (event && !event.ctrlKey) {
@@ -108,8 +163,10 @@ function send(event?: KeyboardEvent) {
   }
   const content = newMessage.value.trim();
   if (!content || !dialogStore.currentThread) return;
+  const fileIds = selectedFiles.value.map((f) => f.id);
+  selectedFiles.value = [];
   newMessage.value = '';
-  dialogStore.sendMessage(content);
+  dialogStore.sendMessage(content, fileIds);
 }
 
 function onClose() {

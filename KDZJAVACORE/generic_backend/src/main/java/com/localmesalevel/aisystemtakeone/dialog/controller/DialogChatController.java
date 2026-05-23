@@ -8,6 +8,8 @@ import com.localmesalevel.aisystemtakeone.llm.service.LlmLoopEngine;
 import com.localmesalevel.aisystemtakeone.llm.service.LlmLoopEngine.McpServerConfig;
 import com.localmesalevel.aisystemtakeone.user.model.UserAccount;
 import com.localmesalevel.aisystemtakeone.user.repository.UserAccountRepository;
+import com.localmesalevel.aisystemtakeone.workspace.model.WorkspaceFile;
+import com.localmesalevel.aisystemtakeone.workspace.service.WorkspaceFileService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,16 +26,19 @@ public class DialogChatController {
     private final DialogService dialogService;
     private final UserAccountRepository userAccountRepository;
     private final LlmLoopEngine llmLoopEngine;
+    private final WorkspaceFileService workspaceFileService;
 
     @Autowired
     public DialogChatController(
             DialogService dialogService,
             UserAccountRepository userAccountRepository,
-            LlmLoopEngine llmLoopEngine
+            LlmLoopEngine llmLoopEngine,
+            WorkspaceFileService workspaceFileService
     ) {
         this.dialogService = dialogService;
         this.userAccountRepository = userAccountRepository;
         this.llmLoopEngine = llmLoopEngine;
+        this.workspaceFileService = workspaceFileService;
     }
 
     private java.util.Map<String, Object> toMessageMap(DialogMessage msg) {
@@ -74,6 +79,16 @@ public class DialogChatController {
 
             List<McpServerConfig> mcpServers = buildDefaultBotMcpServers();
 
+            // Resolve attached files
+            java.util.List<WorkspaceFile> attachedFiles = java.util.Collections.emptyList();
+            if (request.fileIds != null && !request.fileIds.isEmpty()) {
+                attachedFiles = request.fileIds.stream()
+                        .map(workspaceFileService::getFile)
+                        .filter(java.util.Optional::isPresent)
+                        .map(java.util.Optional::get)
+                        .collect(java.util.stream.Collectors.toList());
+            }
+
             dialogService.sendChatMessage(
                     id,
                     request.content,
@@ -82,7 +97,8 @@ public class DialogChatController {
                     thread.getModelName() != null ? thread.getModelName() : credentials.getModelName(),
                     thread.getSystemPrompt(),
                     mcpServers,
-                    llmLoopEngine
+                    llmLoopEngine,
+                    attachedFiles
             );
 
             List<DialogMessage> messages = dialogService.getMessages(id);
@@ -182,5 +198,6 @@ public class DialogChatController {
 
     public static class ChatMessageRequest {
         public String content;
+        public java.util.List<Long> fileIds = java.util.Collections.emptyList();
     }
 }

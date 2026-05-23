@@ -25,6 +25,8 @@ export interface DialogMessage {
     toolResult: string | null;
     tokensUsed: number | null;
     createdAt: string;
+    fileIds?: number[];
+    attachedFiles?: { id: number; fileName: string; mimeType: string; fileSize: number }[];
 }
 
 export const useDialogStore = defineStore('dialog', () => {
@@ -218,7 +220,7 @@ export const useDialogStore = defineStore('dialog', () => {
         }
     }
 
-    async function sendMessage(content: string) {
+    async function sendMessage(content: string, fileIds: number[] = []) {
         if (!currentThread.value) return;
         isSending.value = true;
         const threadId = currentThread.value.id;
@@ -233,6 +235,7 @@ export const useDialogStore = defineStore('dialog', () => {
             toolResult: null,
             tokensUsed: null,
             createdAt: new Date().toISOString(),
+            fileIds,
         };
         messages.value.push(userMessage);
 
@@ -248,7 +251,7 @@ export const useDialogStore = defineStore('dialog', () => {
                 method: 'POST',
                 credentials: 'include',
                 headers,
-                body: JSON.stringify({ content }),
+                body: JSON.stringify({ content, fileIds }),
             });
             if (response.ok) {
                 const assistantMsg: DialogMessage = await response.json();

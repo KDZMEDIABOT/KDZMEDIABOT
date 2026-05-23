@@ -63,6 +63,14 @@ const routes: RouteRecordRaw[] = [
         path: 'dialogs/:id',
         component: () => import('pages/DialogThreadPage.vue'),
       },
+      {
+        path: 'workspaces',
+        component: () => import('pages/WorkspacesPage.vue'),
+      },
+      {
+        path: 'workspaces/:id',
+        component: () => import('pages/WorkspaceFilesPage.vue'),
+      },
     ],
   },
   {

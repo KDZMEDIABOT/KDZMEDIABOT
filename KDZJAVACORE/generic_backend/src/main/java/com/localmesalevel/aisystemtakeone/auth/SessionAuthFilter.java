@@ -83,8 +83,8 @@ public class SessionAuthFilter extends OncePerRequestFilter {
     }
 
     private boolean isProtectedPath(String uri) {
-        // Protect dialog endpoints; other endpoints may already be handled by other mechanisms
-        return uri.startsWith("/api/dialogs");
+        // Protect dialog and workspace endpoints
+        return uri.startsWith("/api/dialogs") || uri.startsWith("/api/workspaces");
     }
 
     private String extractSessionCookie(HttpServletRequest request) {

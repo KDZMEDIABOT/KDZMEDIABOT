@@ -18,4 +18,15 @@ public interface RAGAdapter {
     List<RAGResult> retrieveRelevantContext(String query, Long userId, int maxResults);
 
     void deleteThreadIndex(Long threadId);
+
+    /**
+     * Index file content for RAG retrieval.
+     *
+     * @param content the text content extracted from the file
+     * @param fileId  the unique file identifier
+     * @param userId  the owning user
+     */
+    default void indexFileContent(String content, Long fileId, Long userId) {
+        // No-op by default; adapters may override
+    }
 }

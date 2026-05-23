@@ -143,6 +143,34 @@ public class InMemoryRAGAdapter implements RAGAdapter {
         }
     }
 
+    @Override
+    public void indexFileContent(String content, Long fileId, Long userId) {
+        if (content == null || content.trim().isEmpty() || fileId == null || userId == null) {
+            return;
+        }
+        String text = content.trim();
+        List<String> terms = tokenize(text);
+        if (terms.isEmpty()) {
+            return;
+        }
+        Map<String, Integer> termFreq = new HashMap<>();
+        for (String term : terms) {
+            termFreq.merge(term, 1, Integer::sum);
+        }
+        int maxFreq = termFreq.values().stream().max(Integer::compare).orElse(1);
+        Map<String, Double> tfScores = new HashMap<>();
+        for (Map.Entry<String, Integer> entry : termFreq.entrySet()) {
+            tfScores.put(entry.getKey(), (double) entry.getValue() / maxFreq);
+        }
+        IndexedMessage indexed = new IndexedMessage(fileId, -1L, text, tfScores);
+        userMessageIndex.computeIfAbsent(userId, k -> new ConcurrentHashMap<>()).put(fileId, indexed);
+        Map<String, Set<Long>> termDocFreq = userTermDocFreq.computeIfAbsent(userId, k -> new ConcurrentHashMap<>());
+        for (String term : new HashSet<>(terms)) {
+            termDocFreq.computeIfAbsent(term, k -> ConcurrentHashMap.newKeySet()).add(fileId);
+        }
+        logger.trace("Indexed file content {} for user {}", fileId, userId);
+    }
+
     private List<String> tokenize(String text) {
         String[] tokens = text.split("[^a-z0-9\\u0400-\\u04ff]+");
         List<String> result = new ArrayList<>();

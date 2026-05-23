@@ -37,6 +37,9 @@ public class DialogThread {
     @Column(name = "last_message_at")
     private Instant lastMessageAt;
 
+    @Column(name = "workspace_id", insertable = false, updatable = false)
+    private Long workspaceId;
+
     @OneToMany(mappedBy = "thread", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("createdAt ASC")
     @com.fasterxml.jackson.annotation.JsonIgnore
@@ -112,6 +115,14 @@ public class DialogThread {
 
     public void setLastMessageAt(Instant lastMessageAt) {
         this.lastMessageAt = lastMessageAt;
+    }
+
+    public Long getWorkspaceId() {
+        return workspaceId;
+    }
+
+    public void setWorkspaceId(Long workspaceId) {
+        this.workspaceId = workspaceId;
     }
 
     public List<DialogMessage> getMessages() {
