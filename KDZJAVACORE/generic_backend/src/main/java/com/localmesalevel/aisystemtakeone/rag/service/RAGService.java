@@ -63,6 +63,23 @@ public class RAGService {
         }
     }
 
+    public boolean isAvailable() {
+        return ragAdapter != null && ragAdapter.isAvailable();
+    }
+
+    public List<RAGResult> retrieveRelevantContext(String query, Long userId, int maxResults) {
+        if (!isAvailable()) {
+            logger.trace("RAG adapter not available, skipping context retrieval");
+            return List.of();
+        }
+        try {
+            return ragAdapter.retrieveRelevantContext(query, userId, maxResults);
+        } catch (Exception e) {
+            logger.warn("RAG context retrieval failed: {}", e.getMessage());
+            return List.of();
+        }
+    }
+
     private String truncate(String s, int maxLen) {
         if (s == null || s.length() <= maxLen) {
             return s;
