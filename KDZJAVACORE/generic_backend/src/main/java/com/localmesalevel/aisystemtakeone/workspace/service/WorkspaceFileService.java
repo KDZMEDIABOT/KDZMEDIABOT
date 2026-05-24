@@ -57,4 +57,11 @@ public class WorkspaceFileService {
             fileRepository.save(file);
         });
     }
+
+    public String readFileAsText(WorkspaceFile file) {
+        if (file == null || file.getFileData() == null || file.getFileData().length == 0) {
+            return "";
+        }
+        return FileFormatToTextConverterHelper.convertToText(file.getFileData(), file.getMimeType());
+    }
 }

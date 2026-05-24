@@ -6,7 +6,7 @@
 
     <groupId>com.localmesalevel</groupId>
     <artifactId>aisystemtakeone</artifactId>
-    <version>0.1.44-SNAPSHOT</version>
+    <version>0.1.49-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>AI System TakeOne Library</name>
@@ -104,6 +104,17 @@
             <groupId>org.jbpm</groupId>
             <artifactId>jbpm-bpmn2</artifactId>
             <version>${jbpm.version}</version>
+        </dependency>
+        <!-- Apache Tika for file format conversion -->
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-core</artifactId>
+            <version>2.9.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-parsers-standard-package</artifactId>
+            <version>2.9.1</version>
         </dependency>
         <!-- Test dependencies -->
         <dependency>

@@ -238,7 +238,7 @@ public class DialogService {
 	            for (com.localmesalevel.aisystemtakeone.workspace.model.WorkspaceFile attachedFile : attachedFiles) {
 	                if (attachedFile.getFileData() != null && attachedFile.getFileData().length > 0) {
 	                    try {
-	                        String fileText = new String(attachedFile.getFileData(), java.nio.charset.StandardCharsets.UTF_8);
+	                        String fileText = workspaceFileService.readFileAsText(attachedFile);
 	                        ragService.indexFile(fileText, attachedFile.getId(), userId);
 	                    } catch (Exception e) {
 	                        logger.error("Failed to index file {} for RAG: {}", attachedFile.getId(), e.toString(), e);
@@ -254,7 +254,7 @@ public class DialogService {
 	                    for (com.localmesalevel.aisystemtakeone.workspace.model.WorkspaceFile wf : w.getFiles()) {
 	                        if (wf.getFileData() != null && wf.getFileData().length > 0) {
 	                            try {
-	                                String fileText = new String(wf.getFileData(), java.nio.charset.StandardCharsets.UTF_8);
+	                                String fileText = workspaceFileService.readFileAsText(wf);
 	                                ragService.indexFile(fileText, wf.getId(), userId);
 	                            } catch (Exception e) {
 	                                logger.error("Failed to index workspace file {} for RAG: {}", wf.getId(), e.toString(), e);
@@ -374,7 +374,8 @@ public class DialogService {
         if (hasFiles) {
             sb.append("[Attached Files]\n");
             for (com.localmesalevel.aisystemtakeone.workspace.model.WorkspaceFile f : files) {
-                String uri = "workspace://" + (f.getWorkspaceId() != null ? f.getWorkspaceId() : "0") + "/file/" + f.getId();
+                Long wsId = f.getWorkspace() != null ? f.getWorkspace().getId() : null;
+                String uri = "workspace://" + (wsId != null ? wsId : "0") + "/file/" + f.getId();
                 sb.append("- ").append(uri).append(" (").append(f.getFileName()).append(")\n");
             }
         }
@@ -389,8 +390,80 @@ public class DialogService {
 
     private List<LlmLoopEngine.InMemoryMcpTool> buildInMemoryTools() {
         return List.of(
-            new WorkspaceFileReadAsTextTool()
+            new WorkspaceFileReadAsTextTool(),
+            new WorkspaceReadAllFilesAsTextTool()
         );
+    }
+
+    private class WorkspaceReadAllFilesAsTextTool extends LlmLoopEngine.InMemoryMcpTool {
+        private static final String SCHEMA = "{\"type\":\"object\",\"properties\":{\"workspaceUri\":{\"type\":\"string\",\"description\":\"Workspace URI, e.g. workspace://1\"}},\"required\":[\"workspaceUri\"]}";
+
+        WorkspaceReadAllFilesAsTextTool() {
+            super("workspaceReadAllFilesAsText", "Given a workspace URI (e.g. workspace://1), read ALL files in that workspace and return their combined text content. Returns a concatenated text block.", parseSchema(SCHEMA));
+        }
+
+        private static com.fasterxml.jackson.databind.JsonNode parseSchema(String s) {
+            try {
+                return new com.fasterxml.jackson.databind.ObjectMapper().readTree(s);
+            } catch (Exception e) {
+                throw new IllegalStateException("Failed to parse tool schema", e);
+            }
+        }
+
+        @Override
+        public com.fasterxml.jackson.databind.JsonNode execute(com.fasterxml.jackson.databind.JsonNode arguments) {
+            if (arguments == null || !arguments.isObject()) {
+                return errorJson("Arguments must be a JSON object");
+            }
+            String workspaceUri = arguments.has("workspaceUri") ? arguments.get("workspaceUri").asText(null) : null;
+            if (workspaceUri == null || workspaceUri.isBlank()) {
+                return errorJson("workspaceUri is required");
+            }
+            Long workspaceId = parseWorkspaceId(workspaceUri);
+            if (workspaceId == null) {
+                return errorJson("Invalid workspace URI: " + workspaceUri);
+            }
+            java.util.List<com.localmesalevel.aisystemtakeone.workspace.model.WorkspaceFile> files = workspaceFileService.listFiles(workspaceId);
+            if (files == null || files.isEmpty()) {
+                return resultJson("Workspace " + workspaceUri + " has no files.");
+            }
+            StringBuilder sb = new StringBuilder();
+            for (com.localmesalevel.aisystemtakeone.workspace.model.WorkspaceFile f : files) {
+                sb.append("--- File: ").append(f.getFileName()).append(" ---\n");
+                sb.append(workspaceFileService.readFileAsText(f)).append("\n\n");
+            }
+            return resultJson(sb.toString().trim());
+        }
+
+        private Long parseWorkspaceId(String uri) {
+            if (uri == null) return null;
+            if (uri.startsWith("workspace://")) {
+                try {
+                    return Long.parseLong(uri.substring("workspace://".length()));
+                } catch (NumberFormatException e) {
+                    return null;
+                }
+            }
+            try {
+                return Long.parseLong(uri);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+
+        private com.fasterxml.jackson.databind.JsonNode resultJson(String content) {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.node.ObjectNode node = mapper.createObjectNode();
+            node.put("content", content);
+            return node;
+        }
+
+        private com.fasterxml.jackson.databind.JsonNode errorJson(String message) {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.node.ObjectNode node = mapper.createObjectNode();
+            node.put("error", message);
+            return node;
+        }
     }
 
     private class WorkspaceFileReadAsTextTool extends LlmLoopEngine.InMemoryMcpTool {
@@ -423,13 +496,14 @@ public class DialogService {
                 return errorJson("File not found: " + fileId);
             }
             com.localmesalevel.aisystemtakeone.workspace.model.WorkspaceFile file = fileOpt.get();
-            if (file.getWorkspaceId() != null && !file.getWorkspaceId().equals(workspaceId)) {
+            Long fileWsId = file.getWorkspace() != null ? file.getWorkspace().getId() : null;
+            if (fileWsId != null && !fileWsId.equals(workspaceId)) {
                 return errorJson("File does not belong to workspace: " + workspaceId);
             }
             if (file.getFileData() == null) {
                 return errorJson("File data is empty");
             }
-            String text = new String(file.getFileData(), java.nio.charset.StandardCharsets.UTF_8);
+            String text = workspaceFileService.readFileAsText(file);
             com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
             com.fasterxml.jackson.databind.node.ObjectNode result = mapper.createObjectNode();
             result.put("content", text);

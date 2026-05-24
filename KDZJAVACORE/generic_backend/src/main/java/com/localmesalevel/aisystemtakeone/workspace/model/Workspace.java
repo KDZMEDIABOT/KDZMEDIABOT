@@ -1,5 +1,6 @@
 package com.localmesalevel.aisystemtakeone.workspace.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import javax.persistence.*;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -26,6 +27,7 @@ public class Workspace {
     private Instant updatedAt;
 
     @OneToMany(mappedBy = "workspace", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<WorkspaceFile> files = new ArrayList<>();
 
     public List<WorkspaceFile> getFiles() {

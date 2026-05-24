@@ -50,8 +50,32 @@
                   Tool: {{ msg.toolName }}
                 </div>
                 <!-- File attachments -->
-                <div v-if="msg.attachedFiles && msg.attachedFiles.length" class="text-caption q-mt-xs" :class="msg.role === 'user' ? 'text-blue-2' : 'text-grey-6'">
-                  Files: {{ msg.attachedFiles.map(f => f.fileName).join(', ') }}
+                <div v-if="msg.attachedFiles && msg.attachedFiles.length" class="q-mt-sm row q-gutter-x-xs items-center">
+                  <q-chip
+                    v-for="f in msg.attachedFiles"
+                    :key="'file-' + f.id"
+                    dense
+                    size="sm"
+                    color="primary"
+                    text-color="white"
+                    icon="attach_file"
+                    :label="f.fileName"
+                    class="q-ma-none"
+                  />
+                </div>
+                <!-- Workspace attachments -->
+                <div v-if="msg.attachedWorkspaces && msg.attachedWorkspaces.length" class="q-mt-xs row q-gutter-x-xs items-center">
+                  <q-chip
+                    v-for="w in msg.attachedWorkspaces"
+                    :key="'ws-' + w.id"
+                    dense
+                    size="sm"
+                    color="secondary"
+                    text-color="white"
+                    icon="folder"
+                    :label="w.name"
+                    class="q-ma-none"
+                  />
                 </div>
               </div>
             </div>
@@ -197,7 +221,7 @@ function removeWorkspace(ws: Workspace) {
 }
 
 function send(event?: KeyboardEvent) {
-  if (event && !event.ctrlKey) {
+  if (event && event instanceof KeyboardEvent && !event.ctrlKey) {
     return;
   }
   const content = newMessage.value.trim();

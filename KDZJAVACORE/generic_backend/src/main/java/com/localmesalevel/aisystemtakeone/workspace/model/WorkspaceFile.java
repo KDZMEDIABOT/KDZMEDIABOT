@@ -1,5 +1,6 @@
 package com.localmesalevel.aisystemtakeone.workspace.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import javax.persistence.*;
 import java.time.Instant;
 
@@ -13,6 +14,7 @@ public class WorkspaceFile {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "workspace_id", nullable = false)
+    @JsonIgnore
     private Workspace workspace;
 
     @Column(name = "file_name", nullable = false, length = 500)
@@ -22,6 +24,7 @@ public class WorkspaceFile {
     private String mimeType;
 
     @Column(name = "file_data", nullable = false, columnDefinition = "BYTEA")
+    @JsonIgnore
     private byte[] fileData;
 
     @Column(name = "file_size", nullable = false)
@@ -43,10 +46,6 @@ public class WorkspaceFile {
 
     public Workspace getWorkspace() {
         return workspace;
-    }
-
-    public Long getWorkspaceId() {
-        return workspace != null ? workspace.getId() : null;
     }
 
     public void setWorkspace(Workspace workspace) {

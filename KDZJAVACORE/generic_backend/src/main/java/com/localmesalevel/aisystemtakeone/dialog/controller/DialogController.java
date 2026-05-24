@@ -71,7 +71,7 @@ public class DialogController {
     }
 
     @GetMapping("/{id}/messages")
-    public ResponseEntity<List<DialogMessage>> getMessages(
+    public ResponseEntity<List<Map<String, Object>>> getMessages(
             @PathVariable Long id,
             @RequestAttribute("userId") Long userId
     ) {
@@ -80,7 +80,41 @@ public class DialogController {
         if (thread.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(dialogService.getMessages(id));
+        List<DialogMessage> messages = dialogService.getMessages(id);
+        return ResponseEntity.ok(messages.stream().map(this::toMessageMap).collect(java.util.stream.Collectors.toList()));
+    }
+
+    private Map<String, Object> toMessageMap(DialogMessage msg) {
+        Map<String, Object> map = new java.util.LinkedHashMap<>();
+        map.put("id", msg.getId());
+        map.put("threadId", msg.getThreadId());
+        map.put("role", msg.getRole());
+        map.put("content", msg.getContent());
+        map.put("toolName", msg.getToolName());
+        map.put("toolResult", msg.getToolResult());
+        map.put("tokensUsed", msg.getTokensUsed());
+        map.put("createdAt", msg.getCreatedAt());
+        map.put("attachedFiles", msg.getAttachedFiles().stream().map(this::toFileMap).collect(java.util.stream.Collectors.toList()));
+        map.put("attachedWorkspaces", msg.getAttachedWorkspaces().stream().map(this::toWorkspaceMap).collect(java.util.stream.Collectors.toList()));
+        return map;
+    }
+
+    private Map<String, Object> toFileMap(com.localmesalevel.aisystemtakeone.workspace.model.WorkspaceFile f) {
+        Map<String, Object> map = new java.util.LinkedHashMap<>();
+        map.put("id", f.getId());
+        map.put("fileName", f.getFileName());
+        map.put("mimeType", f.getMimeType());
+        map.put("fileSize", f.getFileSize());
+        map.put("createdAt", f.getCreatedAt());
+        return map;
+    }
+
+    private Map<String, Object> toWorkspaceMap(com.localmesalevel.aisystemtakeone.workspace.model.Workspace w) {
+        Map<String, Object> map = new java.util.LinkedHashMap<>();
+        map.put("id", w.getId());
+        map.put("name", w.getName());
+        map.put("createdAt", w.getCreatedAt());
+        return map;
     }
 
     public static class CreateThreadRequest {

@@ -27,6 +27,7 @@ export interface DialogMessage {
     createdAt: string;
     fileIds?: number[];
     attachedFiles?: { id: number; fileName: string; mimeType: string; fileSize: number }[];
+    attachedWorkspaces?: { id: number; name: string; createdAt: string }[];
 }
 
 export const useDialogStore = defineStore('dialog', () => {
