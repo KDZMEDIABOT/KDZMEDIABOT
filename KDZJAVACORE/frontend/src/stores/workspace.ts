@@ -161,6 +161,28 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
+  async function fetchAllFiles() {
+    isLoading.value = true;
+    const allFiles: WorkspaceFile[] = [];
+    for (const ws of workspaces.value) {
+      try {
+        const headers = getHeaders(false);
+        const response = await fetch(`${API_BASE}/api/workspaces/${ws.id}/files`, {
+          credentials: 'include',
+          headers,
+        });
+        if (response.ok) {
+          const wsFiles: WorkspaceFile[] = await response.json();
+          allFiles.push(...wsFiles);
+        }
+      } catch (e) {
+        console.error(`Failed to fetch files for workspace ${ws.id}:`, e);
+      }
+    }
+    files.value = allFiles;
+    isLoading.value = false;
+  }
+
   async function uploadFile(workspaceId: number, file: File) {
     try {
       const formData = new FormData();
@@ -218,6 +240,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     deleteWorkspace,
     selectWorkspace,
     fetchFiles,
+    fetchAllFiles,
     uploadFile,
     deleteFile,
   };

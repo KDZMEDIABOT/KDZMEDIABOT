@@ -191,9 +191,7 @@ const selectedWorkspaceModel = ref<Workspace | null>(null);
 
 onMounted(async () => {
   await workspaceStore.fetchWorkspaces();
-  if (workspaceStore.currentWorkspace) {
-    await workspaceStore.fetchFiles(workspaceStore.currentWorkspace.id);
-  }
+  await workspaceStore.fetchAllFiles();
 });
 
 function onFileSelected(file: WorkspaceFile | null) {
