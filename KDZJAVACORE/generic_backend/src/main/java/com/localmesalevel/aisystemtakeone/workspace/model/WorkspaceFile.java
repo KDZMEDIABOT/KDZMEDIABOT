@@ -45,6 +45,10 @@ public class WorkspaceFile {
         return workspace;
     }
 
+    public Long getWorkspaceId() {
+        return workspace != null ? workspace.getId() : null;
+    }
+
     public void setWorkspace(Workspace workspace) {
         this.workspace = workspace;
     }

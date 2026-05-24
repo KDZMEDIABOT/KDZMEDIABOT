@@ -2,6 +2,8 @@ package com.localmesalevel.aisystemtakeone.workspace.model;
 
 import javax.persistence.*;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "workspaces")
@@ -22,6 +24,17 @@ public class Workspace {
 
     @Column(name = "updated_at")
     private Instant updatedAt;
+
+    @OneToMany(mappedBy = "workspace", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<WorkspaceFile> files = new ArrayList<>();
+
+    public List<WorkspaceFile> getFiles() {
+        return files;
+    }
+
+    public void setFiles(List<WorkspaceFile> files) {
+        this.files = files;
+    }
 
     public Long getId() {
         return id;

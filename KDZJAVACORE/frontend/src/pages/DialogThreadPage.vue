@@ -71,6 +71,19 @@
     <!-- Input -->
     <q-separator />
     <div class="q-pa-sm bg-white column" style="width: 100%;">
+      <!-- Selected workspace chips -->
+      <div v-if="selectedWorkspaces.length" class="row q-gutter-x-sm q-mb-xs">
+        <q-chip
+          v-for="w in selectedWorkspaces"
+          :key="w.id"
+          removable
+          dense
+          color="secondary"
+          text-color="white"
+          :label="w.name"
+          @remove="removeWorkspace(w)"
+        />
+      </div>
       <!-- Selected file chips -->
       <div v-if="selectedFiles.length" class="row q-gutter-x-sm q-mb-xs">
         <q-chip
@@ -85,6 +98,18 @@
         />
       </div>
       <div class="row items-center q-gutter-x-sm">
+        <q-select
+          v-model="selectedWorkspaceModel"
+          label="Attach workspace..."
+          :options="workspaceStore.workspaces"
+          option-value="id"
+          option-label="name"
+          outlined
+          dense
+          style="min-width: 160px"
+          @update:model-value="onWorkspaceSelected"
+          clearable
+        />
         <q-select
           v-model="selectedFileModel"
           label="Attach files..."
@@ -125,7 +150,7 @@
 <script setup lang="ts">
 import { ref, watch, nextTick, onMounted } from 'vue';
 import { useDialogStore } from '../stores/dialog';
-import { useWorkspaceStore, type WorkspaceFile } from '../stores/workspace';
+import { useWorkspaceStore, type WorkspaceFile, type Workspace } from '../stores/workspace';
 import { useRoute, useRouter } from 'vue-router';
 
 const dialogStore = useDialogStore();
@@ -137,6 +162,8 @@ const newMessage = ref('');
 const scrollAreaRef = ref<any>(null);
 const selectedFiles = ref<WorkspaceFile[]>([]);
 const selectedFileModel = ref<WorkspaceFile | null>(null);
+const selectedWorkspaces = ref<Workspace[]>([]);
+const selectedWorkspaceModel = ref<Workspace | null>(null);
 
 onMounted(async () => {
   await workspaceStore.fetchWorkspaces();
@@ -157,6 +184,18 @@ function removeFile(file: WorkspaceFile) {
   selectedFiles.value = selectedFiles.value.filter((f) => f.id !== file.id);
 }
 
+function onWorkspaceSelected(ws: Workspace | null) {
+  if (!ws) return;
+  if (!selectedWorkspaces.value.some((w) => w.id === ws.id)) {
+    selectedWorkspaces.value.push(ws);
+  }
+  selectedWorkspaceModel.value = null;
+}
+
+function removeWorkspace(ws: Workspace) {
+  selectedWorkspaces.value = selectedWorkspaces.value.filter((w) => w.id !== ws.id);
+}
+
 function send(event?: KeyboardEvent) {
   if (event && !event.ctrlKey) {
     return;
@@ -164,9 +203,11 @@ function send(event?: KeyboardEvent) {
   const content = newMessage.value.trim();
   if (!content || !dialogStore.currentThread) return;
   const fileIds = selectedFiles.value.map((f) => f.id);
+  const workspaceIds = selectedWorkspaces.value.map((w) => w.id);
   selectedFiles.value = [];
+  selectedWorkspaces.value = [];
   newMessage.value = '';
-  dialogStore.sendMessage(content, fileIds);
+  dialogStore.sendMessage(content, fileIds, workspaceIds);
 }
 
 function onClose() {

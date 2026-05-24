@@ -8,8 +8,10 @@ import com.localmesalevel.aisystemtakeone.llm.service.LlmLoopEngine;
 import com.localmesalevel.aisystemtakeone.llm.service.LlmLoopEngine.McpServerConfig;
 import com.localmesalevel.aisystemtakeone.user.model.UserAccount;
 import com.localmesalevel.aisystemtakeone.user.repository.UserAccountRepository;
+import com.localmesalevel.aisystemtakeone.workspace.model.Workspace;
 import com.localmesalevel.aisystemtakeone.workspace.model.WorkspaceFile;
 import com.localmesalevel.aisystemtakeone.workspace.service.WorkspaceFileService;
+import com.localmesalevel.aisystemtakeone.workspace.service.WorkspaceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,18 +29,21 @@ public class DialogChatController {
     private final UserAccountRepository userAccountRepository;
     private final LlmLoopEngine llmLoopEngine;
     private final WorkspaceFileService workspaceFileService;
+    private final WorkspaceService workspaceService;
 
     @Autowired
     public DialogChatController(
             DialogService dialogService,
             UserAccountRepository userAccountRepository,
             LlmLoopEngine llmLoopEngine,
-            WorkspaceFileService workspaceFileService
+            WorkspaceFileService workspaceFileService,
+            WorkspaceService workspaceService
     ) {
         this.dialogService = dialogService;
         this.userAccountRepository = userAccountRepository;
         this.llmLoopEngine = llmLoopEngine;
         this.workspaceFileService = workspaceFileService;
+        this.workspaceService = workspaceService;
     }
 
     private java.util.Map<String, Object> toMessageMap(DialogMessage msg) {
@@ -89,6 +94,16 @@ public class DialogChatController {
                         .collect(java.util.stream.Collectors.toList());
             }
 
+            // Resolve attached workspaces
+            java.util.List<Workspace> attachedWorkspaces = java.util.Collections.emptyList();
+            if (request.workspaceIds != null && !request.workspaceIds.isEmpty()) {
+                attachedWorkspaces = request.workspaceIds.stream()
+                        .map(wsId -> workspaceService.getWorkspace(wsId, userId))
+                        .filter(java.util.Optional::isPresent)
+                        .map(java.util.Optional::get)
+                        .collect(java.util.stream.Collectors.toList());
+            }
+
             dialogService.sendChatMessage(
                     id,
                     request.content,
@@ -98,7 +113,8 @@ public class DialogChatController {
                     thread.getSystemPrompt(),
                     mcpServers,
                     llmLoopEngine,
-                    attachedFiles
+                    attachedFiles,
+                    attachedWorkspaces
             );
 
             List<DialogMessage> messages = dialogService.getMessages(id);
@@ -199,5 +215,6 @@ public class DialogChatController {
     public static class ChatMessageRequest {
         public String content;
         public java.util.List<Long> fileIds = java.util.Collections.emptyList();
+        public java.util.List<Long> workspaceIds = java.util.Collections.emptyList();
     }
 }

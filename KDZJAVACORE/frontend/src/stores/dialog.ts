@@ -220,7 +220,7 @@ export const useDialogStore = defineStore('dialog', () => {
         }
     }
 
-    async function sendMessage(content: string, fileIds: number[] = []) {
+    async function sendMessage(content: string, fileIds: number[] = [], workspaceIds: number[] = []) {
         if (!currentThread.value) return;
         isSending.value = true;
         const threadId = currentThread.value.id;
@@ -251,7 +251,7 @@ export const useDialogStore = defineStore('dialog', () => {
                 method: 'POST',
                 credentials: 'include',
                 headers,
-                body: JSON.stringify({ content, fileIds }),
+                body: JSON.stringify({ content, fileIds, workspaceIds }),
             });
             if (response.ok) {
                 const assistantMsg: DialogMessage = await response.json();

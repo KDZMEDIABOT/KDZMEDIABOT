@@ -57,7 +57,30 @@ public class LlmLoopEngine {
         String systemPrompt,
         String userPrompt,
         List<McpServerConfig> mcpServers,
+        List<InMemoryMcpTool> inMemoryTools
+    ) {
+        return run(llmCredentials, model, systemPrompt, userPrompt, mcpServers, DEFAULT_MAX_STEPS, inMemoryTools);
+    }
+
+    public LoopResult run(
+        LlmEndpointCredentials llmCredentials,
+        String model,
+        String systemPrompt,
+        String userPrompt,
+        List<McpServerConfig> mcpServers,
         int maxSteps
+    ) {
+        return run(llmCredentials, model, systemPrompt, userPrompt, mcpServers, maxSteps, null);
+    }
+
+    public LoopResult run(
+        LlmEndpointCredentials llmCredentials,
+        String model,
+        String systemPrompt,
+        String userPrompt,
+        List<McpServerConfig> mcpServers,
+        int maxSteps,
+        List<InMemoryMcpTool> inMemoryTools
     ) {
         if (llmCredentials == null) {
             throw new IllegalArgumentException("llmCredentials is required");
@@ -83,7 +106,7 @@ public class LlmLoopEngine {
         );
         LlmConnection llmConnection = llmConnectionFactory.create(llmCredentials);
 
-        ToolRegistry toolRegistry = buildToolRegistry(mcpServers);
+        ToolRegistry toolRegistry = buildToolRegistry(mcpServers, inMemoryTools);
         try {
             if (toolRegistry.toolsByQualifiedName.isEmpty()) {
                 throw new IllegalStateException("No MCP tools found across configured servers");
@@ -157,7 +180,13 @@ public class LlmLoopEngine {
                     route.tool.qualifiedName,
                     preview(toJson(toolArguments), 800)
                 );
-                JsonNode toolResult = route.client.callTool(route.tool.name, toolArguments);
+                JsonNode toolResult;
+                if ("local".equals(route.tool.serverName) && route.client == null) {
+                    InMemoryMcpTool inMemoryTool = findInMemoryTool(toolRegistry, route.tool.name);
+                    toolResult = inMemoryTool.execute(toolArguments);
+                } else {
+                    toolResult = route.client.callTool(route.tool.name, toolArguments);
+                }
                 logger.trace(
                     "LlmLoopEngine step {} tool='{}' completed resultChars={}",
                     stepIndex,
@@ -182,6 +211,10 @@ public class LlmLoopEngine {
     }
 
     private ToolRegistry buildToolRegistry(List<McpServerConfig> serverConfigs) {
+        return buildToolRegistry(serverConfigs, null);
+    }
+
+    private ToolRegistry buildToolRegistry(List<McpServerConfig> serverConfigs, List<InMemoryMcpTool> inMemoryTools) {
         Map<String, McpClient> clientsByServer = new LinkedHashMap<>();
         Map<String, RegisteredTool> toolsByQualifiedName = new LinkedHashMap<>();
         Map<String, List<String>> toolQualifiedNamesBySimpleName = new LinkedHashMap<>();
@@ -210,7 +243,16 @@ public class LlmLoopEngine {
             clientsByServer.put(config.serverName, client);
         }
 
-        return new ToolRegistry(clientsByServer, toolsByQualifiedName, toolQualifiedNamesBySimpleName);
+        if (inMemoryTools != null) {
+            for (InMemoryMcpTool tool : inMemoryTools) {
+                String qualifiedName = "local/" + tool.getName();
+                RegisteredTool registeredTool = new RegisteredTool(qualifiedName, "local", tool.getName(), tool.getDescription(), tool.getInputSchema());
+                toolsByQualifiedName.put(qualifiedName, registeredTool);
+                toolQualifiedNamesBySimpleName.computeIfAbsent(tool.getName(), key -> new ArrayList<>()).add(qualifiedName);
+            }
+        }
+
+        return new ToolRegistry(clientsByServer, toolsByQualifiedName, toolQualifiedNamesBySimpleName, inMemoryTools);
     }
 
     private McpClient createMcpClient(McpServerConfig config) {
@@ -275,7 +317,8 @@ public class LlmLoopEngine {
         RegisteredTool qualified = registry.toolsByQualifiedName.get(requestedTool);
         if (qualified != null) {
             logger.trace("Resolved tool by qualified name '{}'", requestedTool);
-            return new ToolRoute(qualified, registry.clientsByServer.get(qualified.serverName));
+            McpClient client = "local".equals(qualified.serverName) ? null : registry.clientsByServer.get(qualified.serverName);
+            return new ToolRoute(qualified, client);
         }
 
         List<String> qualifiedNames = registry.toolQualifiedNamesBySimpleName.getOrDefault(requestedTool, List.of());
@@ -283,7 +326,8 @@ public class LlmLoopEngine {
             String resolvedQualifiedName = qualifiedNames.get(0);
             RegisteredTool resolved = registry.toolsByQualifiedName.get(resolvedQualifiedName);
             logger.trace("Resolved tool '{}' to '{}'", requestedTool, resolvedQualifiedName);
-            return new ToolRoute(resolved, registry.clientsByServer.get(resolved.serverName));
+            McpClient client = "local".equals(resolved.serverName) ? null : registry.clientsByServer.get(resolved.serverName);
+            return new ToolRoute(resolved, client);
         }
         if (qualifiedNames.size() > 1) {
             throw new IllegalStateException(
@@ -358,6 +402,18 @@ public class LlmLoopEngine {
         return trimmed.substring(firstLineEnd + 1, closingFence).trim();
     }
 
+    private InMemoryMcpTool findInMemoryTool(ToolRegistry registry, String name) {
+        if (registry.inMemoryTools == null) {
+            throw new IllegalStateException("In-memory tool not found: " + name);
+        }
+        for (InMemoryMcpTool tool : registry.inMemoryTools) {
+            if (tool.getName().equals(name)) {
+                return tool;
+            }
+        }
+        throw new IllegalStateException("In-memory tool not found: " + name);
+    }
+
     private String toJson(JsonNode node) {
         try {
             return objectMapper.writeValueAsString(node);
@@ -385,15 +441,18 @@ public class LlmLoopEngine {
         private final Map<String, McpClient> clientsByServer;
         private final Map<String, RegisteredTool> toolsByQualifiedName;
         private final Map<String, List<String>> toolQualifiedNamesBySimpleName;
+        private final List<InMemoryMcpTool> inMemoryTools;
 
         private ToolRegistry(
             Map<String, McpClient> clientsByServer,
             Map<String, RegisteredTool> toolsByQualifiedName,
-            Map<String, List<String>> toolQualifiedNamesBySimpleName
+            Map<String, List<String>> toolQualifiedNamesBySimpleName,
+            List<InMemoryMcpTool> inMemoryTools
         ) {
             this.clientsByServer = clientsByServer;
             this.toolsByQualifiedName = toolsByQualifiedName;
             this.toolQualifiedNamesBySimpleName = toolQualifiedNamesBySimpleName;
+            this.inMemoryTools = inMemoryTools != null ? inMemoryTools : java.util.Collections.emptyList();
         }
 
         private void closeAll() {
@@ -445,6 +504,24 @@ public class LlmLoopEngine {
             this.arguments = arguments;
             this.finalAnswer = finalAnswer;
         }
+    }
+
+    public static abstract class InMemoryMcpTool {
+        private final String name;
+        private final String description;
+        private final JsonNode inputSchema;
+
+        public InMemoryMcpTool(String name, String description, JsonNode inputSchema) {
+            this.name = name;
+            this.description = description;
+            this.inputSchema = inputSchema;
+        }
+
+        public String getName() { return name; }
+        public String getDescription() { return description; }
+        public JsonNode getInputSchema() { return inputSchema; }
+
+        public abstract JsonNode execute(JsonNode arguments);
     }
 
     public enum McpTransportType {

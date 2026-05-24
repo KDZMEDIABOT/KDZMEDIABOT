@@ -9,6 +9,7 @@ import com.localmesalevel.aisystemtakeone.llm.service.LlmLoopEngine;
 import com.localmesalevel.aisystemtakeone.llm.service.LlmLoopEngine.McpServerConfig;
 import com.localmesalevel.aisystemtakeone.rag.model.RAGResult;
 import com.localmesalevel.aisystemtakeone.rag.service.RAGService;
+import com.localmesalevel.aisystemtakeone.workspace.service.WorkspaceFileService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,14 +29,17 @@ public class DialogService {
     private final DialogThreadRepository threadRepository;
     private final DialogMessageRepository messageRepository;
     private final RAGService ragService;
+    private final WorkspaceFileService workspaceFileService;
 
     @Autowired
     public DialogService(DialogThreadRepository threadRepository,
                          DialogMessageRepository messageRepository,
-                         RAGService ragService) {
+                         RAGService ragService,
+                         WorkspaceFileService workspaceFileService) {
         this.threadRepository = threadRepository;
         this.messageRepository = messageRepository;
         this.ragService = ragService;
+        this.workspaceFileService = workspaceFileService;
     }
 
     public DialogThread createThread(Long userId, String title, String systemPrompt) {
@@ -103,127 +107,171 @@ public class DialogService {
                                           LlmEndpointCredentials credentials, String modelName,
                                           String systemPrompt, List<McpServerConfig> mcpServers,
                                           LlmLoopEngine llmLoopEngine) {
-        return sendChatMessage(threadId, userContent, userId, credentials, modelName, systemPrompt, mcpServers, llmLoopEngine, java.util.Collections.emptyList());
+        return sendChatMessage(threadId, userContent, userId, credentials, modelName, systemPrompt, mcpServers, llmLoopEngine, java.util.Collections.emptyList(), java.util.Collections.emptyList());
     }
 
     public DialogThread sendChatMessage(Long threadId, String userContent, Long userId,
                                           LlmEndpointCredentials credentials, String modelName,
                                           String systemPrompt, List<McpServerConfig> mcpServers,
                                           LlmLoopEngine llmLoopEngine,
-                                          java.util.List<com.localmesalevel.aisystemtakeone.workspace.model.WorkspaceFile> attachedFiles) {
-        // 1. Persist user message (with attached files)
-        DialogMessage userMsg = addMessage(threadId, "user", userContent, attachedFiles);
+                                          java.util.List<com.localmesalevel.aisystemtakeone.workspace.model.WorkspaceFile> attachedFiles,
+                                          java.util.List<com.localmesalevel.aisystemtakeone.workspace.model.Workspace> attachedWorkspaces) {
+        // 1. Persist user message (with attached files and workspaces)
+        DialogMessage userMsg;
+        if (attachedWorkspaces != null && !attachedWorkspaces.isEmpty()) {
+            DialogThread thread = threadRepository.findById(threadId).orElse(null);
+            if (thread == null) {
+                throw new IllegalArgumentException("Thread not found: " + threadId);
+            }
+            userMsg = new DialogMessage();
+            userMsg.setThread(thread);
+            userMsg.setRole("user");
+            userMsg.setContent(userContent);
+            userMsg.setCreatedAt(Instant.now());
+            if (attachedFiles != null && !attachedFiles.isEmpty()) {
+                userMsg.getAttachedFiles().addAll(attachedFiles);
+            }
+            userMsg.getAttachedWorkspaces().addAll(attachedWorkspaces);
+            userMsg = messageRepository.save(userMsg);
+        } else {
+            userMsg = addMessage(threadId, "user", userContent, attachedFiles);
+        }
         String errorMessage = null;
         String aiResponse = null;
-
         try {
-            // 2. Build context from history and check if recap is needed
-            List<DialogMessage> history = getMessages(threadId);
-            boolean shouldRecap = false;
-            int historySize = history.size();
-            if (historySize > 0 && (historySize % MAX_CONTEXT_MESSAGES) == (MAX_CONTEXT_MESSAGES - 1)) {
-                shouldRecap = true;
-            }
-
-            if (shouldRecap) {
-                // Fetch last ~40 messages for recap
-                List<DialogMessage> recapMessages = history;
-                if (historySize > MAX_CONTEXT_MESSAGES) {
-                    recapMessages = history.subList(history.size() - MAX_CONTEXT_MESSAGES, history.size());
-                }
-                String recap = generateRecap(recapMessages, credentials, modelName, systemPrompt, mcpServers, llmLoopEngine, threadId, userId);
-                addMessage(threadId, "system", "--- Compacted Conversation ---\n" + recap);
-            }
-
-            // Re-fetch history after optional recap
-            history = getMessages(threadId);
-            List<DialogMessage> contextMessages = history;
-            if (history.size() > MAX_CONTEXT_MESSAGES) {
-                contextMessages = history.subList(history.size() - MAX_CONTEXT_MESSAGES, history.size());
-            }
-
-            StringBuilder historyBuilder = new StringBuilder();
-            for (DialogMessage msg : contextMessages) {
-                if (!"user".equals(msg.getRole()) && !"assistant".equals(msg.getRole())) {
-                    continue;
-                }
-                historyBuilder.append(msg.getRole()).append(": ").append(msg.getContent()).append("\n");
-            }
-
-            // 3. Enhance with RAG context (using user query + last messages combined)
-            String ragQuery = historyBuilder.toString() + "\n" + userContent;
-            String enhancedQuery = ragService.enhancePromptWithRAG(ragQuery, userId);
-
-            // 4. Retrieve rich RAG context from adapters
-            List<RAGResult> ragResults = retrieveRagContext(ragQuery, userId);
-
-            // 5. Build full user prompt with history, current query, and RAG context
-            StringBuilder fullPromptBuilder = new StringBuilder();
-            if (!ragResults.isEmpty()) {
-                fullPromptBuilder.append("[Relevant context from previous conversations and knowledge base:\n");
-                for (RAGResult result : ragResults) {
-                    String content = result.getContent();
-                    if (content != null && !content.isEmpty()) {
-                        fullPromptBuilder.append("- \"").append(truncate(content, 300))
-                                .append("\" (").append(result.getCitation()).append(")\n");
-                    }
-                }
-                fullPromptBuilder.append("]\n\n");
-            }
-            fullPromptBuilder.append("Conversation history:\n").append(historyBuilder.toString()).append("\n");
-            fullPromptBuilder.append("User query: ").append(enhancedQuery);
-            String fullUserPrompt = fullPromptBuilder.toString();
-
-            // 6. Call LLM with MCP tools
-            try {
-                LlmLoopEngine.LoopResult result = llmLoopEngine.run(
-                        credentials,
-                        modelName,
-                        systemPrompt,
-                        fullUserPrompt,
-                        mcpServers,
-                        8
-                );
-                aiResponse = result.getFinalAnswer();
-            } catch (RuntimeException e) {
-                logger.error("LLM call failed for dialog thread {}: {}", threadId, e.toString(), e);
-                errorMessage = "Chat error: " + e;
-                aiResponse = errorMessage;
-            }
-
-            // 7. Persist response (as assistant or system, depending on success)
-            String role = errorMessage != null ? "system" : "assistant";
-            DialogMessage assistantMsg = addMessage(threadId, role, aiResponse);
-
-            // 8. Update thread timestamp
-            Optional<DialogThread> threadOpt = threadRepository.findById(threadId);
-            if (threadOpt.isPresent()) {
-                DialogThread thread = threadOpt.get();
-                thread.setLastMessageAt(Instant.now());
-                threadRepository.save(thread);
-            }
-
-            // 9. Index attached files for RAG
-            if (attachedFiles != null && !attachedFiles.isEmpty()) {
-                for (com.localmesalevel.aisystemtakeone.workspace.model.WorkspaceFile attachedFile : attachedFiles) {
-                    if (attachedFile.getFileData() != null && attachedFile.getFileData().length > 0) {
-                        try {
-                            String fileText = new String(attachedFile.getFileData(), java.nio.charset.StandardCharsets.UTF_8);
-                            ragService.indexFile(fileText, attachedFile.getId(), userId);
-                        } catch (Exception e) {
-                            logger.warn("Failed to index file {} for RAG: {}", attachedFile.getId(), e.getMessage());
-                        }
-                    }
-                }
-            }
-
-            // 10. Index for RAG (always index user message, error messages also useful for RAG contextually)
-            ragService.indexMessage(userMsg, userId);
-            if (errorMessage == null) {
-                ragService.indexMessage(assistantMsg, userId);
-            }
-
-            return threadOpt.orElse(null);
+	        List<DialogMessage> history = getMessages(threadId);
+	        boolean shouldRecap = false;
+	        int historySize = history.size();
+	        if (historySize > 0 && (historySize % MAX_CONTEXT_MESSAGES) == (MAX_CONTEXT_MESSAGES - 1)) {
+	            shouldRecap = true;
+	        }
+	
+	        if (shouldRecap) {
+	            // Fetch last ~40 messages for recap
+	            List<DialogMessage> recapMessages = history;
+	            if (historySize > MAX_CONTEXT_MESSAGES) {
+	                recapMessages = history.subList(history.size() - MAX_CONTEXT_MESSAGES, history.size());
+	            }
+	            String recap = generateRecap(recapMessages, credentials, modelName, systemPrompt, mcpServers, llmLoopEngine, threadId, userId);
+	            addMessage(threadId, "system", "--- Compacted Conversation ---\n" + recap);
+	        }
+	
+	        // Re-fetch history after optional recap
+	        history = getMessages(threadId);
+	        List<DialogMessage> contextMessages = history;
+	        if (history.size() > MAX_CONTEXT_MESSAGES) {
+	            contextMessages = history.subList(history.size() - MAX_CONTEXT_MESSAGES, history.size());
+	        }
+	
+	        StringBuilder historyBuilder = new StringBuilder();
+	        for (DialogMessage msg : contextMessages) {
+	            if (!"user".equals(msg.getRole()) && !"assistant".equals(msg.getRole())) {
+	                continue;
+	            }
+	            historyBuilder.append(msg.getRole()).append(": ").append(msg.getContent()).append("\n");
+	        }
+	
+	        // 3. Enhance with RAG context (using user query + last messages combined)
+	        String ragQuery = historyBuilder.toString() + "\n" + userContent;
+	        String enhancedQuery = ragService.enhancePromptWithRAG(ragQuery, userId);
+	
+	        // 4. Retrieve rich RAG context from adapters
+	        List<RAGResult> ragResults = retrieveRagContext(ragQuery, userId);
+	
+	        // 5. Build full user prompt with history, current query, and RAG context
+	        StringBuilder fullPromptBuilder = new StringBuilder();
+	        if (!ragResults.isEmpty()) {
+	            fullPromptBuilder.append("[Relevant context from previous conversations and knowledge base:\n");
+	            for (RAGResult result : ragResults) {
+	                String content = result.getContent();
+	                if (content != null && !content.isEmpty()) {
+	                    fullPromptBuilder.append("- \"").append(truncate(content, 300))
+	                            .append("\" (").append(result.getCitation()).append(")\n");
+	                }
+	            }
+	            fullPromptBuilder.append("]\n\n");
+	        }
+	
+	        // 5a. Attach attached file/workspace URI block to the prompt
+	        String attachmentBlock = buildAttachmentUriBlock(attachedFiles, attachedWorkspaces);
+	        if (!attachmentBlock.isEmpty()) {
+	            fullPromptBuilder.append(attachmentBlock).append("\n\n");
+	        }
+	
+	        fullPromptBuilder.append("Conversation history:\n").append(historyBuilder.toString()).append("\n");
+	        fullPromptBuilder.append("User query: ").append(enhancedQuery);
+	        String fullUserPrompt = fullPromptBuilder.toString();
+	
+	        // 6. Call LLM with MCP tools (including in-memory workspaceFileReadAsText)
+	        try {
+	            List<LlmLoopEngine.InMemoryMcpTool> inMemoryTools = buildInMemoryTools();
+	            LlmLoopEngine.LoopResult result = llmLoopEngine.run(
+	                    credentials,
+	                    modelName,
+	                    systemPrompt,
+	                    fullUserPrompt,
+	                    mcpServers,
+	                    8,
+	                    inMemoryTools
+	            );
+	            aiResponse = result.getFinalAnswer();
+	        } catch (RuntimeException e) {
+	            logger.error("LLM call failed for dialog thread {}: {}", threadId, e.toString(), e);
+	            errorMessage = "Chat error: " + e;
+	            aiResponse = errorMessage;
+	        }
+	
+	        // 7. Persist response (as assistant or system, depending on success)
+	        String role = errorMessage != null ? "system" : "assistant";
+	        DialogMessage assistantMsg = addMessage(threadId, role, aiResponse);
+	
+	        // 8. Update thread timestamp
+	        Optional<DialogThread> threadOpt = threadRepository.findById(threadId);
+	        if (threadOpt.isPresent()) {
+	            DialogThread thread = threadOpt.get();
+	            thread.setLastMessageAt(Instant.now());
+	            threadRepository.save(thread);
+	        }
+	
+	        // 9. Index attached files for RAG
+	        if (attachedFiles != null && !attachedFiles.isEmpty()) {
+	            for (com.localmesalevel.aisystemtakeone.workspace.model.WorkspaceFile attachedFile : attachedFiles) {
+	                if (attachedFile.getFileData() != null && attachedFile.getFileData().length > 0) {
+	                    try {
+	                        String fileText = new String(attachedFile.getFileData(), java.nio.charset.StandardCharsets.UTF_8);
+	                        ragService.indexFile(fileText, attachedFile.getId(), userId);
+	                    } catch (Exception e) {
+	                        logger.error("Failed to index file {} for RAG: {}", attachedFile.getId(), e.toString(), e);
+	                    }
+	                }
+	            }
+	        }
+	
+	        // 9b. Index attached workspace files for RAG
+	        if (attachedWorkspaces != null && !attachedWorkspaces.isEmpty()) {
+	            for (com.localmesalevel.aisystemtakeone.workspace.model.Workspace w : attachedWorkspaces) {
+	                if (w.getFiles() != null) {
+	                    for (com.localmesalevel.aisystemtakeone.workspace.model.WorkspaceFile wf : w.getFiles()) {
+	                        if (wf.getFileData() != null && wf.getFileData().length > 0) {
+	                            try {
+	                                String fileText = new String(wf.getFileData(), java.nio.charset.StandardCharsets.UTF_8);
+	                                ragService.indexFile(fileText, wf.getId(), userId);
+	                            } catch (Exception e) {
+	                                logger.error("Failed to index workspace file {} for RAG: {}", wf.getId(), e.toString(), e);
+	                            }
+	                        }
+	                    }
+	                }
+	            }
+	        }
+	
+	        // 10. Index for RAG (always index user message, error messages also useful for RAG contextually)
+	        ragService.indexMessage(userMsg, userId);
+	        if (errorMessage == null) {
+	            ragService.indexMessage(assistantMsg, userId);
+	        }
+	
+	        return threadOpt.orElse(null);
 
         } catch (Throwable e) {
             logger.error("Unexpected error in sendChatMessage for thread {}: {}", threadId, e.toString(), e);
@@ -265,7 +313,7 @@ public class DialogService {
                 }
             }
         } catch (Exception e) {
-            logger.warn("RAG enrichment failed during recap generation for thread {}: {}", threadId, e.getMessage());
+            logger.error("RAG enrichment failed during recap generation for thread {}: {}", threadId, e.toString(), e);
         }
 
         recapPrompt.append("\nProvide the recap now.\n");
@@ -313,6 +361,87 @@ public class DialogService {
             return s;
         }
         return s.substring(0, maxLen) + "...";
+    }
+
+    private String buildAttachmentUriBlock(java.util.List<com.localmesalevel.aisystemtakeone.workspace.model.WorkspaceFile> files,
+                                          java.util.List<com.localmesalevel.aisystemtakeone.workspace.model.Workspace> workspaces) {
+        boolean hasFiles = files != null && !files.isEmpty();
+        boolean hasWorkspaces = workspaces != null && !workspaces.isEmpty();
+        if (!hasFiles && !hasWorkspaces) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        if (hasFiles) {
+            sb.append("[Attached Files]\n");
+            for (com.localmesalevel.aisystemtakeone.workspace.model.WorkspaceFile f : files) {
+                String uri = "workspace://" + (f.getWorkspaceId() != null ? f.getWorkspaceId() : "0") + "/file/" + f.getId();
+                sb.append("- ").append(uri).append(" (").append(f.getFileName()).append(")\n");
+            }
+        }
+        if (hasWorkspaces) {
+            sb.append("[Attached Workspaces]\n");
+            for (com.localmesalevel.aisystemtakeone.workspace.model.Workspace w : workspaces) {
+                sb.append("- workspace://").append(w.getId()).append(" (").append(w.getName()).append(")\n");
+            }
+        }
+        return sb.toString().trim();
+    }
+
+    private List<LlmLoopEngine.InMemoryMcpTool> buildInMemoryTools() {
+        return List.of(
+            new WorkspaceFileReadAsTextTool()
+        );
+    }
+
+    private class WorkspaceFileReadAsTextTool extends LlmLoopEngine.InMemoryMcpTool {
+        private static final String SCHEMA = "{\"type\":\"object\",\"properties\":{\"workspaceId\":{\"type\":\"integer\",\"description\":\"Workspace ID\"},\"fileId\":{\"type\":\"integer\",\"description\":\"File ID\"}},\"required\":[\"workspaceId\",\"fileId\"]}";
+
+        WorkspaceFileReadAsTextTool() {
+            super("workspaceFileReadAsText", "Read a workspace file's text content given its workspaceId and fileId. Returns the file content as text.", parseSchema(SCHEMA));
+        }
+
+        private static com.fasterxml.jackson.databind.JsonNode parseSchema(String s) {
+            try {
+                return new com.fasterxml.jackson.databind.ObjectMapper().readTree(s);
+            } catch (Exception e) {
+                throw new IllegalStateException("Failed to parse tool schema", e);
+            }
+        }
+
+        @Override
+        public com.fasterxml.jackson.databind.JsonNode execute(com.fasterxml.jackson.databind.JsonNode arguments) {
+            if (arguments == null || !arguments.isObject()) {
+                return errorJson("Arguments must be a JSON object");
+            }
+            Long workspaceId = arguments.has("workspaceId") ? arguments.get("workspaceId").asLong() : null;
+            Long fileId = arguments.has("fileId") ? arguments.get("fileId").asLong() : null;
+            if (workspaceId == null || fileId == null) {
+                return errorJson("Both workspaceId and fileId are required");
+            }
+            Optional<com.localmesalevel.aisystemtakeone.workspace.model.WorkspaceFile> fileOpt = workspaceFileService.getFile(fileId);
+            if (fileOpt.isEmpty()) {
+                return errorJson("File not found: " + fileId);
+            }
+            com.localmesalevel.aisystemtakeone.workspace.model.WorkspaceFile file = fileOpt.get();
+            if (file.getWorkspaceId() != null && !file.getWorkspaceId().equals(workspaceId)) {
+                return errorJson("File does not belong to workspace: " + workspaceId);
+            }
+            if (file.getFileData() == null) {
+                return errorJson("File data is empty");
+            }
+            String text = new String(file.getFileData(), java.nio.charset.StandardCharsets.UTF_8);
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.node.ObjectNode result = mapper.createObjectNode();
+            result.put("content", text);
+            return result;
+        }
+
+        private com.fasterxml.jackson.databind.JsonNode errorJson(String message) {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.node.ObjectNode node = mapper.createObjectNode();
+            node.put("error", message);
+            return node;
+        }
     }
 
 }
