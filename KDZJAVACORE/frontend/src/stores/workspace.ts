@@ -213,6 +213,36 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return null;
   }
 
+  async function uploadFileToDefault(file: File) {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const headers: Record<string, string> = {};
+      const token = getToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${API_BASE}/api/user/workspaces/default/files`, {
+        method: 'POST',
+        credentials: 'include',
+        headers,
+        body: formData,
+      });
+      if (response.ok) {
+        const f: WorkspaceFile = await response.json();
+        files.value.unshift(f);
+        return f;
+      } else {
+        console.error('Failed to upload file to default workspace:', response.status);
+      }
+    } catch (e) {
+      console.error('Failed to upload file to default workspace:', e);
+    }
+    return null;
+  }
+
   async function deleteFile(workspaceId: number, fileId: number) {
     try {
       const headers = getHeaders(false);
@@ -242,6 +272,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     fetchFiles,
     fetchAllFiles,
     uploadFile,
+    uploadFileToDefault,
     deleteFile,
   };
 });

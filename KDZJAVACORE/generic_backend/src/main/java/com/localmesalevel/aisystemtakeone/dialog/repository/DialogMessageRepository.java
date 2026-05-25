@@ -11,6 +11,9 @@ public interface DialogMessageRepository extends JpaRepository<DialogMessage, Lo
 
     List<DialogMessage> findByThreadIdOrderByCreatedAtAsc(Long threadId);
 
+    @org.springframework.data.jpa.repository.Query("SELECT m FROM DialogMessage m WHERE m.isReplyTo = :isReplyTo AND m.error = true")
+    List<DialogMessage> findErrorRepliesTo(@org.springframework.data.repository.query.Param("isReplyTo") Long isReplyTo);
+
     long countByThreadId(Long threadId);
 
     void deleteByThreadId(Long threadId);

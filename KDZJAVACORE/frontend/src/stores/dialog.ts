@@ -25,6 +25,8 @@ export interface DialogMessage {
     toolResult: string | null;
     tokensUsed: number | null;
     createdAt: string;
+    error?: boolean;
+    isReplyTo?: number | null;
     fileIds?: number[];
     attachedFiles?: { id: number; fileName: string; mimeType: string; fileSize: number }[];
     attachedWorkspaces?: { id: number; name: string; createdAt: string }[];
@@ -239,6 +241,7 @@ export const useDialogStore = defineStore('dialog', () => {
             fileIds,
         };
         messages.value.push(userMessage);
+        const userMessageId = userMessage.id;
 
         try {
             const headers: Record<string, string> = {
@@ -265,7 +268,7 @@ export const useDialogStore = defineStore('dialog', () => {
                 handleAuthError(response);
                 const errorText = await response.text().catch(() => 'Unknown error');
                 console.error('Chat request failed:', errorText);
-                // Show error as system message
+                // Show error as system message with isReplyTo
                 messages.value.push({
                     id: Date.now() + 1,
                     threadId,
@@ -275,6 +278,8 @@ export const useDialogStore = defineStore('dialog', () => {
                     toolResult: null,
                     tokensUsed: null,
                     createdAt: new Date().toISOString(),
+                    error: true,
+                    isReplyTo: userMessageId,
                 });
             }
         } catch (e) {
@@ -288,9 +293,67 @@ export const useDialogStore = defineStore('dialog', () => {
                 toolResult: null,
                 tokensUsed: null,
                 createdAt: new Date().toISOString(),
+                error: true,
+                isReplyTo: userMessageId,
             });
         } finally {
             isSending.value = false;
+            // Refresh messages to ensure correct ids and isReplyTo matching
+            await fetchMessages(threadId);
+        }
+    }
+
+    async function retryMessage(messageId: number, threadId: number) {
+        isSending.value = true;
+        try {
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+            };
+            const token = getToken();
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            const response = await fetch(`${API_BASE}/api/dialogs/${threadId}/chat/retry/${messageId}`, {
+                method: 'POST',
+                credentials: 'include',
+                headers,
+            });
+            if (response.ok) {
+                const assistantMsg: DialogMessage = await response.json();
+                messages.value.push(assistantMsg);
+                if (currentThread.value) {
+                    currentThread.value.lastMessageAt = new Date().toISOString();
+                }
+            } else {
+                handleAuthError(response);
+                const errorText = await response.text().catch(() => 'Unknown error');
+                console.error('Retry request failed:', errorText);
+                messages.value.push({
+                    id: Date.now() + 1,
+                    threadId: currentThread.value!.id,
+                    role: 'system',
+                    content: `Retry error: ${errorText}`,
+                    toolName: null,
+                    toolResult: null,
+                    tokensUsed: null,
+                    createdAt: new Date().toISOString(),
+                });
+            }
+        } catch (e) {
+            console.error('Failed to retry message:', e);
+            messages.value.push({
+                id: Date.now() + 1,
+                threadId: currentThread.value!.id,
+                role: 'system',
+                content: 'Failed to retry message. Please try again.',
+                toolName: null,
+                toolResult: null,
+                tokensUsed: null,
+                createdAt: new Date().toISOString(),
+            });
+        } finally {
+            isSending.value = false;
+            await fetchMessages(threadId);
         }
     }
 
@@ -347,6 +410,7 @@ export const useDialogStore = defineStore('dialog', () => {
         selectThread,
         fetchMessages,
         sendMessage,
+        retryMessage,
         clearCurrentThread,
         renameThread,
     };

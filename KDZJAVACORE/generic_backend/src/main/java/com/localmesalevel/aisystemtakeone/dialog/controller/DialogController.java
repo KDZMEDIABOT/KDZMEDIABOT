@@ -94,6 +94,8 @@ public class DialogController {
         map.put("toolResult", msg.getToolResult());
         map.put("tokensUsed", msg.getTokensUsed());
         map.put("createdAt", msg.getCreatedAt());
+        map.put("error", msg.isError());
+        map.put("isReplyTo", msg.getIsReplyTo());
         map.put("attachedFiles", msg.getAttachedFiles().stream().map(this::toFileMap).collect(java.util.stream.Collectors.toList()));
         map.put("attachedWorkspaces", msg.getAttachedWorkspaces().stream().map(this::toWorkspaceMap).collect(java.util.stream.Collectors.toList()));
         return map;

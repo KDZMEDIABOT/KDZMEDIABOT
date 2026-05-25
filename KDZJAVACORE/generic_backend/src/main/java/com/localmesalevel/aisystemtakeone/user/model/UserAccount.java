@@ -25,6 +25,9 @@ public class UserAccount {
     @JoinColumn(name = "current_llm_endpoint_id")
     private LlmEndpointCredentials currentLlmEndpoint;
 
+    @Column(name = "default_workspace_id")
+    private Long defaultWorkspaceId;
+
     public Long getId() {
         return id;
     }
@@ -63,6 +66,14 @@ public class UserAccount {
 
     public void setCurrentLlmEndpoint(LlmEndpointCredentials currentLlmEndpoint) {
         this.currentLlmEndpoint = currentLlmEndpoint;
+    }
+
+    public Long getDefaultWorkspaceId() {
+        return defaultWorkspaceId;
+    }
+
+    public void setDefaultWorkspaceId(Long defaultWorkspaceId) {
+        this.defaultWorkspaceId = defaultWorkspaceId;
     }
 }
 

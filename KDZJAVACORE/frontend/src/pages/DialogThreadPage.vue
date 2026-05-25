@@ -77,6 +77,18 @@
                     class="q-ma-none"
                   />
                 </div>
+                <!-- Retry button for failed user messages -->
+                <div v-if="msg.role === 'user' && hasErrorReply(msg.id)" class="q-mt-sm row justify-end">
+                  <q-btn
+                    size="sm"
+                    color="negative"
+                    icon="refresh"
+                    label="Retry"
+                    :loading="dialogStore.isSending"
+                    @click="retry(msg.id)"
+                    dense
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -158,6 +170,16 @@
           @keydown.enter="send"
           :disable="dialogStore.isSending || !dialogStore.currentThread"
         />
+        <!-- Clip icon for native file upload to default workspace -->
+        <q-btn
+          color="accent"
+          icon="attach_file"
+          @click="triggerFileUpload"
+          :disable="dialogStore.isSending || !dialogStore.currentThread"
+          round
+          dense
+          title="Attach files from computer"
+        />
         <q-btn
           color="primary"
           icon="send"
@@ -165,6 +187,13 @@
           :disable="!newMessage.trim() || dialogStore.isSending"
           round
           dense
+        />
+        <input
+          ref="fileInputRef"
+          type="file"
+          multiple
+          style="display: none"
+          @change="handleFileUpload"
         />
       </div>
     </div>
@@ -188,6 +217,7 @@ const selectedFiles = ref<WorkspaceFile[]>([]);
 const selectedFileModel = ref<WorkspaceFile | null>(null);
 const selectedWorkspaces = ref<Workspace[]>([]);
 const selectedWorkspaceModel = ref<Workspace | null>(null);
+const fileInputRef = ref<HTMLInputElement | null>(null);
 
 onMounted(async () => {
   await workspaceStore.fetchWorkspaces();
@@ -218,6 +248,22 @@ function removeWorkspace(ws: Workspace) {
   selectedWorkspaces.value = selectedWorkspaces.value.filter((w) => w.id !== ws.id);
 }
 
+function triggerFileUpload() {
+  fileInputRef.value?.click();
+}
+
+async function handleFileUpload(e: Event) {
+  const input = e.target as HTMLInputElement;
+  if (!input.files || input.files.length === 0) return;
+  for (const file of Array.from(input.files)) {
+    const uploaded = await workspaceStore.uploadFileToDefault(file);
+    if (uploaded) {
+      selectedFiles.value.push(uploaded);
+    }
+  }
+  input.value = '';
+}
+
 function send(event?: KeyboardEvent) {
   if (event && event instanceof KeyboardEvent && !event.ctrlKey) {
     return;
@@ -230,6 +276,17 @@ function send(event?: KeyboardEvent) {
   selectedWorkspaces.value = [];
   newMessage.value = '';
   dialogStore.sendMessage(content, fileIds, workspaceIds);
+}
+
+function hasErrorReply(messageId: number): boolean {
+  return dialogStore.messages.some(
+    (m) => m.isReplyTo === messageId && m.error === true
+  );
+}
+
+async function retry(messageId: number) {
+  if (!dialogStore.currentThread) return;
+  await dialogStore.retryMessage(messageId, dialogStore.currentThread.id);
 }
 
 function onClose() {

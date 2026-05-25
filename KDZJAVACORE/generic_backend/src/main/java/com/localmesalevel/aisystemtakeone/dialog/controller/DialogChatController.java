@@ -56,6 +56,8 @@ public class DialogChatController {
         map.put("toolResult", msg.getToolResult());
         map.put("tokensUsed", msg.getTokensUsed());
         map.put("createdAt", msg.getCreatedAt());
+        map.put("error", msg.isError());
+        map.put("isReplyTo", msg.getIsReplyTo());
         return map;
     }
 
@@ -210,6 +212,73 @@ public class DialogChatController {
                 McpServerConfig.StdioMessageFraming.NEWLINE_DELIMITED_JSON
         ));
         return servers;
+    }
+
+    @PostMapping("/{id}/chat/retry/{messageId}")
+    public ResponseEntity<?> retryMessage(
+            @PathVariable Long id,
+            @PathVariable Long messageId,
+            @RequestAttribute("userId") Long userId
+    ) {
+        try {
+            Optional<DialogMessage> msgOpt = Optional.ofNullable(dialogService.getMessage(messageId));
+            if (!msgOpt.isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+            DialogMessage original = msgOpt.get();
+            if (!"user".equals(original.getRole())) {
+                return ResponseEntity.badRequest().body("Can only retry user messages");
+            }
+
+            // Delete all error replies to this user message
+            dialogService.deleteErrorReplies(messageId);
+
+            // Re-send the original user message content
+            Optional<DialogThread> threadOpt = dialogService.getThread(id, userId);
+            if (!threadOpt.isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            DialogThread thread = threadOpt.get();
+            UserAccount user = userAccountRepository.findById(userId).orElse(null);
+            if (user == null) {
+                return ResponseEntity.status(401).body("User not found");
+            }
+
+            LlmEndpointCredentials credentials = user.getCurrentLlmEndpoint();
+            if (credentials == null) {
+                return ResponseEntity.badRequest().body("No LLM endpoint configured");
+            }
+
+            // Resolve re-attachments from the original message
+            java.util.List<WorkspaceFile> attachedFiles = new java.util.ArrayList<>(original.getAttachedFiles());
+            java.util.List<Workspace> attachedWorkspaces = new java.util.ArrayList<>(original.getAttachedWorkspaces());
+
+            List<McpServerConfig> mcpServers = buildDefaultBotMcpServers();
+
+            dialogService.sendChatMessage(
+                    id,
+                    original.getContent(),
+                    userId,
+                    credentials,
+                    thread.getModelName() != null ? thread.getModelName() : credentials.getModelName(),
+                    thread.getSystemPrompt(),
+                    mcpServers,
+                    llmLoopEngine,
+                    attachedFiles,
+                    attachedWorkspaces
+            );
+
+            List<DialogMessage> messages = dialogService.getMessages(id);
+            if (messages.isEmpty()) {
+                return ResponseEntity.ok(java.util.Collections.emptyMap());
+            }
+            DialogMessage lastMessage = messages.get(messages.size() - 1);
+
+            return ResponseEntity.ok(toMessageMap(lastMessage));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Retry error: " + e.getMessage());
+        }
     }
 
     public static class ChatMessageRequest {

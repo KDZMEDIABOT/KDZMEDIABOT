@@ -26,6 +26,12 @@ public class DialogMessage {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
+    @Column(nullable = false)
+    private boolean error = false;
+
+    @Column(name = "is_reply_to")
+    private Long isReplyTo;
+
     @Column(name = "tool_name", length = 255)
     private String toolName;
 
@@ -148,4 +154,21 @@ public class DialogMessage {
     public void setAttachedWorkspaces(List<Workspace> attachedWorkspaces) {
         this.attachedWorkspaces = attachedWorkspaces;
     }
+
+    public boolean isError() {
+        return error;
+    }
+
+    public void setError(boolean error) {
+        this.error = error;
+    }
+
+    public Long getIsReplyTo() {
+        return isReplyTo;
+    }
+
+    public void setIsReplyTo(Long isReplyTo) {
+        this.isReplyTo = isReplyTo;
+    }
+
 }

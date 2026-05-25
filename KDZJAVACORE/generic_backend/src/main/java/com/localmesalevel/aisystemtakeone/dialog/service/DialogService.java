@@ -1,5 +1,15 @@
 package com.localmesalevel.aisystemtakeone.dialog.service;
 
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.localmesalevel.aisystemtakeone.dialog.model.DialogMessage;
 import com.localmesalevel.aisystemtakeone.dialog.model.DialogThread;
 import com.localmesalevel.aisystemtakeone.dialog.repository.DialogMessageRepository;
@@ -10,15 +20,6 @@ import com.localmesalevel.aisystemtakeone.llm.service.LlmLoopEngine.McpServerCon
 import com.localmesalevel.aisystemtakeone.rag.model.RAGResult;
 import com.localmesalevel.aisystemtakeone.rag.service.RAGService;
 import com.localmesalevel.aisystemtakeone.workspace.service.WorkspaceFileService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Instant;
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -73,8 +74,25 @@ public class DialogService {
         return messageRepository.save(message);
     }
 
+    public void deleteErrorReplies(Long messageId) {
+        List<DialogMessage> replies = messageRepository.findErrorRepliesTo(messageId);
+        for (DialogMessage reply : replies) {
+            messageRepository.delete(reply);
+        }
+    }
+
+    public DialogMessage getMessage(Long messageId) {
+        return messageRepository.findById(messageId).orElse(null);
+    }
+
     public List<DialogMessage> getMessages(Long threadId) {
-        return messageRepository.findByThreadIdOrderByCreatedAtAsc(threadId);
+        List<DialogMessage> messages = messageRepository.findByThreadIdOrderByCreatedAtAsc(threadId);
+        for (DialogMessage msg : messages) {
+            // Force initialization of lazy collections while still inside the transaction
+            msg.getAttachedFiles().size();
+            msg.getAttachedWorkspaces().size();
+        }
+        return messages;
     }
 
     public void deleteThread(Long threadId, Long userId) {
@@ -136,6 +154,7 @@ public class DialogService {
         } else {
             userMsg = addMessage(threadId, "user", userContent, attachedFiles);
         }
+        final Long userMsgId = userMsg.getId();
         String errorMessage = null;
         String aiResponse = null;
         try {
@@ -222,8 +241,13 @@ public class DialogService {
 	        }
 	
 	        // 7. Persist response (as assistant or system, depending on success)
-	        String role = errorMessage != null ? "system" : "assistant";
-	        DialogMessage assistantMsg = addMessage(threadId, role, aiResponse);
+        String role = errorMessage != null ? "system" : "assistant";
+        DialogMessage assistantMsg = addMessage(threadId, role, aiResponse);
+        assistantMsg.setIsReplyTo(userMsgId);
+        if (errorMessage != null) {
+            assistantMsg.setError(true);
+        }
+        assistantMsg = messageRepository.save(assistantMsg);
 	
 	        // 8. Update thread timestamp
 	        Optional<DialogThread> threadOpt = threadRepository.findById(threadId);
@@ -276,7 +300,10 @@ public class DialogService {
         } catch (Throwable e) {
             logger.error("Unexpected error in sendChatMessage for thread {}: {}", threadId, e.toString(), e);
             errorMessage = "Chat error: " + e;
-            addMessage(threadId, "system", errorMessage);
+            DialogMessage errMsg = addMessage(threadId, "system", errorMessage);
+            errMsg.setIsReplyTo(userMsgId);
+            errMsg.setError(true);
+            messageRepository.save(errMsg);
 
             Optional<DialogThread> threadOpt = threadRepository.findById(threadId);
             if (threadOpt.isPresent()) {
