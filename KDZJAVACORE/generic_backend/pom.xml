@@ -6,7 +6,7 @@
 
     <groupId>com.localmesalevel</groupId>
     <artifactId>aisystemtakeone</artifactId>
-    <version>0.1.53-SNAPSHOT</version>
+    <version>0.1.55-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>AI System TakeOne Library</name>

@@ -226,6 +226,9 @@ public class DialogChatController {
                 return ResponseEntity.notFound().build();
             }
             DialogMessage original = msgOpt.get();
+            if (original.getThread() == null || !original.getThread().getId().equals(id)) {
+                return ResponseEntity.status(403).body("Message does not belong to the specified thread");
+            }
             if (!"user".equals(original.getRole())) {
                 return ResponseEntity.badRequest().body("Can only retry user messages");
             }

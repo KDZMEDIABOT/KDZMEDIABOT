@@ -119,9 +119,42 @@ public class DialogController {
         return map;
     }
 
+    @DeleteMapping("/{id}/messages/{messageId}")
+    public ResponseEntity<Void> deleteMessage(
+            @PathVariable Long id,
+            @PathVariable Long messageId,
+            @RequestAttribute("userId") Long userId
+    ) {
+        try {
+            dialogService.deleteMessage(messageId, id, userId);
+            return ResponseEntity.ok().build();
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).build();
+        }
+    }
+
+    @PutMapping("/{id}/messages/{messageId}")
+    public ResponseEntity<Map<String, Object>> updateMessage(
+            @PathVariable Long id,
+            @PathVariable Long messageId,
+            @RequestBody UpdateMessageRequest request,
+            @RequestAttribute("userId") Long userId
+    ) {
+        try {
+            DialogMessage updated = dialogService.updateMessage(messageId, request.content, id, userId);
+            return ResponseEntity.ok(toMessageMap(updated));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).build();
+        }
+    }
+
     public static class CreateThreadRequest {
         public String title;
         public String systemPrompt;
+    }
+
+    public static class UpdateMessageRequest {
+        public String content;
     }
 
     public static class UpdateThreadRequest {

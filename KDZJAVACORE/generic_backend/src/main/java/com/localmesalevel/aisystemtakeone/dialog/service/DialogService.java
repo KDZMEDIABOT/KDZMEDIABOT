@@ -81,6 +81,38 @@ public class DialogService {
         }
     }
 
+    public void deleteMessage(Long messageId, Long threadId, Long userId) {
+        DialogMessage message = messageRepository.findById(messageId).orElse(null);
+        if (message == null) {
+            throw new IllegalArgumentException("Message not found: " + messageId);
+        }
+        Optional<DialogThread> thread = threadRepository.findByIdAndUserId(threadId, userId);
+        if (thread.isEmpty()) {
+            throw new SecurityException("Thread not found or not owned by user");
+        }
+        if (message.getThread() == null || !message.getThread().getId().equals(threadId)) {
+            throw new SecurityException("Message does not belong to the specified thread");
+        }
+        messageRepository.delete(message);
+    }
+
+    public DialogMessage updateMessage(Long messageId, String content, Long threadId, Long userId) {
+        DialogMessage message = messageRepository.findById(messageId).orElse(null);
+        if (message == null) {
+            throw new IllegalArgumentException("Message not found: " + messageId);
+        }
+        Optional<DialogThread> thread = threadRepository.findByIdAndUserId(threadId, userId);
+        if (thread.isEmpty()) {
+            throw new SecurityException("Thread not found or not owned by user");
+        }
+        if (message.getThread() == null || !message.getThread().getId().equals(threadId)) {
+            throw new SecurityException("Message does not belong to the specified thread");
+        }
+        message.setContent(content);
+        message = messageRepository.save(message);
+        return message;
+    }
+
     public DialogMessage getMessage(Long messageId) {
         return messageRepository.findById(messageId).orElse(null);
     }

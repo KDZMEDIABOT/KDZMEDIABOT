@@ -394,14 +394,63 @@ export const useDialogStore = defineStore('dialog', () => {
         }
     }
 
+    async function deleteMessage(messageId: number, threadId: number) {
+        try {
+            const headers: Record<string, string> = {};
+            const token = getToken();
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            const response = await fetch(`${API_BASE}/api/dialogs/${threadId}/messages/${messageId}`, {
+                method: 'DELETE',
+                credentials: 'include',
+                headers,
+            });
+            if (response.ok) {
+                messages.value = messages.value.filter((m) => m.id !== messageId);
+            } else {
+                handleAuthError(response);
+            }
+        } catch (e) {
+            console.error('Failed to delete message:', e);
+        }
+    }
+
+    async function editMessage(messageId: number, threadId: number, newContent: string) {
+        try {
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+            };
+            const token = getToken();
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            const response = await fetch(`${API_BASE}/api/dialogs/${threadId}/messages/${messageId}`, {
+                method: 'PUT',
+                credentials: 'include',
+                headers,
+                body: JSON.stringify({ content: newContent }),
+            });
+            if (response.ok) {
+                const updated: DialogMessage = await response.json();
+                const idx = messages.value.findIndex((m) => m.id === messageId);
+                if (idx !== -1) {
+                    messages.value.splice(idx, 1, updated);
+                }
+            } else {
+                handleAuthError(response);
+            }
+        } catch (e) {
+            console.error('Failed to edit message:', e);
+        }
+    }
+
     return {
         threads,
         currentThread,
         messages,
         isLoading,
         isSending,
-        sortedThreads,
-        paginatedThreads,
         threadsPage,
         totalThreadPages,
         fetchThreads,
@@ -411,6 +460,8 @@ export const useDialogStore = defineStore('dialog', () => {
         fetchMessages,
         sendMessage,
         retryMessage,
+        deleteMessage,
+        editMessage,
         clearCurrentThread,
         renameThread,
     };

@@ -45,7 +45,7 @@
               >
                 <div class="text-caption text-weight-bold q-mb-xs" :class="msg.role === 'user' ? 'text-white' : 'text-grey-7'">
                   {{ msg.role }}</div>
-                <div class="text-body2" style="white-space: pre-wrap;">{{ msg.content }}</div>
+                <div v-if="editingMessageId !== msg.id" class="text-body2" style="white-space: pre-wrap;">{{ msg.content }}</div>
                 <div v-if="msg.toolName" class="text-caption q-mt-xs" :class="msg.role === 'user' ? 'text-blue-2' : 'text-grey-6'">
                   Tool: {{ msg.toolName }}
                 </div>
@@ -77,16 +77,67 @@
                     class="q-ma-none"
                   />
                 </div>
-                <!-- Retry button for failed user messages -->
-                <div v-if="msg.role === 'user' && hasErrorReply(msg.id)" class="q-mt-sm row justify-end">
+                <!-- Action buttons for every message -->
+                <div class="q-mt-sm row" :class="msg.role === 'user' ? 'justify-end' : 'justify-start'" style="gap: 4px;">
                   <q-btn
-                    size="sm"
+                    v-if="editingMessageId !== msg.id"
+                    size="xs"
+                    flat
+                    dense
+                    color="grey-6"
+                    icon="edit"
+                    title="Edit"
+                    @click="startEdit(msg)"
+                  />
+                  <q-btn
+                    v-if="editingMessageId === msg.id"
+                    size="xs"
+                    flat
+                    dense
+                    color="positive"
+                    icon="check"
+                    title="Save"
+                    @click="saveEdit(msg.id)"
+                  />
+                  <q-btn
+                    v-if="editingMessageId === msg.id"
+                    size="xs"
+                    flat
+                    dense
+                    color="negative"
+                    icon="close"
+                    title="Cancel"
+                    @click="cancelEdit"
+                  />
+                  <q-btn
+                    size="xs"
+                    flat
+                    dense
+                    color="grey-6"
+                    icon="delete"
+                    title="Delete"
+                    @click="deleteMessage(msg.id)"
+                  />
+                  <!-- Retry button for failed user messages -->
+                  <q-btn
+                    v-if="msg.role === 'user' && hasErrorReply(msg.id)"
+                    size="xs"
                     color="negative"
                     icon="refresh"
                     label="Retry"
                     :loading="dialogStore.isSending"
                     @click="retry(msg.id)"
                     dense
+                  />                </div>
+                <!-- Inline edit form -->
+                <div v-if="editingMessageId === msg.id" class="q-mt-sm">
+                  <q-input
+                    v-model="editingContent"
+                    type="textarea"
+                    autogrow
+                    outlined
+                    dense
+                    class="q-mb-xs"
                   />
                 </div>
               </div>
@@ -218,6 +269,8 @@ const selectedFileModel = ref<WorkspaceFile | null>(null);
 const selectedWorkspaces = ref<Workspace[]>([]);
 const selectedWorkspaceModel = ref<Workspace | null>(null);
 const fileInputRef = ref<HTMLInputElement | null>(null);
+const editingMessageId = ref<number | null>(null);
+const editingContent = ref('');
 
 onMounted(async () => {
   await workspaceStore.fetchWorkspaces();
@@ -246,6 +299,28 @@ function onWorkspaceSelected(ws: Workspace | null) {
 
 function removeWorkspace(ws: Workspace) {
   selectedWorkspaces.value = selectedWorkspaces.value.filter((w) => w.id !== ws.id);
+}
+
+function startEdit(msg: typeof dialogStore.messages[0]) {
+  editingMessageId.value = msg.id;
+  editingContent.value = msg.content;
+}
+
+function cancelEdit() {
+  editingMessageId.value = null;
+  editingContent.value = '';
+}
+
+async function saveEdit(messageId: number) {
+  if (!dialogStore.currentThread) return;
+  await dialogStore.editMessage(messageId, dialogStore.currentThread.id, editingContent.value);
+  editingMessageId.value = null;
+  editingContent.value = '';
+}
+
+async function deleteMessage(messageId: number) {
+  if (!dialogStore.currentThread) return;
+  await dialogStore.deleteMessage(messageId, dialogStore.currentThread.id);
 }
 
 function triggerFileUpload() {
