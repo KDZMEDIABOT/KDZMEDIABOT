@@ -15,7 +15,8 @@
     </q-header>
 
     <q-drawer v-model="leftDrawerOpen" show-if-above bordered>
-      <q-list>
+      <q-scroll-area style="height: calc(100vh - 50px); max-width: 300px; /*margin-top: 50px;*/">
+        <q-list>
         <q-item clickable v-ripple to="/" exact @click="leftDrawerOpen = false">
           <q-item-section avatar>
             <q-icon name="home" />
@@ -140,6 +141,7 @@
           <q-item-section>Logout</q-item-section>
         </q-item>
       </q-list>
+      </q-scroll-area>
     </q-drawer>
 
     <q-page-container>
