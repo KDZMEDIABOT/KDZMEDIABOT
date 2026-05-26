@@ -75,6 +75,7 @@ export const useDialogStore = defineStore('dialog', () => {
     }
 
     async function fetchThreads() {
+        console.log("dialog.ts::fetchThreads() entered")
         isLoading.value = true;
         try {
             const headers: Record<string, string> = {};
@@ -88,6 +89,7 @@ export const useDialogStore = defineStore('dialog', () => {
             });
             if (response.ok) {
                 const fetched: DialogThread[] = await response.json();
+                console.log("fetchThreads: fetched "+(fetched?(""+fetched.length+" threads"):fetched));
                 threads.value = fetched;
                 // Update currentThread reference if it exists in the new array
                 if (currentThread.value) {
@@ -101,6 +103,7 @@ export const useDialogStore = defineStore('dialog', () => {
             console.error('Failed to fetch threads:', e);
         } finally {
             isLoading.value = false;
+            console.log("dialog.ts::fetchThreads() exiting")
         }
     }
 
@@ -453,6 +456,8 @@ export const useDialogStore = defineStore('dialog', () => {
         isSending,
         threadsPage,
         totalThreadPages,
+        sortedThreads,
+        paginatedThreads,
         fetchThreads,
         createThread,
         deleteThread,

@@ -40,6 +40,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useQuasar } from 'quasar';
 import { useAuthStore } from '../stores/auth';
+import { useDialogStore } from '../stores/dialog';
 
 const $q = useQuasar();
 const router = useRouter();
@@ -85,6 +86,8 @@ async function onSubmit() {
     return;
   }
   $q.notify({ type: 'positive', message: 'Sign in successful' });
+  const dialogStore = useDialogStore();
+  await dialogStore.fetchThreads();
   router.push('/');
 }
 

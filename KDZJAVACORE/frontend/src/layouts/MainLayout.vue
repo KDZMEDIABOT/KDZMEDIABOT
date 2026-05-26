@@ -4,7 +4,7 @@
       <q-toolbar>
         <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
         <q-toolbar-title>
-          AI Content Generator
+          AI System
         </q-toolbar-title>
         <template v-if="auth.isLoggedIn">
           <div class="q-mr-md text-caption">
@@ -308,9 +308,13 @@ function formatDate(dateStr: string | null) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-onMounted(() => {
-  if (auth.isLoggedIn) {
-    dialogStore.fetchThreads();
-  }
-});
+watch(
+  () => auth.isLoggedIn,
+  (isLoggedIn) => {
+    if (isLoggedIn) {
+      dialogStore.fetchThreads();
+    }
+  },
+  { immediate: true }
+);
 </script>

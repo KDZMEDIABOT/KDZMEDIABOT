@@ -132,7 +132,12 @@ public class DialogService {
     }
 
     public List<DialogThread> listThreads(Long userId) {
-        return threadRepository.findByUserIdOrderByLastMessageAtDesc(userId);
+        List<DialogThread> threadList = threadRepository.findByUserIdOrderByLastMessageAtDesc(userId);
+        System.out.println("DialogService::listThreads for userId="+userId+": returning "+(
+        		threadList==null?"null":
+        			(threadList.size()+" threads")
+        		));
+		return threadList;
     }
 
     public Optional<DialogThread> getThread(Long threadId, Long userId) {
