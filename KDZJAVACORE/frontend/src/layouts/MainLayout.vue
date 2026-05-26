@@ -14,8 +14,8 @@
       </q-toolbar>
     </q-header>
 
-    <q-drawer v-model="leftDrawerOpen" show-if-above bordered>
-      <q-scroll-area style="height: calc(100vh - 50px); max-width: 300px; /*margin-top: 50px;*/">
+    <q-drawer v-model="leftDrawerOpen" show-if-above bordered style="/*top: 0;left: 0;position: fixed;*/">
+      <q-scroll-area style="height: calc(100vh - 50px); width: 300px; /*margin-top: 50px;*/">
         <q-list>
         <q-item clickable v-ripple to="/" exact @click="leftDrawerOpen = false">
           <q-item-section avatar>
@@ -66,7 +66,7 @@
           <q-item-section>Sign In</q-item-section>
         </q-item>
 
-        <q-item v-if="auth.isLoggedIn" clickable v-ripple to="/workspaces" @click="leftDrawerOpen = false">
+        <q-item v-if="auth.isLoggedIn" clickable v-ripple to="/workspaces">
           <q-item-section avatar>
             <q-icon name="folder" />
           </q-item-section>
@@ -208,7 +208,7 @@
           <q-btn flat label="Delete" color="negative" @click="confirmDeleteThread" />
         </q-card-actions>
       </q-card>
-    </q-dialog>
+     </q-dialog>
   </q-layout>
 </template>
 
