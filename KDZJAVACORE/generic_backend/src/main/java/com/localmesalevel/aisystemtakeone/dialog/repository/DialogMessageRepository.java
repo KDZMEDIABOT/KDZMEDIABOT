@@ -17,4 +17,14 @@ public interface DialogMessageRepository extends JpaRepository<DialogMessage, Lo
     long countByThreadId(Long threadId);
 
     void deleteByThreadId(Long threadId);
+
+    @org.springframework.data.jpa.repository.Query(
+            value = "SELECT m.id, t.user_id FROM dialog_messages m " +
+                    "JOIN dialog_threads t ON m.thread_id = t.id " +
+                    "WHERE m.id NOT IN (SELECT CAST(source_id AS bigint) FROM rag_vectors WHERE source_type = 'dialog_message') " +
+                    "AND m.role IN ('user', 'assistant') " +
+                    "AND m.created_at < ?1 " +
+                    "ORDER BY m.id LIMIT ?2",
+            nativeQuery = true)
+    List<Object[]> findUnindexedMessages(java.time.Instant cutoff, int limit);
 }
