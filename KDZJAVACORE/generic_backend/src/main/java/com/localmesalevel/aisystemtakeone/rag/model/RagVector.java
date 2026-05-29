@@ -35,6 +35,9 @@ public class RagVector {
     @Column(name = "chunk_index", nullable = false)
     private int chunkIndex;
 
+    @Column(name = "version", nullable = false)
+    private int version = 2;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -65,6 +68,9 @@ public class RagVector {
 
     public void setChunkIndex(int chunkIndex) { this.chunkIndex = chunkIndex; }
     public int getChunkIndex() { return chunkIndex; }
+
+    public void setVersion(int version) { this.version = version; }
+    public int getVersion() { return version; }
 
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public Instant getCreatedAt() { return createdAt; }

@@ -46,6 +46,9 @@ public class TextChunker {
                 }
             }
             chunks.add(trimmed.substring(start, end));
+            if (end >= trimmed.length()) {
+                break; // Last chunk processed
+            }
             start = end - overlap;
             if (start >= end) {
                 start = end;

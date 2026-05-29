@@ -25,6 +25,8 @@ public class PostgresVectorRAGAdapter implements RAGAdapter {
 
     private static final Logger logger = LoggerFactory.getLogger(PostgresVectorRAGAdapter.class);
 
+    public static final int RAG_INDEXER_VERSION = 2;
+
     private final RagVectorRepository ragVectorRepository;
     private final EmbeddingService embeddingService;
     private final TextChunker textChunker;
@@ -102,6 +104,7 @@ public class PostgresVectorRAGAdapter implements RAGAdapter {
             vec.setChunkText(chunk);
             vec.setEmbedding(toDoubleArray(embedding));
             vec.setChunkIndex(i);
+            vec.setVersion(RAG_INDEXER_VERSION);
             ragVectorRepository.save(vec);
         }
         logger.trace("Indexed message {} for user {} into {} chunks", message.getId(), userId, chunks.size());
@@ -185,6 +188,7 @@ public class PostgresVectorRAGAdapter implements RAGAdapter {
             vec.setChunkText(chunk);
             vec.setEmbedding(toDoubleArray(embedding));
             vec.setChunkIndex(i);
+            vec.setVersion(RAG_INDEXER_VERSION);
             ragVectorRepository.save(vec);
         }
         logger.trace("Indexed file {} for user {} into {} chunks", fileId, userId, chunks.size());
