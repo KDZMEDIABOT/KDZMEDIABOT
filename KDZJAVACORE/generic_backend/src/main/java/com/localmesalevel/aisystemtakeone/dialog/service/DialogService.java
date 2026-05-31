@@ -415,7 +415,7 @@ public class DialogService {
         try {
             return ragService.retrieveRelevantContext(query, userId, 5);
         } catch (Exception e) {
-            logger.warn("RAG context retrieval failed: {}", e.getMessage());
+            logger.error("RAG context retrieval failed: {}", e.toString(), e);
             return java.util.List.of();
         }
     }

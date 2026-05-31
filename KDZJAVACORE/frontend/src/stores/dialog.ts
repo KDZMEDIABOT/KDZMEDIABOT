@@ -141,6 +141,9 @@ export const useDialogStore = defineStore('dialog', () => {
 
     async function deleteThread(id: number) {
         try {
+            try {throw "debug_dumpStack_deleteThread"}catch(e){
+                console.log('stores/dialog.ts::debug_dumpStack_deleteThread', e)
+            }
             const headers: Record<string, string> = {};
             const token = getToken();
             if (token) {

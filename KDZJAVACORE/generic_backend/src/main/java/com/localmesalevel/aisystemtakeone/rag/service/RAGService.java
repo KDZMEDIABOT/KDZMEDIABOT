@@ -86,7 +86,7 @@ public class RAGService {
         try {
             return ragAdapter.retrieveRelevantContext(query, userId, maxResults);
         } catch (Exception e) {
-            logger.warn("RAG context retrieval failed: {}", e.getMessage());
+            logger.error("RAG context retrieval failed: {}", e.toString(), e);
             return List.of();
         }
     }

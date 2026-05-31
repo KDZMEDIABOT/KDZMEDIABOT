@@ -8,6 +8,9 @@ import com.localmesalevel.aisystemtakeone.rag.model.RAGResult;
 import com.localmesalevel.aisystemtakeone.rag.model.RagVector;
 import com.localmesalevel.aisystemtakeone.rag.repository.RagVectorRepository;
 import com.localmesalevel.aisystemtakeone.user.repository.UserAccountRepository;
+import com.localmesalevel.aisystemtakeone.workspace.model.WorkspaceFile;
+import com.localmesalevel.aisystemtakeone.workspace.model.Workspace;
+import com.localmesalevel.aisystemtakeone.workspace.service.WorkspaceFileService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +18,6 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.annotation.PostConstruct;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -25,22 +27,25 @@ public class PostgresVectorRAGAdapter implements RAGAdapter {
 
     private static final Logger logger = LoggerFactory.getLogger(PostgresVectorRAGAdapter.class);
 
-    public static final int RAG_INDEXER_VERSION = 2;
+    public static final int RAG_INDEXER_VERSION = 3;
 
     private final RagVectorRepository ragVectorRepository;
     private final EmbeddingService embeddingService;
     private final TextChunker textChunker;
     private final UserAccountRepository userAccountRepository;
+    private final WorkspaceFileService workspaceFileService;
 
     @Autowired
     public PostgresVectorRAGAdapter(RagVectorRepository ragVectorRepository,
                                     EmbeddingService embeddingService,
                                     TextChunker textChunker,
-                                    UserAccountRepository userAccountRepository) {
+                                    UserAccountRepository userAccountRepository,
+                                    WorkspaceFileService workspaceFileService) {
         this.ragVectorRepository = ragVectorRepository;
         this.embeddingService = embeddingService;
         this.textChunker = textChunker;
         this.userAccountRepository = userAccountRepository;
+        this.workspaceFileService = workspaceFileService;
     }
 
     @Override
@@ -89,6 +94,7 @@ public class PostgresVectorRAGAdapter implements RAGAdapter {
             ragVectorRepository.deleteAll(existing);
         }
 
+        // Index message content
         List<String> chunks = textChunker.chunk(text);
         for (int i = 0; i < chunks.size(); i++) {
             String chunk = chunks.get(i);
@@ -107,7 +113,69 @@ public class PostgresVectorRAGAdapter implements RAGAdapter {
             vec.setVersion(RAG_INDEXER_VERSION);
             ragVectorRepository.save(vec);
         }
-        logger.trace("Indexed message {} for user {} into {} chunks", message.getId(), userId, chunks.size());
+
+        // Index attached files
+        if (message.getAttachedFiles() != null) {
+            for (WorkspaceFile attachedFile : message.getAttachedFiles()) {
+                if (attachedFile.getFileData() != null && attachedFile.getFileData().length > 0) {
+                    try {
+                        String fileText = workspaceFileService.readFileAsText(attachedFile);
+                        indexTextWithVersion(fileText, "file", attachedFile.getId(), message.getThreadId(), userId, credentials);
+                    } catch (Exception e) {
+                        logger.error("Failed to index attached file {} for RAG: {}", attachedFile.getId(), e.getMessage());
+                    }
+                }
+            }
+        }
+
+        // Index attached workspaces (all files in each workspace)
+        if (message.getAttachedWorkspaces() != null) {
+            for (Workspace workspace : message.getAttachedWorkspaces()) {
+                if (workspace.getFiles() != null) {
+                    for (WorkspaceFile wf : workspace.getFiles()) {
+                        if (wf.getFileData() != null && wf.getFileData().length > 0) {
+                            try {
+                                String fileText = workspaceFileService.readFileAsText(wf);
+                                indexTextWithVersion(fileText, "workspace_file", wf.getId(), message.getThreadId(), userId, credentials);
+                            } catch (Exception e) {
+                                logger.error("Failed to index workspace file {} for RAG: {}", wf.getId(), e.getMessage());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        logger.trace("Indexed message {} for user {} into {} chunks with attachments", message.getId(), userId, chunks.size());
+    }
+
+    private void indexTextWithVersion(String text, String sourceType, Long sourceId, Long threadId, Long userId, LlmEndpointCredentials credentials) {
+        if (text == null || text.trim().isEmpty()) {
+            return;
+        }
+        // Deduplication
+        List<RagVector> existing = ragVectorRepository.findByUserIdAndSourceTypeAndSourceId(userId, sourceType, sourceId);
+        if (!existing.isEmpty()) {
+            ragVectorRepository.deleteAll(existing);
+        }
+        List<String> chunks = textChunker.chunk(text);
+        for (int i = 0; i < chunks.size(); i++) {
+            String chunk = chunks.get(i);
+            float[] embedding = embeddingService.embed(chunk, credentials);
+            if (embedding == null) {
+                continue;
+            }
+            RagVector vec = new RagVector();
+            vec.setSourceType(sourceType);
+            vec.setSourceId(sourceId);
+            vec.setThreadId(threadId);
+            vec.setUserId(userId);
+            vec.setChunkText(chunk);
+            vec.setEmbedding(toDoubleArray(embedding));
+            vec.setChunkIndex(i);
+            vec.setVersion(RAG_INDEXER_VERSION);
+            ragVectorRepository.save(vec);
+        }
     }
 
     @Override
@@ -174,24 +242,7 @@ public class PostgresVectorRAGAdapter implements RAGAdapter {
             return;
         }
 
-        List<String> chunks = textChunker.chunk(content);
-        for (int i = 0; i < chunks.size(); i++) {
-            String chunk = chunks.get(i);
-            float[] embedding = embeddingService.embed(chunk, credentials);
-            if (embedding == null) {
-                continue;
-            }
-            RagVector vec = new RagVector();
-            vec.setSourceType("file");
-            vec.setSourceId(fileId);
-            vec.setUserId(userId);
-            vec.setChunkText(chunk);
-            vec.setEmbedding(toDoubleArray(embedding));
-            vec.setChunkIndex(i);
-            vec.setVersion(RAG_INDEXER_VERSION);
-            ragVectorRepository.save(vec);
-        }
-        logger.trace("Indexed file {} for user {} into {} chunks", fileId, userId, chunks.size());
+        indexTextWithVersion(content, "file", fileId, null, userId, credentials);
     }
 
     private static double cosineSimilarity(double[] a, double[] b) {

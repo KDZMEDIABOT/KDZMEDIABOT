@@ -204,6 +204,10 @@ public class LlmConnection {
                 } catch (Exception e) {
                     throw new RuntimeException("Failed to serialize request body", e);
                 }
+                logger.trace(
+                        "LlmLoopEngine.execute "+url+" headers: <<"+headers+">>; body: <<"+jsonBody+">>"
+                    );
+
                 request.getBody().write(jsonBody.getBytes(java.nio.charset.StandardCharsets.UTF_8));
             }, extractor);
 
@@ -216,6 +220,9 @@ public class LlmConnection {
             }
             logger.trace("OpenAI-compatible streaming completed: contentChars={}, reasoningChars={}",
                 accumulator.getContent().length(), accumulator.getReasoning().length());
+            logger.trace(
+                    "LlmLoopEngine.execute "+url+" result: <<"+result+">>"
+                );
             return result;
         } catch (RestClientException e) {
             logger.trace("OpenAI-compatible streaming request failed: {}", e.getMessage(), e);

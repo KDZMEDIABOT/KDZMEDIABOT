@@ -23,4 +23,13 @@ public interface RagVectorRepository extends JpaRepository<RagVector, Long> {
     void deleteByThreadId(Long threadId);
 
     List<RagVector> findByUserId(Long userId);
+
+    @Query("SELECT v FROM RagVector v WHERE v.version <= :version ORDER BY v.id")
+    List<RagVector> findByVersionLessThanEqual(@Param("version") int version);
+
+    @Query("SELECT v FROM RagVector v WHERE v.sourceType = 'dialog_message' AND v.version <= :version ORDER BY v.id")
+    List<RagVector> findDialogMessageVectorsByVersionLessThanEqual(@Param("version") int version);
+
+    @Query("SELECT DISTINCT v.sourceId FROM RagVector v WHERE v.sourceType = 'dialog_message' AND v.version <= :version")
+    List<Long> findDialogMessageSourceIdsByVersionLessThanEqual(@Param("version") int version);
 }
