@@ -108,7 +108,7 @@ public class PostgresVectorRAGAdapter implements RAGAdapter {
             vec.setThreadId(message.getThreadId());
             vec.setUserId(userId);
             vec.setChunkText(chunk);
-            vec.setEmbedding(toDoubleArray(embedding));
+            vec.setEmbedding(embedding);
             vec.setChunkIndex(i);
             vec.setVersion(RAG_INDEXER_VERSION);
             ragVectorRepository.save(vec);
@@ -171,7 +171,7 @@ public class PostgresVectorRAGAdapter implements RAGAdapter {
             vec.setThreadId(threadId);
             vec.setUserId(userId);
             vec.setChunkText(chunk);
-            vec.setEmbedding(toDoubleArray(embedding));
+            vec.setEmbedding(embedding);
             vec.setChunkIndex(i);
             vec.setVersion(RAG_INDEXER_VERSION);
             ragVectorRepository.save(vec);
@@ -196,28 +196,21 @@ public class PostgresVectorRAGAdapter implements RAGAdapter {
             return Collections.emptyList();
         }
 
-        List<RagVector> candidates = ragVectorRepository.findByUserId(userId);
-        if (candidates.isEmpty()) {
+        String queryVecStr = toPgVectorString(queryEmbedding);
+        List<Object[]> results = ragVectorRepository.findTopBySimilarity(queryVecStr, userId, maxResults);
+        if (results.isEmpty()) {
             return Collections.emptyList();
         }
 
-        double[] queryVec = toDoubleArray(queryEmbedding);
-        List<ScoredVector> scored = new ArrayList<>();
-        for (RagVector vec : candidates) {
-            double similarity = cosineSimilarity(queryVec, vec.getEmbedding());
-            scored.add(new ScoredVector(vec, similarity));
-        }
-
-        return scored.stream()
-                .sorted((a, b) -> Double.compare(b.score, a.score))
-                .limit(maxResults)
-                .map(sv -> {
-                    RagVector v = sv.vec;
+        return results.stream()
+                .map(row -> {
+                    RagVector v = (RagVector) row[0];
+                    Double similarity = ((Number) row[1]).doubleValue();
                     return new RAGResult(
                             v.getChunkText(),
                             v.getSourceType(),
                             v.getSourceId(),
-                            sv.score,
+                            similarity,
                             "From " + v.getSourceType() + " " + v.getSourceId()
                     );
                 })
@@ -245,37 +238,17 @@ public class PostgresVectorRAGAdapter implements RAGAdapter {
         indexTextWithVersion(content, "file", fileId, null, userId, credentials);
     }
 
-    private static double cosineSimilarity(double[] a, double[] b) {
-        if (a == null || b == null || a.length != b.length) {
-            return 0.0;
+    private static String toPgVectorString(float[] arr) {
+        if (arr == null || arr.length == 0) {
+            return "[]";
         }
-        double dot = 0.0, normA = 0.0, normB = 0.0;
-        for (int i = 0; i < a.length; i++) {
-            dot += a[i] * b[i];
-            normA += a[i] * a[i];
-            normB += b[i] * b[i];
-        }
-        if (normA == 0 || normB == 0) {
-            return 0.0;
-        }
-        return dot / (Math.sqrt(normA) * Math.sqrt(normB));
-    }
-
-    private static double[] toDoubleArray(float[] arr) {
-        double[] result = new double[arr.length];
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
         for (int i = 0; i < arr.length; i++) {
-            result[i] = arr[i];
+            if (i > 0) sb.append(",");
+            sb.append(arr[i]);
         }
-        return result;
-    }
-
-    private static class ScoredVector {
-        final RagVector vec;
-        final double score;
-
-        ScoredVector(RagVector vec, double score) {
-            this.vec = vec;
-            this.score = score;
-        }
+        sb.append("]");
+        return sb.toString();
     }
 }

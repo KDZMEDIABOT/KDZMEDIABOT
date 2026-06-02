@@ -1,12 +1,13 @@
 package com.localmesalevel.aisystemtakeone.rag.model;
 
-import com.localmesalevel.aisystemtakeone.rag.util.EmbeddingArrayConverter;
+import org.hibernate.annotations.Type;
 
 import javax.persistence.*;
 import java.time.Instant;
 
 @Entity
 @Table(name = "rag_vectors")
+@org.hibernate.annotations.TypeDef(name = "vector", typeClass = com.localmesalevel.aisystemtakeone.rag.util.VectorType.class)
 public class RagVector {
 
     @Id
@@ -28,15 +29,15 @@ public class RagVector {
     @Column(name = "chunk_text", nullable = false, columnDefinition = "text")
     private String chunkText;
 
-    @Column(name = "embedding", nullable = false, columnDefinition = "text")
-    @Convert(converter = EmbeddingArrayConverter.class)
-    private double[] embedding;
+    @Type(type = "vector")
+    @Column(name = "embedding", nullable = false, columnDefinition = "vector(1024)")
+    private float[] embedding;
 
     @Column(name = "chunk_index", nullable = false)
     private int chunkIndex;
 
     @Column(name = "version", nullable = false)
-    private int version = 2;
+    private int version = 3;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -63,8 +64,8 @@ public class RagVector {
     public void setChunkText(String chunkText) { this.chunkText = chunkText; }
     public String getChunkText() { return chunkText; }
 
-    public void setEmbedding(double[] embedding) { this.embedding = embedding; }
-    public double[] getEmbedding() { return embedding; }
+    public void setEmbedding(float[] embedding) { this.embedding = embedding; }
+    public float[] getEmbedding() { return embedding; }
 
     public void setChunkIndex(int chunkIndex) { this.chunkIndex = chunkIndex; }
     public int getChunkIndex() { return chunkIndex; }
