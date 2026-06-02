@@ -30,7 +30,7 @@ public class RagVector {
     private String chunkText;
 
     @Type(type = "vector")
-    @Column(name = "embedding", nullable = false, columnDefinition = "vector(1024)")
+    @Column(name = "embedding", nullable = false, columnDefinition = "vector")
     private float[] embedding;
 
     @Column(name = "chunk_index", nullable = false)
