@@ -88,11 +88,8 @@ public class PostgresVectorRAGAdapter implements RAGAdapter {
         }
 
         // Deduplication: remove old vectors for this message before re-indexing
-        List<RagVector> existing = ragVectorRepository.findByUserIdAndSourceTypeAndSourceId(
+        ragVectorRepository.deleteByUserIdAndSourceTypeAndSourceId(
             userId, "dialog_message", message.getId());
-        if (!existing.isEmpty()) {
-            ragVectorRepository.deleteAll(existing);
-        }
 
         // Index message content
         List<String> chunks = textChunker.chunk(text);
@@ -253,7 +250,7 @@ public class PostgresVectorRAGAdapter implements RAGAdapter {
         StringBuilder sb = new StringBuilder();
         sb.append("[");
         for (int i = 0; i < arr.length; i++) {
-            if (i > 0) sb.append(",");
+        	if (i > 0) sb.append(",");
             sb.append(arr[i]);
         }
         sb.append("]");

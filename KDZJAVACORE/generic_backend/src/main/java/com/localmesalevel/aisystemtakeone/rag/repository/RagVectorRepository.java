@@ -1,11 +1,12 @@
 package com.localmesalevel.aisystemtakeone.rag.repository;
 
-import com.localmesalevel.aisystemtakeone.rag.model.RagVector;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import com.localmesalevel.aisystemtakeone.rag.model.RagVector;
 
 import java.util.List;
 
@@ -21,6 +22,10 @@ public interface RagVectorRepository extends JpaRepository<RagVector, Long> {
     void deleteBySourceTypeAndThreadId(@Param("sourceType") String sourceType, @Param("threadId") Long threadId);
 
     void deleteByThreadId(Long threadId);
+
+    @Modifying
+    @Query("DELETE FROM RagVector v WHERE v.sourceType = :sourceType AND v.userId = :userId AND v.sourceId = :sourceId")
+    void deleteByUserIdAndSourceTypeAndSourceId(@Param("userId") Long userId, @Param("sourceType") String sourceType, @Param("sourceId") Long sourceId);
 
     List<RagVector> findByUserId(Long userId);
 
