@@ -54,7 +54,7 @@ public class RAGIndexingService {
                         ragAdapter.indexDialogMessage(opt.get(), userId);
                         successCount++;
                     } catch (Exception e) {
-                        logger.error("Failed to index message {} for user {}: {}", msgId, userId, e.getMessage());
+                        logger.error("Failed to index message {} for user {}: {}", msgId, userId, e.toString(), e);
                     }
                 }
             }
@@ -84,12 +84,12 @@ public class RAGIndexingService {
                         }
                     }
                 } catch (Exception e) {
-                    logger.error("Failed to re-index message {}: {}", msgId, e.getMessage());
+                    logger.error("Failed to re-index message {}: {}", msgId, e.toString(), e);
                 }
             }
             logger.info("RAG re-indexing job finished: {}/{} messages re-indexed to version {}", successCount, total, PostgresVectorRAGAdapter.RAG_INDEXER_VERSION);
-        } catch (Exception e) {
-            logger.error("RAG re-indexing job failed: {}", e.getMessage());
+        } catch (Throwable e) {
+            logger.error("RAG re-indexing job failed: {}", e.toString(), e);
         }
     }
 }

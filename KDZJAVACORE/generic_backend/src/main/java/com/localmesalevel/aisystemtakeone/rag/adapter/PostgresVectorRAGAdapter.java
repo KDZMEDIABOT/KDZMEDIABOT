@@ -108,6 +108,10 @@ public class PostgresVectorRAGAdapter implements RAGAdapter {
             vec.setThreadId(message.getThreadId());
             vec.setUserId(userId);
             vec.setChunkText(chunk);
+            if (embedding == null || embedding.length == 0) {
+                logger.warn("Embedding is null or empty for message {}, chunk {}. Skipping.", message.getId(), i);
+                continue;
+            }
             vec.setEmbedding(embedding);
             vec.setChunkIndex(i);
             vec.setVersion(RAG_INDEXER_VERSION);
@@ -171,6 +175,10 @@ public class PostgresVectorRAGAdapter implements RAGAdapter {
             vec.setThreadId(threadId);
             vec.setUserId(userId);
             vec.setChunkText(chunk);
+            if (embedding == null || embedding.length == 0) {
+                logger.warn("Embedding is null or empty for source_type={}, source_id={}, chunk {}. Skipping.", sourceType, sourceId, i);
+                continue;
+            }
             vec.setEmbedding(embedding);
             vec.setChunkIndex(i);
             vec.setVersion(RAG_INDEXER_VERSION);

@@ -64,7 +64,10 @@ public class VectorType implements UserType {
     }
 
     private static String arrayToVectorString(float[] arr) {
-        if (arr == null || arr.length == 0) {
+        if (arr == null) {
+            throw new IllegalArgumentException("Vector array cannot be null");
+        }
+        if (arr.length == 0) {
             return "[]";
         }
         StringBuilder sb = new StringBuilder();
