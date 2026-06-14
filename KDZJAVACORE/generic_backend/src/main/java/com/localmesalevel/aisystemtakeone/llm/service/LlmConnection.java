@@ -149,14 +149,14 @@ public class LlmConnection {
     /**
      * Call OpenAI-compatible API with streaming.
      * Accumulates content tokens while skipping reasoning tokens until content arrives.
+     * Retries with timeout if content is empty.
      */
     private String callOpenAICompatibleStreaming(String model, String systemPrompt, Iterator<String> aiContext,
                                                    double temperature, int maxTokens) {
         String url = baseURL + "/v1/chat/completions";
-        logger.trace(
-            "OpenAI-compatible streaming request: url='{}', model='{}', hasSystemPrompt={}, userPromptLength={}, temperature={}, maxTokens={}",
-            url, model, !isBlank(systemPrompt), aiContext.hasNext() ? 1 : 0, temperature, Math.max(maxTokens, 1)
-        );
+        long startTime = System.currentTimeMillis();
+        long timeoutMs = 30_000L;
+        long retryDelayMs = 2_000L;
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -182,44 +182,58 @@ public class LlmConnection {
         chat_template_kwargs.put("thinking", false);
         body.put("chat_template_kwargs", chat_template_kwargs);
 
-        ResponseStreamAccumulator accumulator = new ResponseStreamAccumulator();
+        while (true) {
+            ResponseStreamAccumulator accumulator = new ResponseStreamAccumulator();
 
-        ResponseExtractor<Void> extractor = response -> {
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(response.getBody(), java.nio.charset.StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    accumulator.processLine(line);
+            ResponseExtractor<Void> extractor = response -> {
+                try (BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(response.getBody(), java.nio.charset.StandardCharsets.UTF_8))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        accumulator.processLine(line);
+                    }
                 }
-            }
-            return null;
-        };
+                return null;
+            };
 
-        try {
-            restTemplate.execute(url, HttpMethod.POST, request -> {
-                request.getHeaders().putAll(headers);
-                String jsonBody;
-                try {
-                    jsonBody = objectMapper.writeValueAsString(body);
-                } catch (Exception e) {
-                    throw new RuntimeException("Failed to serialize request body", e);
+            try {
+                restTemplate.execute(url, HttpMethod.POST, request -> {
+                    request.getHeaders().putAll(headers);
+                    String jsonBody;
+                    try {
+                        jsonBody = objectMapper.writeValueAsString(body);
+                    } catch (Exception e) {
+                        throw new RuntimeException("Failed to serialize request body", e);
+                    }
+                    request.getBody().write(jsonBody.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                }, extractor);
+
+                String result = accumulator.getContent();
+                if (isBlank(result)) {
+                    result = accumulator.getReasoning();
                 }
-                request.getBody().write(jsonBody.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            }, extractor);
+                if (!isBlank(result)) {
+                    logger.trace("OpenAI-compatible streaming completed: contentChars={}, reasoningChars={}",
+                        accumulator.getContent().length(), accumulator.getReasoning().length());
+                    return result;
+                }
+            } catch (RestClientException e) {
+                logger.trace("OpenAI-compatible streaming request failed: {}", e.getMessage(), e);
+                throw new IllegalStateException("OpenAI-compatible streaming request failed: " + e.getMessage(), e);
+            }
 
-            String result = accumulator.getContent();
-            if (isBlank(result)) {
-                result = accumulator.getReasoning();
+            long elapsed = System.currentTimeMillis() - startTime;
+            if (elapsed >= timeoutMs) {
+                throw new RuntimeException("Timed out waiting for streaming content");
             }
-            if (isBlank(result)) {
-                throw new IllegalStateException("OpenAI-compatible streaming response did not contain content");
+
+            logger.trace("OpenAI-compatible streaming empty response, retrying after {}ms...", retryDelayMs);
+            try {
+                Thread.sleep(retryDelayMs);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Interrupted while waiting for streaming content", e);
             }
-            logger.trace("OpenAI-compatible streaming completed: contentChars={}, reasoningChars={}",
-                accumulator.getContent().length(), accumulator.getReasoning().length());
-            return result;
-        } catch (RestClientException e) {
-            logger.trace("OpenAI-compatible streaming request failed: {}", e.getMessage(), e);
-            throw new IllegalStateException("OpenAI-compatible streaming request failed: " + e.getMessage(), e);
         }
     }
 
@@ -279,6 +293,7 @@ public class LlmConnection {
                 }
             } catch (Exception e) {
                 // Skip malformed lines
+            	logger.error("", e);
             }
         }
 

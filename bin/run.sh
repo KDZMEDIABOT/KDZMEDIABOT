@@ -1,4 +1,4 @@
-cd /home/user/vcs_rig1/LibreLifeBotTelegram/
+cd /vs/LibreLifeBotTelegram
 
 #sudo /sbin/mount.fuse root@desktop1:/zroot/data/ /zroot/data -o noauto,_netdev,reconnect,identityfile=/root/.ssh/desktop1_ubuntu20_04_root,allow_other -t fuse.sshfs
 #sudo /sbin/mount.fuse root@desktop1:/zsata/ /zsata -o noauto,_netdev,reconnect,identityfile=/root/.ssh/desktop1_ubuntu20_04_root,allow_other -t fuse.sshfs
