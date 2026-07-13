@@ -23,6 +23,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
+import com.localmesalevel.aisystemtakeone.llm.service.AiTaskManager;
+
 /**
  * WebSocket handler for bot connections from KDZMEDIABOT.
  * Manages AI request routing and receives commands from Python bot.
@@ -35,6 +37,7 @@ public class BotWebSocketHandler extends TextWebSocketHandler {
     private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
     private final Map<String, SessionInfo> sessionInfo = new ConcurrentHashMap<>();
     private AiRequestCallback aiRequestCallback;
+    private AiTaskManager aiTaskManager;
 
     private final ScheduledExecutorService heartbeatExecutor = Executors.newSingleThreadScheduledExecutor();
 
@@ -48,6 +51,10 @@ public class BotWebSocketHandler extends TextWebSocketHandler {
 
     public void setAiRequestCallback(AiRequestCallback callback) {
         this.aiRequestCallback = callback;
+    }
+
+    public void setAiTaskManager(AiTaskManager aiTaskManager) {
+        this.aiTaskManager = aiTaskManager;
     }
 
     @Override
@@ -91,6 +98,16 @@ public class BotWebSocketHandler extends TextWebSocketHandler {
                     break;
                 case "ai_request":
                     handleAiRequest(sessionId, json);
+                    break;
+                case "task_list":
+                    String reqId = json.has("request_id") ? json.get("request_id").asText() : "";
+                    logger.info("Received task_list request from session {}, request_id='{}'", sessionId, reqId);
+                    handleTaskList(sessionId, reqId);
+                    break;
+                case "task_kill":
+                    String killReqId = json.has("request_id") ? json.get("request_id").asText() : "";
+                    logger.info("Received task_kill request from session {}, request_id='{}'", sessionId, killReqId);
+                    handleTaskKill(sessionId, json, killReqId);
                     break;
                 default:
                     logger.debug("Received unknown message type: {}", type);
@@ -145,8 +162,19 @@ public class BotWebSocketHandler extends TextWebSocketHandler {
         logger.info("AI request {} from {} on {}",
                 requestId, userId, platform);
 
-        Consumer<String> onSuccess = response -> sendAiResponse(sessionId, requestId, response, null);
-        Consumer<String> onError = error -> sendAiResponse(sessionId, requestId, null, error);
+        String taskId = aiTaskManager != null ? aiTaskManager.registerTask(userId, platform, channel) : null;
+        Consumer<String> onSuccess = response -> {
+            if (aiTaskManager != null && taskId != null) {
+                aiTaskManager.completeTask(taskId, response);
+            }
+            sendAiResponse(sessionId, requestId, response, null);
+        };
+        Consumer<String> onError = error -> {
+            if (aiTaskManager != null && taskId != null) {
+                aiTaskManager.failTask(taskId, error);
+            }
+            sendAiResponse(sessionId, requestId, null, error);
+        };
 
         aiRequestCallback.onAiRequest(requestId, userId, channel, platform,
                 systemPrompt, onSuccess, onError, aiContext);
@@ -177,6 +205,87 @@ public class BotWebSocketHandler extends TextWebSocketHandler {
             logger.debug("Sent AI response to session {} for request {}", sessionId, requestId);
         } catch (IOException e) {
             logger.error("Failed to send AI response to session {}", sessionId, e);
+        }
+    }
+
+    private void handleTaskList(String sessionId, String requestId) {
+        logger.info("handleTaskList enter: sessionId={}, requestId='{}'", sessionId, requestId);
+        WebSocketSession session = sessions.get(sessionId);
+        if (session == null || !session.isOpen()) {
+            logger.warn("handleTaskList: session closed, sessionId={}", sessionId);
+            return;
+        }
+        try {
+            ObjectNode response = objectMapper.createObjectNode();
+            response.put("type", "task_list_response");
+            if (requestId != null && !requestId.isEmpty()) {
+                response.put("request_id", requestId);
+            }
+            if (aiTaskManager != null) {
+                var tasks = aiTaskManager.getTasks();
+                logger.info("handleTaskList: returning {} tasks", tasks.size());
+                var taskList = new java.util.ArrayList<java.util.Map<String, String>>();
+                for (AiTaskManager.AiTask task : tasks) {
+                    java.util.Map<String, String> taskMap = new java.util.HashMap<>();
+                    taskMap.put("taskId", task.taskId);
+                    taskMap.put("userId", task.userId);
+                    taskMap.put("platform", task.platform);
+                    taskMap.put("channel", task.channel);
+                    taskMap.put("status", task.status);
+                    taskMap.put("startedAt", task.startedAt.toString());
+                    if (task.completedAt != null) {
+                        taskMap.put("completedAt", task.completedAt.toString());
+                    }
+                    taskList.add(taskMap);
+                }
+                response.set("tasks", objectMapper.valueToTree(taskList));
+            } else {
+                logger.warn("handleTaskList: AiTaskManager not configured");
+                response.put("error", "AiTaskManager not configured");
+            }
+            String payload = response.toString();
+            session.sendMessage(new TextMessage(payload));
+            logger.info("handleTaskList: sent response, payloadChars={}", payload.length());
+        } catch (Exception e) {
+            logger.error("handleTaskList: Failed to send task list", e);
+        }
+    }
+
+    private void handleTaskKill(String sessionId, JsonNode json, String requestId) {
+        logger.info("handleTaskKill enter: sessionId={}, requestId='{}'", sessionId, requestId);
+        WebSocketSession session = sessions.get(sessionId);
+        if (session == null || !session.isOpen()) {
+            logger.warn("handleTaskKill: session closed, sessionId={}", sessionId);
+            return;
+        }
+        try {
+            String taskId = json.has("task_id") ? json.get("task_id").asText() : "";
+            boolean success = false;
+            String message;
+            if ("*".equals(taskId)) {
+                int count = aiTaskManager != null ? aiTaskManager.killAllTasks() : 0;
+                success = count > 0;
+                message = "Killed " + count + " tasks";
+                logger.info("handleTaskKill: killAllTasks killed {} tasks", count);
+            } else if (aiTaskManager != null) {
+                success = aiTaskManager.killTask(taskId);
+                message = success ? "Killed task " + taskId : "Task " + taskId + " not found or not running";
+                logger.info("handleTaskKill: killTask taskId='{}' success={}", taskId, success);
+            } else {
+                logger.warn("handleTaskKill: AiTaskManager not configured");
+                message = "AiTaskManager not configured";
+            }
+            ObjectNode response = objectMapper.createObjectNode();
+            response.put("type", "task_kill_response");
+            if (requestId != null && !requestId.isEmpty()) {
+                response.put("request_id", requestId);
+            }
+            response.put("success", success);
+            response.put("message", message);
+            session.sendMessage(new TextMessage(response.toString()));
+            logger.info("handleTaskKill: sent response, success={}, message='{}'", success, message);
+        } catch (Exception e) {
+            logger.error("handleTaskKill: Failed to send task kill response", e);
         }
     }
 

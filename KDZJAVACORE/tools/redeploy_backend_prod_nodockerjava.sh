@@ -141,11 +141,12 @@ for i in $(seq 1 180); do
         
         echo "Restarting KDZBOT py"
         sudo systemctl restart greenbich
-        sudo systemctl status greenbich
+        sudo systemctl status greenbich --no-pager
         echo "Done."
         exit 0
     fi
-    sudo tail -n1 /var/log/kdzbot_java_srv.log
+    clear
+    sudo tail /var/log/kdzbot_java_srv.log
     sleep 1
 done
 

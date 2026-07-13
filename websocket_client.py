@@ -423,6 +423,51 @@ class ThreadSafeWebSocketClient:
             logger.error(f"AI request exception: {str(e)}")
             return f"Error: {str(e)}"
 
+    def task_list(self) -> dict:
+        """Send task_list request and wait for response."""
+        if not self.client or not self.client.is_connected():
+            return {"error": "WebSocket not connected"}
+        request = {
+            "type": "task_list",
+            "timestamp": int(time.time())
+        }
+        try:
+            future = asyncio.run_coroutine_threadsafe(
+                self.client.send_request(request),
+                self.client.loop
+            )
+            response = future.result(timeout=self.ws_config.get("timeout_seconds", 60 * 10))
+            if response:
+                return response
+            else:
+                return {"error": "No response"}
+        except Exception as e:
+            logger.error(f"task_list exception: {str(e)}")
+            return {"error": str(e)}
+
+    def task_kill(self, task_id: str) -> dict:
+        """Send task_kill request and wait for response."""
+        if not self.client or not self.client.is_connected():
+            return {"error": "WebSocket not connected"}
+        request = {
+            "type": "task_kill",
+            "task_id": task_id,
+            "timestamp": int(time.time())
+        }
+        try:
+            future = asyncio.run_coroutine_threadsafe(
+                self.client.send_request(request),
+                self.client.loop
+            )
+            response = future.result(timeout=self.ws_config.get("timeout_seconds", 60 * 10))
+            if response:
+                return response
+            else:
+                return {"error": "No response"}
+        except Exception as e:
+            logger.error(f"task_kill exception: {str(e)}")
+            return {"error": str(e)}
+
     def is_connected(self) -> bool:
         """Check if connected."""
         return self.client is not None and self.client.is_connected()

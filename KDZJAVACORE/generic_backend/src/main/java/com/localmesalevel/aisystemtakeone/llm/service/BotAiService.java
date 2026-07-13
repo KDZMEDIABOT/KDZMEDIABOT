@@ -49,10 +49,14 @@ public class BotAiService implements AiRequestCallback {
         this.llmConnectionFactory = llmConnectionFactory;
     }
 
+    @Autowired
+    private AiTaskManager aiTaskManager;
+
     @PostConstruct
     public void init() {
         webSocketHandler.setAiRequestCallback(this);
-        logger.info("BotAiService initialized and registered callback");
+        webSocketHandler.setAiTaskManager(aiTaskManager);
+        logger.info("BotAiService initialized and registered callback and AiTaskManager");
     }
 
     @Override

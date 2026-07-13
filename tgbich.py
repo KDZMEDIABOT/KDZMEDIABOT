@@ -148,6 +148,59 @@ If you send a crypto ticker to the bot, it will query its price at CoinMarketCap
                 parse_mode=types.ParseMode.HTML,
             )
 
+    async def cmd_tasks_handler(self, message: types.Message):
+        """Handle /tasks command for Telegram."""
+        if self.ai_handler is None or not self.ai_handler.is_available() or not self.ai_handler.ws_client:
+            await message.answer("AI service is not available.", parse_mode=types.ParseMode.HTML)
+            return
+        try:
+            result = self.ai_handler.ws_client.task_list()
+            if result.get("error"):
+                err = result.get("error")
+                await message.answer(f"<b>Task Manager</b>: Error: {err}", parse_mode=types.ParseMode.HTML)
+                return
+            tasks = result.get("tasks", [])
+            if not tasks:
+                await message.answer("<b>Task Manager</b>: No tasks running", parse_mode=types.ParseMode.HTML)
+                return
+            running = [t for t in tasks if t.get("status") == "running"]
+            lines = [f"<b>Task Manager</b>: {len(running)} running, {len(tasks)} total"]
+            for t in running[:10]:
+                tid = t.get("taskId", "?")
+                platform = t.get("platform", "?")
+                user = t.get("userId", "?")[:15]
+                started = t.get("startedAt", "?")
+                lines.append(f"{tid} | {platform} | {user} | {started}")
+            if len(running) > 10:
+                lines.append(f"...and {len(running) - 10} more tasks")
+            await message.answer("\n".join(lines), parse_mode=types.ParseMode.HTML)
+        except Exception as e:
+            print(f"Error in cmd_tasks_handler: {e}")
+            await message.answer(f"<b>Task Manager Error</b>: {str(e)}", parse_mode=types.ParseMode.HTML)
+
+    async def cmd_kill_handler(self, message: types.Message):
+        """Handle /kill command for Telegram."""
+        text = str(message.text).strip()
+        parts = text.split()
+        if len(parts) < 2:
+            await message.answer("Usage: /kill <task_id> or /kill *", parse_mode=types.ParseMode.HTML)
+            return
+        task_id = parts[1]
+        if self.ai_handler is None or not self.ai_handler.is_available() or not self.ai_handler.ws_client:
+            await message.answer("AI service is not available.", parse_mode=types.ParseMode.HTML)
+            return
+        try:
+            result = self.ai_handler.ws_client.task_kill(task_id)
+            if result.get("error"):
+                err = result.get("error")
+                await message.answer(f"<b>Task Manager</b>: Error: {err}", parse_mode=types.ParseMode.HTML)
+                return
+            msg = result.get("message", "Done")
+            await message.answer(f"<b>Task Manager</b>: {msg}", parse_mode=types.ParseMode.HTML)
+        except Exception as e:
+            print(f"Error in cmd_kill_handler: {e}")
+            await message.answer(f"<b>Task Manager Error</b>: {str(e)}", parse_mode=types.ParseMode.HTML)
+
     async def main(self):
         print(f"{self}: new Bot");
         self.bot = Bot(token=self.BOT_TOKEN)
@@ -160,6 +213,8 @@ If you send a crypto ticker to the bot, it will query its price at CoinMarketCap
             self.disp.register_message_handler(self.cmd_markets_handler, commands={"markets", "m"})
             self.disp.register_message_handler(self.cmd_calc_handler, commands={"calc", "c"})
             self.disp.register_message_handler(self.cmd_ai_handler, commands={"ai", "a"})
+            self.disp.register_message_handler(self.cmd_tasks_handler, commands={"tasks", "t"})
+            self.disp.register_message_handler(self.cmd_kill_handler, commands={"kill", "k"})
             self.disp.register_message_handler(self.on_message)
             print(f"{self}: entering start_polling()");
             await self.disp.start_polling()

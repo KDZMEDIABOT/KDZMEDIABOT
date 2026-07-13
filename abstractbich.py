@@ -49,7 +49,7 @@ from requests.exceptions import ConnectionError, Timeout, TooManyRedirects
 #import pandas as pd
 
 
-ENABLE_EXMO = True
+ENABLE_EXMO = False
 
 
 class BichBot:
@@ -579,6 +579,8 @@ class BichBot:
         self.sendmsg(to_addr, f"!!q <searchstr> or !!q <quoteid> - search quotes")
         self.sendmsg(to_addr, f"!!aq <quotetext> - add a quote")
         self.sendmsg(to_addr, f"!ai or !ии talk with an AI")
+        self.sendmsg(to_addr, f"!tasks - lists running AI tasks")
+        self.sendmsg(to_addr, f"!kill <task_id> or !kill * - kills a specific task or all tasks")
         self.sendmsg(to_addr, f"!к or !k translate from rhfrjpz,hbi")
         self.sendmsg(to_addr, f"!help - prints help")
 
@@ -611,6 +613,7 @@ class BichBot:
     def getch(self):
         self.ch = self.input[:1] if len(self.input)>0 else 'eof'
         self.input = self.input[1:] if len(self.input)>0 else ''
+        print(f"ch: '{self.ch}'", flush=True)
 
     
     def get(self):
@@ -682,10 +685,10 @@ class BichBot:
             self.tokfloatval=float(self.tokval)
             print(f"float parsed: '{self.tokfloatval}'")
             return
-        if ch != 'eof' and ch in "abcdefghijklmnopqrstuvwxyz":
+        if ch != 'eof' and ch.lower() in "abcdefghijklmnopqrstuvwxyz":
             self.tokval=""
             self.tok="string"
-            while ch in "abcdefghijklmnopqrstuvwxyz":
+            while ch.lower() in "abcdefghijklmnopqrstuvwxyz":
                 self.tokval = self.tokval + ch
                 self.getch()
                 ch = self.ch
@@ -705,12 +708,12 @@ class BichBot:
         if self.tok != '(': raise Exception(f"token ( is expected, got '{self.tokval}' instead")
         self.get()
         if self.tok != 'string': raise Exception(f"cryptocurrency Coinmarketcap.com symbol is expected, got '{self.tokval}' instead")
-        symbol = self.tokval.upper()
+        symbol = self.tokval
         self.get()
         if self.tok != '/': raise Exception(f"token / is expected, got '{self.tokval}' instead")
         self.get()
         if self.tok != 'string': raise Exception(f"cryptocurrency Coinmarketcap.com symbol or fiat Coinmarketcap.com symbol is expected, got '{self.tokval}' instead")
-        basesymbol = self.tokval.upper()
+        basesymbol = self.tokval
         self.get()
         if self.tok != ')': raise Exception(f"token ) is expected, got '{self.tokval}' instead")
         self.get()
@@ -797,7 +800,7 @@ class BichBot:
             
     def calc(self, input):
         try:
-            self.input = input.lower()
+            self.input = input
             self.ch = ''
             self.tokval = ''
             self.tok = ''

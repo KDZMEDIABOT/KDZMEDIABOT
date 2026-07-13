@@ -590,7 +590,7 @@ class IrcBich(BichBot):
                             if self.grantCommand(sent_by, communicationsLineName):
                                 print(__file__, "!price detected")
                                 try:
-                                    syms = message.split('!price ', 1)[1].strip().upper()
+                                    syms = message.split('!price ', 1)[1].strip()
                                     syms = syms.split("/");
                                     if len(syms)==0:
                                         self.send('PRIVMSG ' + communicationsLineName + ' : error. Send !price symbol or !price symbol/symbol\r\n')
@@ -832,6 +832,9 @@ class IrcBich(BichBot):
                     self.maybe_print_search(self.botName, data, sent_by)
                     if await self.maybe_ai_command_async(data, sent_by, communicationsLineName):
                         print("maybe_ai_command_async() returned True, continuing loop", flush=True)
+                        continue
+                    if await self.maybe_task_command_async(data, sent_by, communicationsLineName):
+                        print("maybe_task_command_async() returned True, continuing loop", flush=True)
                         continue
                     
                     if self.maybe_quotes(data, sent_by, communicationsLineName):
@@ -1086,6 +1089,142 @@ class IrcBich(BichBot):
     def maybe_ai_command(self, data, sent_by, communicationsLineName):
         """Handle !ai command for IRC. (Synchronous version - deprecated)"""
         raise NotImplementedError("Use maybe_ai_command_async in async context")
+
+    async def maybe_task_command_async(self, data, sent_by, communicationsLineName):
+        """Handle !tasks and !kill commands for IRC. Fire-and-forget style."""
+        print(f"maybe_task_command_async enter", flush=True)
+        if 'PRIVMSG' not in data:
+            return False
+        try:
+            msg_start = data.find('PRIVMSG')
+            if msg_start == -1:
+                return False
+            channel_start = data.find(':', msg_start)
+            if channel_start == -1:
+                return False
+            message = data[channel_start + 1:].strip()
+            if message.startswith('!tasks'):
+                print(f"maybe_task_command_async: !tasks command detected", flush=True)
+                self._executor.submit(self._handle_tasks_thread, sent_by, communicationsLineName)
+                return True
+            if message.startswith('!kill'):
+                parts = message.split()
+                if len(parts) >= 2:
+                    task_id = parts[1]
+                    print(f"maybe_task_command_async: !kill command detected, task_id={task_id}", flush=True)
+                    self._executor.submit(self._handle_kill_thread, sent_by, communicationsLineName, task_id)
+                else:
+                    await self.send_async(f'PRIVMSG {communicationsLineName} :Usage: !kill <task_id> or !kill *\r\n')
+                return True
+        except Exception as e:
+            print(f"Error in task command: {e}", flush=True)
+            import traceback
+            traceback.print_exc()
+        return False
+
+    def _handle_tasks_thread(self, sent_by, communicationsLineName):
+        """Handle !tasks command in a thread (fire-and-forget)."""
+        print(f"_handle_tasks_thread enter sent_by={sent_by}", flush=True)
+        try:
+            self._ensure_ai_handler()
+            if not self.ai_handler:
+                print(f"_handle_tasks_thread: ai_handler not available", flush=True)
+                self.send(f'PRIVMSG {communicationsLineName} :\x02Task Manager\x02: AI service not available\r\n')
+                return
+
+            # Wait for WebSocket connection to be ready
+            retries = 0
+            max_retries = 30
+            while (self.ai_handler is None or not self.ai_handler.is_available()) and retries < max_retries:
+                retries += 1
+                if retries == 1:
+                    print(f"Task Manager: waiting for WebSocket... (attempt {retries}/{max_retries})", flush=True)
+                elif retries % 5 == 0:
+                    print(f"Task Manager: still waiting... ({retries}/{max_retries})", flush=True)
+                time.sleep(0.5)
+
+            if not self.ai_handler.is_available():
+                print(f"_handle_tasks_thread: WebSocket not available after {retries} retries", flush=True)
+                self.send(f'PRIVMSG {communicationsLineName} :\x02Task Manager\x02: AI service not available - cannot connect to Java backend\r\n')
+                return
+
+            print(f"_handle_tasks_thread: WebSocket ready, sending task_list request", flush=True)
+            result = self.ai_handler.ws_client.task_list()
+            print(f"_handle_tasks_thread: task_list response={result}", flush=True)
+            if result.get("error"):
+                err = result.get("error")
+                print(f"_handle_tasks_thread: task_list error={err}", flush=True)
+                self.send(f'PRIVMSG {communicationsLineName} :\x02Task Manager\x02: Error: {err}\r\n')
+                return
+            tasks = result.get("tasks", [])
+            if not tasks:
+                self.send(f'PRIVMSG {communicationsLineName} :\x02Task Manager\x02: No tasks running\r\n')
+                return
+            running = [t for t in tasks if t.get("status") == "running"]
+            self.send(f'PRIVMSG {communicationsLineName} :\x02Task Manager\x02: {len(running)} running, {len(tasks)} total\r\n')
+            for t in running[:5]:
+                tid = t.get("taskId", "?")
+                platform = t.get("platform", "?")
+                user = t.get("userId", "?")[:15]
+                started = t.get("startedAt", "?")
+                self.send(f'PRIVMSG {communicationsLineName} :{tid} | {platform} | {user} | {started}\r\n')
+            if len(running) > 5:
+                self.send(f'PRIVMSG {communicationsLineName} :...and {len(running) - 5} more tasks\r\n')
+        except Exception as e:
+            print(f"Error in _handle_tasks_thread: {e}", flush=True)
+            import traceback
+            traceback.print_exc()
+            try:
+                self.send(f'PRIVMSG {communicationsLineName} :\x02Task Manager Error\x02: {str(e)}\r\n')
+            except:
+                pass
+
+    def _handle_kill_thread(self, sent_by, communicationsLineName, task_id):
+        """Handle !kill command in a thread (fire-and-forget)."""
+        print(f"_handle_kill_thread enter sent_by={sent_by} task_id={task_id}", flush=True)
+        try:
+            self._ensure_ai_handler()
+            if not self.ai_handler:
+                print(f"_handle_kill_thread: ai_handler not available", flush=True)
+                self.send(f'PRIVMSG {communicationsLineName} :\x02Task Manager\x02: AI service not available\r\n')
+                return
+
+            # Wait for WebSocket connection to be ready
+            retries = 0
+            max_retries = 30
+            while (self.ai_handler is None or not self.ai_handler.is_available()) and retries < max_retries:
+                retries += 1
+                if retries == 1:
+                    print(f"Task Manager: waiting for WebSocket... (attempt {retries}/{max_retries})", flush=True)
+                elif retries % 5 == 0:
+                    print(f"Task Manager: still waiting... ({retries}/{max_retries})", flush=True)
+                time.sleep(0.5)
+
+            if not self.ai_handler.is_available():
+                print(f"_handle_kill_thread: WebSocket not available after {retries} retries", flush=True)
+                self.send(f'PRIVMSG {communicationsLineName} :\x02Task Manager\x02: AI service not available - cannot connect to Java backend\r\n')
+                return
+
+            print(f"_handle_kill_thread: WebSocket ready, sending task_kill request task_id={task_id}", flush=True)
+            result = self.ai_handler.ws_client.task_kill(task_id)
+            print(f"_handle_kill_thread: task_kill response={result}", flush=True)
+            if result.get("error"):
+                err = result.get("error")
+                print(f"_handle_kill_thread: task_kill error={err}", flush=True)
+                self.send(f'PRIVMSG {communicationsLineName} :\x02Task Manager\x02: Error: {err}\r\n')
+                return
+            message = result.get("message", "Done")
+            success = result.get("success", False)
+            print(f"_handle_kill_thread: task_kill success={success} message={message}", flush=True)
+            self.send(f'PRIVMSG {communicationsLineName} :\x02Task Manager\x02: {message}\r\n')
+        except Exception as e:
+            print(f"Error in _handle_kill_thread: {e}", flush=True)
+            import traceback
+            traceback.print_exc()
+            try:
+                self.send(f'PRIVMSG {communicationsLineName} :\x02Task Manager Error\x02: {str(e)}\r\n')
+            except:
+                pass
 
 def ircbich_init_and_loop(settings_key, connection_settings: dict, config, section_key):
     connection_props = connection_settings
