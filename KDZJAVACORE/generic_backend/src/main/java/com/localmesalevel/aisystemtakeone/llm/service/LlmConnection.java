@@ -31,7 +31,7 @@ public class LlmConnection {
 	private final LlmEndpointCredentials endpointCredentials;
 
     public LlmConnection(
-        LlmApiType llmApiType,
+        LlmApiType llmApiType,		
         String baseURL,
         String apiKey,
         String model,
@@ -179,7 +179,8 @@ public class LlmConnection {
         body.put("chat_template_kwargs", chat_template_kwargs);
 
         ResponseStreamAccumulator accumulator = new ResponseStreamAccumulator();
-
+        logger.trace("headers "+headers);
+        logger.trace("body "+body);
         ResponseExtractor<Void> extractor = response -> {
             try (BufferedReader reader = new BufferedReader(
                     new InputStreamReader(response.getBody(), java.nio.charset.StandardCharsets.UTF_8))) {
