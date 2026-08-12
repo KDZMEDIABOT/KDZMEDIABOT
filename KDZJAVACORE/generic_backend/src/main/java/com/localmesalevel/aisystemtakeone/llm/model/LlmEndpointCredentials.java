@@ -32,6 +32,12 @@ public class LlmEndpointCredentials {
     @Column(name = "model_name", length = 255)
     private String modelName;
 
+    @Column(name = "is_proxy_enabled")
+    private boolean isProxyEnabled;
+
+    @Column(name = "proxy_url", length = 1000)
+    private String proxyUrl;
+
     public Long getId() {
         return id;
     }

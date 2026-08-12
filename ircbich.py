@@ -971,7 +971,8 @@ class IrcBich(BichBot):
 
             if self.ai_handler is None or not self.ai_handler.is_available():
                 print(f"AI handler not available in thread for {name} after {retries} retries", flush=True)
-                self.send(f'PRIVMSG {communicationsLineName} :\x02AI Error\x02: AI service not available - cannot connect to Java backend\r\n')
+                from random import random                
+                self.send(f'PRIVMSG {communicationsLineName} :\x02AI Error\x02: AI service not available - cannot connect to Java backend {random()}\r\n')
                 return
 
             print(f"AI handler ready after {retries} retries, processing request for {name}", flush=True)
@@ -1030,21 +1031,21 @@ class IrcBich(BichBot):
             return False
 
         # Check for !ai command
-        if ( '!ai ' not in data and '!ии ' not in data):
+        if ( ':!ai ' not in data and ':!ии ' not in data):
             print(f"maybe_ai_command_async p4, data='{data}'", flush=True)
             return False
 
         try:
             print(f"maybe_ai_command_async p5", flush=True)
             # Extract the query after !ai
-            msg_start = data.find('!ai')
+            msg_start = data.find(':!ai')
             if msg_start == -1:
-                msg_start = data.find('!ии')
+                msg_start = data.find(':!ии')
             if msg_start == -1:
                 return False
 
             # Extract query
-            query = data[msg_start + 3:].strip() # Skip "!ai" 
+            query = data[msg_start + 4:].strip() # Skip ":!ai" 
             if not query:
                 await self.send_async(f'PRIVMSG {communicationsLineName} :Usage: !ai <your question>\r\n')
                 return True
@@ -1145,7 +1146,8 @@ class IrcBich(BichBot):
 
             if not self.ai_handler.is_available():
                 print(f"_handle_tasks_thread: WebSocket not available after {retries} retries", flush=True)
-                self.send(f'PRIVMSG {communicationsLineName} :\x02Task Manager\x02: AI service not available - cannot connect to Java backend\r\n')
+                from random import random                
+                self.send(f'PRIVMSG {communicationsLineName} :\x02Task Manager\x02: AI service not available - cannot connect to Java backend {random()}\r\n')
                 return
 
             print(f"_handle_tasks_thread: WebSocket ready, sending task_list request", flush=True)
@@ -1201,8 +1203,9 @@ class IrcBich(BichBot):
                 time.sleep(0.5)
 
             if not self.ai_handler.is_available():
+                from random import random            
                 print(f"_handle_kill_thread: WebSocket not available after {retries} retries", flush=True)
-                self.send(f'PRIVMSG {communicationsLineName} :\x02Task Manager\x02: AI service not available - cannot connect to Java backend\r\n')
+                self.send(f'PRIVMSG {communicationsLineName} :\x02Task Manager\x02: AI service not available - cannot connect to Java backend {random()}\r\n')
                 return
 
             print(f"_handle_kill_thread: WebSocket ready, sending task_kill request task_id={task_id}", flush=True)
