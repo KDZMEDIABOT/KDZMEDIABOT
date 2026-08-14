@@ -31,6 +31,11 @@ spring.security.oauth2.resourceserver:
   jwt:
     issuer-uri: 
 
+# WebSocket container bean requires a real servlet container; skip in tests (MOCK env)
+app:
+  websocket:
+    container: false
+
 logging:
   level:
     com.customer1org.aisystem: DEBUG
