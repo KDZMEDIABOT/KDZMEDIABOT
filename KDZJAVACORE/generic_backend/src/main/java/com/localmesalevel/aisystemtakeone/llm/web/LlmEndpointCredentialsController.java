@@ -55,6 +55,8 @@ public class LlmEndpointCredentialsController {
                 maskApiKey(it.getApiKey()),
                 it.getEndpointDisplayName(),
                 it.getModelName(),
+                it.isUseSpecifiedUserAgent(),
+                it.getUserAgent(),
                 currentEndpointId != null && currentEndpointId.equals(it.getId())
             ))
             .toList();
@@ -96,6 +98,8 @@ public class LlmEndpointCredentialsController {
         entity.setApiKey(request.getApiKey().trim());
         entity.setEndpointDisplayName(request.getEndpointDisplayName().trim());
         entity.setModelName(trimToNull(request.getModelName()));
+        entity.setUseSpecifiedUserAgent(request.isUseSpecifiedUserAgent());
+        entity.setUserAgent(trimToNull(request.getUserAgent()));
 
         LlmEndpointCredentials saved = llmEndpointCredentialsRepository.save(entity);
         autoSelectSingleEndpointIfNeeded(user, llmEndpointCredentialsRepository.findByUserIdOrderByIdDesc(user.getId()));
@@ -109,6 +113,8 @@ public class LlmEndpointCredentialsController {
             maskApiKey(saved.getApiKey()),
             saved.getEndpointDisplayName(),
             saved.getModelName(),
+            saved.isUseSpecifiedUserAgent(),
+            saved.getUserAgent(),
             currentEndpointId != null && currentEndpointId.equals(saved.getId())
         ));
     }
@@ -171,6 +177,8 @@ public class LlmEndpointCredentialsController {
         entity.setBaseURL(request.getBaseURL().trim());
         entity.setEndpointDisplayName(request.getEndpointDisplayName().trim());
         entity.setModelName(trimToNull(request.getModelName()));
+        entity.setUseSpecifiedUserAgent(request.isUseSpecifiedUserAgent());
+        entity.setUserAgent(trimToNull(request.getUserAgent()));
         if (!isBlank(request.getApiKey())) {
             entity.setApiKey(request.getApiKey().trim());
         }
@@ -184,6 +192,8 @@ public class LlmEndpointCredentialsController {
             maskApiKey(saved.getApiKey()),
             saved.getEndpointDisplayName(),
             saved.getModelName(),
+            saved.isUseSpecifiedUserAgent(),
+            saved.getUserAgent(),
             currentEndpointId != null && currentEndpointId.equals(saved.getId())
         ));
     }
@@ -265,6 +275,8 @@ public class LlmEndpointCredentialsController {
         private String apiKey;
         private String endpointDisplayName;
         private String modelName;
+        private boolean useSpecifiedUserAgent;
+        private String userAgent;
 
         public LlmApiType getLlmApiType() {
             return llmApiType;
@@ -305,6 +317,22 @@ public class LlmEndpointCredentialsController {
         public void setModelName(String modelName) {
             this.modelName = modelName;
         }
+
+        public boolean isUseSpecifiedUserAgent() {
+            return useSpecifiedUserAgent;
+        }
+
+        public void setUseSpecifiedUserAgent(boolean useSpecifiedUserAgent) {
+            this.useSpecifiedUserAgent = useSpecifiedUserAgent;
+        }
+
+        public String getUserAgent() {
+            return userAgent;
+        }
+
+        public void setUserAgent(String userAgent) {
+            this.userAgent = userAgent;
+        }
     }
 
     public static class SelectCurrentRequest {
@@ -326,6 +354,8 @@ public class LlmEndpointCredentialsController {
         private final String maskedApiKey;
         private final String endpointDisplayName;
         private final String modelName;
+        private final boolean useSpecifiedUserAgent;
+        private final String userAgent;
         private final boolean current;
 
         public EntryResponse(
@@ -335,6 +365,8 @@ public class LlmEndpointCredentialsController {
             String maskedApiKey,
             String endpointDisplayName,
             String modelName,
+            boolean useSpecifiedUserAgent,
+            String userAgent,
             boolean current
         ) {
             this.id = id;
@@ -343,6 +375,8 @@ public class LlmEndpointCredentialsController {
             this.maskedApiKey = maskedApiKey;
             this.endpointDisplayName = endpointDisplayName;
             this.modelName = modelName;
+            this.useSpecifiedUserAgent = useSpecifiedUserAgent;
+            this.userAgent = userAgent;
             this.current = current;
         }
 
@@ -368,6 +402,14 @@ public class LlmEndpointCredentialsController {
 
         public String getModelName() {
             return modelName;
+        }
+
+        public boolean isUseSpecifiedUserAgent() {
+            return useSpecifiedUserAgent;
+        }
+
+        public String getUserAgent() {
+            return userAgent;
         }
 
         public boolean isCurrent() {

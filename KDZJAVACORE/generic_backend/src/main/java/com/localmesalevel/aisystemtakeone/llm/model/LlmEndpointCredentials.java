@@ -32,6 +32,12 @@ public class LlmEndpointCredentials {
     @Column(name = "model_name", length = 255)
     private String modelName;
 
+    @Column(name = "use_specified_user_agent")
+    private boolean useSpecifiedUserAgent;
+
+    @Column(name = "user_agent", length = 1000)
+    private String userAgent;
+
     public Long getId() {
         return id;
     }
@@ -86,5 +92,21 @@ public class LlmEndpointCredentials {
 
     public void setModelName(String modelName) {
         this.modelName = modelName;
+    }
+
+    public boolean isUseSpecifiedUserAgent() {
+        return useSpecifiedUserAgent;
+    }
+
+    public void setUseSpecifiedUserAgent(boolean useSpecifiedUserAgent) {
+        this.useSpecifiedUserAgent = useSpecifiedUserAgent;
+    }
+
+    public String getUserAgent() {
+        return userAgent;
+    }
+
+    public void setUserAgent(String userAgent) {
+        this.userAgent = userAgent;
     }
 }
