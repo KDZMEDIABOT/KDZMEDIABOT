@@ -39,6 +39,12 @@
               <div class="col-12 col-md-3">
                 <q-input v-model="modelName" label="Model name" outlined dense />
               </div>
+              <div class="col-12 col-md-3">
+                <q-checkbox v-model="useSpecifiedUserAgent" label="Use specified User-Agent" dense />
+              </div>
+              <div class="col-12 col-md-3">
+                <q-input v-model="userAgent" label="User-Agent" outlined dense :disable="!useSpecifiedUserAgent" />
+              </div>
             </div>
             <div class="row q-mt-sm justify-end">
               <q-btn color="primary" label="Add endpoint" :loading="saving" @click="createEndpoint" />
@@ -121,6 +127,12 @@
                   <q-input v-model="editModelName" label="Model name" outlined dense />
                 </div>
                 <div class="col-12 col-md-6">
+                  <q-checkbox v-model="editUseSpecifiedUserAgent" label="Use specified User-Agent" dense />
+                </div>
+                <div class="col-12 col-md-6">
+                  <q-input v-model="editUserAgent" label="User-Agent" outlined dense :disable="!editUseSpecifiedUserAgent" />
+                </div>
+                <div class="col-12 col-md-6">
                   <q-input
                     v-model="editApiKey"
                     label="API key (leave empty to keep unchanged)"
@@ -196,6 +208,8 @@ type EndpointRow = {
   llmApiType: LlmApiType;
   baseURL: string;
   modelName?: string | null;
+  useSpecifiedUserAgent: boolean;
+  userAgent?: string | null;
   maskedApiKey: string;
   current: boolean;
 };
@@ -222,12 +236,16 @@ const editLlmApiType = ref<LlmApiType>('OpenAICompatible');
 const editBaseURL = ref('');
 const editModelName = ref('');
 const editApiKey = ref('');
+const editUseSpecifiedUserAgent = ref(false);
+const editUserAgent = ref('');
 
 const endpointDisplayName = ref('');
 const llmApiType = ref<LlmApiType>('OpenAICompatible');
 const baseURL = ref('');
 const apiKey = ref('');
 const modelName = ref('');
+const useSpecifiedUserAgent = ref(false);
+const userAgent = ref('');
 
 const apiTypeOptions = [
   { label: 'OpenAI compatible', value: 'OpenAICompatible' },
@@ -239,6 +257,7 @@ const columns: QTableColumn<EndpointRow>[] = [
   { name: 'llmApiType', label: 'API Type', field: 'llmApiType', align: 'left', sortable: true },
   { name: 'baseURL', label: 'Base URL', field: 'baseURL', align: 'left' },
   { name: 'modelName', label: 'Model Name', field: 'modelName', align: 'left' },
+  { name: 'userAgent', label: 'User-Agent', field: 'userAgent', align: 'left' },
   { name: 'maskedApiKey', label: 'API Key', field: 'maskedApiKey', align: 'left' },
   { name: 'current', label: 'Current Endpoint', field: 'current', align: 'right' },
   { name: 'actions', label: 'Actions', field: 'actions', align: 'right' },
@@ -320,6 +339,8 @@ async function createEndpoint() {
         baseURL: baseURL.value.trim(),
         apiKey: apiKey.value.trim(),
         modelName: modelName.value.trim() || null,
+        useSpecifiedUserAgent: useSpecifiedUserAgent.value,
+        userAgent: userAgent.value.trim() || null,
       }),
     });
     const payload = await response.json().catch(() => ({}));
@@ -331,6 +352,8 @@ async function createEndpoint() {
     baseURL.value = '';
     apiKey.value = '';
     modelName.value = '';
+    useSpecifiedUserAgent.value = false;
+    userAgent.value = '';
     $q.notify({ type: 'positive', message: 'Endpoint credentials added' });
     await loadEntries();
   } catch (error) {
@@ -394,6 +417,8 @@ function openEditDialog(row: EndpointRow) {
   editLlmApiType.value = row.llmApiType;
   editBaseURL.value = row.baseURL;
   editModelName.value = row.modelName ?? '';
+  editUseSpecifiedUserAgent.value = row.useSpecifiedUserAgent || false;
+  editUserAgent.value = row.userAgent ?? '';
   editApiKey.value = '';
   editDialogOpen.value = true;
 }
@@ -420,6 +445,8 @@ async function saveEndpointEdit() {
           llmApiType: editLlmApiType.value,
           baseURL: editBaseURL.value.trim(),
           modelName: editModelName.value.trim() || null,
+          useSpecifiedUserAgent: editUseSpecifiedUserAgent.value,
+          userAgent: editUserAgent.value.trim() || null,
           apiKey: editApiKey.value.trim() || null,
         }),
       }

@@ -32,6 +32,11 @@ sso:
   client-secret: test-client-secret
   issuer-uri: https://test-idp.example.com
 
+# WebSocket container bean requires a real servlet container; skip in tests (MOCK env)
+app:
+  websocket:
+    container: false
+
 logging:
   level:
     com.localmesalevel.aisystemtakeone: DEBUG

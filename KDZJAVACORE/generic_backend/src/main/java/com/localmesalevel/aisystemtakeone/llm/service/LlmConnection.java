@@ -93,6 +93,7 @@ public class LlmConnection {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(apiKey);
+        applyUserAgentIfConfigured(headers);
 
         List<Map<String, String>> messages = new ArrayList<>();
         if (!isBlank(systemPrompt)) {
@@ -159,6 +160,7 @@ public class LlmConnection {
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(apiKey);
         headers.setAccept(List.of(MediaType.TEXT_EVENT_STREAM));
+        applyUserAgentIfConfigured(headers);
 
         List<Map<String, String>> messages = new ArrayList<>();
         if (!isBlank(systemPrompt)) {
@@ -186,6 +188,7 @@ public class LlmConnection {
                     new InputStreamReader(response.getBody(), java.nio.charset.StandardCharsets.UTF_8))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
+                    logger.trace("ResponseExtractor: '"+line+"'");
                     accumulator.processLine(line);
                 }
             }
@@ -310,6 +313,7 @@ public class LlmConnection {
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("x-api-key", apiKey);
         headers.set("anthropic-version", ANTHROPIC_VERSION);
+        applyUserAgentIfConfigured(headers);
 
         List<Map<String, String>> messages = List.of();
         while(aiContext.hasNext())
@@ -553,6 +557,14 @@ public class LlmConnection {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private void applyUserAgentIfConfigured(HttpHeaders headers) {
+        if (endpointCredentials != null
+                && endpointCredentials.isUseSpecifiedUserAgent()
+                && !isBlank(endpointCredentials.getUserAgent())) {
+            headers.set(HttpHeaders.USER_AGENT, endpointCredentials.getUserAgent().trim());
+        }
     }
 
     private String maskSecret(String secret) {

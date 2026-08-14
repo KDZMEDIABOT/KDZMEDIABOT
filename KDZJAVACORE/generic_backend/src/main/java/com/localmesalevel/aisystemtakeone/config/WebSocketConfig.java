@@ -5,6 +5,7 @@ import com.localmesalevel.aisystemtakeone.websocket.BotWebSocketHandler;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.server.standard.ServletServerContainerFactoryBean;
@@ -33,6 +34,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
     }
 
     @Bean
+    @ConditionalOnProperty(prefix = "app.websocket", name = "container", havingValue = "true", matchIfMissing = true)
     public ServletServerContainerFactoryBean createWebSocketContainer() {
         ServletServerContainerFactoryBean container = new ServletServerContainerFactoryBean();
         // Increase message buffer size to 64KB to handle larger messages and AI responses
