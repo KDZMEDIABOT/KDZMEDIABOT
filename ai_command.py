@@ -113,7 +113,7 @@ class AiCommandHandler:
         return self.ws_client.is_connected()
 
     def handle_ai_command(self, user_id: str, channel: str,
-                         platform: str, ai_context) -> str:
+                         platform: str, ai_context) -> tuple:
         """
         Handle the !ai /ai command.
 
@@ -124,14 +124,15 @@ class AiCommandHandler:
             platform: "irc" or "telegram"
 
         Returns:
-            The AI response or error message
+            A tuple (response_text, reasoning_text). reasoning_text may be ""
+            for normal responses. On errors reasoning_text is "".
         """
         # Check for prompt file reload
         self._check_prompt_reload()
 
         if not self.is_available():
             return ("Error: AI service is not available. "
-                   "WebSocket connection to backend is not established.")
+                    "WebSocket connection to backend is not established.", "")
 
         logger.info(f"AI request from {user_id} on {platform}/{channel}...")
 
@@ -146,21 +147,26 @@ class AiCommandHandler:
             )
 
             if response is None:
-                return "Error: Failed to get response from AI service"
+                return ("Error: Failed to get response from AI service", "")
 
-            if response.startswith("Error:"):
-                return response
+            if isinstance(response, str):
+                # Error strings returned directly by the client
+                return (response, "")
+
+            answer = response.get("response", "") or ""
+            reasoning = response.get("reasoning", "") or ""
 
             # Truncate if too long
-            #if len(response) > self.max_length:
-            #    response = response[:self.max_length] + "... [truncated]"
+            #if len(answer) > self.max_length:
+            #    answer = answer[:self.max_length] + "... [truncated]"
 
-            logger.info(f"AI response sent to {user_id}: {response[:100]}...")
-            return response
+            logger.info(f"AI response sent to {user_id}: {answer[:100]}... "
+                        f"reasoningChars={len(reasoning)}")
+            return (answer, reasoning)
 
         except Exception as e:
             logger.error(f"AI command exception: {e}")
-            return f"Error processing AI request: {e}"
+            return (f"Error processing AI request: {e}", "")
 
     def get_status(self) -> dict:
         """Return current status info."""

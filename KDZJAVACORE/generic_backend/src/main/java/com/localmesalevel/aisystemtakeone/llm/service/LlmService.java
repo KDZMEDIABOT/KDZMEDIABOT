@@ -162,6 +162,74 @@ public class LlmService {
     }
 
     /**
+     * Process a bot query asynchronously and also expose the model's reasoning alongside the answer.
+     * Uses the default bot MCP servers. Falls back to a direct LLM call if MCP execution fails.
+     *
+     * @return CompletableFuture with the answer and any reasoning produced by the model
+     */
+    public CompletableFuture<LlmResult> processBotQueryWithReasoning(
+            LlmConnection llmConnection,
+            String systemPrompt,
+            Iterator<JsonNode> aiContext) {
+        return processBotQueryWithReasoning(llmConnection, systemPrompt, aiContext, getDefaultBotMcpServers());
+    }
+
+    /**
+     * Process a bot query asynchronously and also expose the model's reasoning alongside the answer.
+     * Uses LlmLoopEngine for multi-step tool calling. Falls back to a direct LLM call if MCP execution fails.
+     *
+     * @param llmConnection LLM connection
+     * @param systemPrompt System prompt
+     * @param aiContext User's query context
+     * @param mcpServers List of MCP server configs for bot queries
+     * @return CompletableFuture with the answer and any reasoning produced by the model
+     */
+    public CompletableFuture<LlmResult> processBotQueryWithReasoning(
+            LlmConnection llmConnection,
+            String systemPrompt,
+            Iterator<JsonNode> aiContext,
+            List<LlmLoopEngine.McpServerConfig> mcpServers) {
+        return CompletableFuture.supplyAsync(() -> {
+            // Convert aiContext iterator to single prompt first
+            List<String> aiContextAsList = new LinkedList<String>();
+            while(aiContext.hasNext())
+                aiContextAsList.add(aiContext.next().asText(""));
+            String userPrompt = String.join("\n", aiContextAsList);
+
+            // Try with MCP tools if servers are configured
+            if (mcpServers != null && !mcpServers.isEmpty()) {
+                try {
+                    logger.debug("Calling LLM with MCP tools: system prompt [{} chars], mcpServers={}",
+                            systemPrompt.length(), mcpServers.size());
+
+                    String modelName = llmConnection.getModelName();
+                    if (modelName == null || modelName.trim().isEmpty()) {
+                        throw new RuntimeException("Model name not set in LlmConnection");
+                    }
+
+                    LlmLoopEngine.LoopResult loopResult = llmLoopEngine.run(
+                            llmConnection.getCredentials(),
+                            modelName,
+                            systemPrompt,
+                            userPrompt,
+                            mcpServers,
+                            botMcpMaxSteps
+                    );
+
+                    return new LlmResult(loopResult.getFinalAnswer(), loopResult.getReasoning());
+
+                } catch (Exception e) {
+                    logger.error("MCP tools execution failed, falling back to direct LLM call", e);
+                }
+            }
+
+            // Fall back to direct LLM call
+            String directResponse = executeDirectLlmCall(llmConnection, systemPrompt, userPrompt);
+            return new LlmResult(directResponse, null);
+        });
+    }
+
+    /**
      * Process a bot query asynchronously with MCP tools support using explicit credentials.
      * Uses LlmLoopEngine for multi-step tool calling. Falls back to direct LLM call
      * if MCP execution fails.
@@ -241,6 +309,28 @@ public class LlmService {
         } catch (Exception e) {
             logger.error("Direct LLM call failed", e);
             throw new RuntimeException("Failed to get AI response: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Result of a bot query: the final answer text and any reasoning the model produced
+     * (e.g. when a stream was truncated by finish_reason="length").
+     */
+    public static final class LlmResult {
+        private final String answer;
+        private final String reasoning;
+
+        public LlmResult(String answer, String reasoning) {
+            this.answer = answer;
+            this.reasoning = reasoning;
+        }
+
+        public String getAnswer() {
+            return answer;
+        }
+
+        public String getReasoning() {
+            return reasoning;
         }
     }
 }

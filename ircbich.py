@@ -978,12 +978,26 @@ class IrcBich(BichBot):
             print(f"AI handler ready after {retries} retries, processing request for {name}", flush=True)
 
             # Call AI handler (blocking call that waits for WebSocket response)
-            response = self.ai_handler.handle_ai_command(
+            response, reasoning = self.ai_handler.handle_ai_command(
                 user_id=user_id,
                 channel=channel,
                 platform=platform,
                 ai_context=ai_context
             )
+
+            # Send model reasoning (if present) as separate AI Reasoning lines
+            reasoning = (reasoning or "").replace('\r', '\n')
+            for rline in reasoning.split('\n'):
+                rline = rline.strip()
+                if not rline:
+                    continue
+                while len(rline) > 230:
+                    print(f'sending AI reasoning: PRIVMSG {communicationsLineName} :AI Reasoning: {rline[:230]}', flush=True)
+                    self.send(f'PRIVMSG {communicationsLineName} :\x02AI Reasoning\x02: {rline[:230]}\r\n')
+                    rline = rline[230:]
+                if rline:
+                    print(f'sending AI reasoning: PRIVMSG {communicationsLineName} :AI Reasoning: {rline}', flush=True)
+                    self.send(f'PRIVMSG {communicationsLineName} :\x02AI Reasoning\x02: {rline}\r\n')
 
             # Truncate for IRC (max ~400 chars to be safe)
             #if len(response) > 400:

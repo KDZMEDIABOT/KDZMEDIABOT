@@ -19,7 +19,8 @@ public interface AiRequestCallback {
      * @param platform       Platform type ("irc" or "telegram")
      * @param systemPrompt   System prompt text
      * @param userQuery      User's query
-     * @param onSuccess      Callback for successful response
+     * @param onSuccess      Callback for successful response (the final answer)
+     * @param onReasoning    Callback for the model's reasoning (may be empty for normal responses)
      * @param onError        Callback for errors
      */
     void onAiRequest(
@@ -29,6 +30,7 @@ public interface AiRequestCallback {
             String platform,
             String systemPrompt,
             Consumer<String> onSuccess,
+            Consumer<String> onReasoning,
             Consumer<String> onError,
             Iterator<JsonNode> aiContext
     );

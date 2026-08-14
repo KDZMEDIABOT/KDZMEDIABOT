@@ -119,6 +119,7 @@ public class LlmLoopEngine {
 
             List<LoopStep> executedSteps = new ArrayList<>();
             StringBuilder conversationState = new StringBuilder();
+            StringBuilder loopReasoning = new StringBuilder();
 
             for (int stepIndex = 1; stepIndex <= effectiveMaxSteps; stepIndex++) {
                 String loopPrompt = buildLoopPrompt(userPrompt, toolRegistry, conversationState.toString());
@@ -129,18 +130,48 @@ public class LlmLoopEngine {
                     conversationState.length()
                 );
                 final Iterator<String> aiContext = List.of(loopPrompt).iterator();
-                String llmRawResponse = llmConnection.complete(
+                LlmConnection.LlmStreamResult llmStreamResult = llmConnection.completeStream(
                     systemPrompt,
                     aiContext,
                     DEFAULT_TEMPERATURE,
                     DEFAULT_MAX_TOKENS
                 );
+                String llmRawResponse = llmStreamResult.getContent();
+                String stepReasoning = llmStreamResult.getReasoning();
+                String finishReason = llmStreamResult.getFinishReason();
+                if (!isBlank(stepReasoning)) {
+                    if (loopReasoning.length() > 0) {
+                        loopReasoning.append('\n');
+                    }
+                    loopReasoning.append(stepReasoning.trim());
+                }
                 logger.trace(
-                    "LlmLoopEngine step {} LLM response chars={}, preview='{}'",
+                    "LlmLoopEngine step {} LLM response chars={}, reasoningChars={}, finishReason='{}', preview='{}'",
                     stepIndex,
                     llmRawResponse == null ? 0 : llmRawResponse.length(),
+                    !isBlank(stepReasoning) ? stepReasoning.length() : 0,
+                    finishReason,
                     preview(llmRawResponse, 400)
                 );
+
+                // A stream truncated by finish_reason="length" (e.g. all tokens spent on reasoning)
+                // contains no actionable content. Finish the loop with the collected reasoning as the
+                // answer instead of failing and falling back to a direct LLM call.
+                if (isBlank(llmRawResponse) && finishReason != null && "length".equalsIgnoreCase(finishReason.trim())) {
+                    String reasoningAnswer = !isBlank(stepReasoning) ? stepReasoning.trim()
+                        : loopReasoning.toString().trim();
+                    if (isBlank(reasoningAnswer)) {
+                        throw new IllegalStateException(
+                            "LLM stream ended with finish_reason 'length' but produced no content or reasoning"
+                        );
+                    }
+                    logger.trace(
+                        "LlmLoopEngine finished at step {} (finish_reason='length') with reasoning as final answer chars={}",
+                        stepIndex,
+                        reasoningAnswer.length()
+                    );
+                    return new LoopResult(reasoningAnswer, executedSteps, reasoningAnswer);
+                }
 
                 LoopInstruction instruction = parseInstruction(llmRawResponse);
                 logger.trace(
@@ -160,7 +191,7 @@ public class LlmLoopEngine {
                         stepIndex,
                         instruction.finalAnswer.trim().length()
                     );
-                    return new LoopResult(instruction.finalAnswer.trim(), executedSteps);
+                    return new LoopResult(instruction.finalAnswer.trim(), executedSteps, loopReasoning.toString().trim());
                 }
 
 
@@ -675,10 +706,16 @@ public class LlmLoopEngine {
     public static final class LoopResult {
         private final String finalAnswer;
         private final List<LoopStep> steps;
+        private final String reasoning;
 
         public LoopResult(String finalAnswer, List<LoopStep> steps) {
+            this(finalAnswer, steps, null);
+        }
+
+        public LoopResult(String finalAnswer, List<LoopStep> steps, String reasoning) {
             this.finalAnswer = finalAnswer;
             this.steps = steps == null ? List.of() : List.copyOf(steps);
+            this.reasoning = reasoning;
         }
 
         public String getFinalAnswer() {
@@ -687,6 +724,10 @@ public class LlmLoopEngine {
 
         public List<LoopStep> getSteps() {
             return steps;
+        }
+
+        public String getReasoning() {
+            return reasoning;
         }
     }
 

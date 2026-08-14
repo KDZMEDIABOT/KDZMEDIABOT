@@ -78,6 +78,36 @@ public class LlmConnection {
         throw new IllegalArgumentException("Unsupported API type: " + llmApiType);
     }
 
+    /**
+     * Call the LLM and return the full streaming result (content, reasoning and finish reason).
+     * Unlike {@link #complete(String, Iterator, double, int)}, this does not collapse the response
+     * into a single text: callers can detect {@code finish_reason="length"} and still access the
+     * reasoning that was accumulated even when content is empty.
+     */
+    public LlmStreamResult completeStream(String systemPrompt, Iterator<String> aiContext, double temperature, int maxTokens) {
+        String effectiveModel = resolveEffectiveModel(model);
+        logger.trace(
+            "LlmConnection.completeStream called: apiType='{}', requestedModel='{}', effectiveModel='{}', baseURL='{}', hasSystemPrompt={}",
+            llmApiType,
+            model,
+            effectiveModel,
+            baseURL,
+            !isBlank(systemPrompt)
+        );
+        if (!aiContext.hasNext()) {
+            throw new IllegalArgumentException("User prompt is required");
+        }
+
+        if (llmApiType == LlmApiType.OpenAICompatible) {
+            return callOpenAICompatibleStreamingResult(effectiveModel, systemPrompt, aiContext, temperature, maxTokens);
+        }
+        if (llmApiType == LlmApiType.AnthropicCompatible) {
+            String text = callAnthropicCompatible(effectiveModel, systemPrompt, aiContext, temperature, maxTokens);
+            return new LlmStreamResult(text, null, "stop");
+        }
+        throw new IllegalArgumentException("Unsupported API type: " + llmApiType);
+    }
+
     private String callOpenAICompatible(String model, String systemPrompt, Iterator<String> aiContext, double temperature, int maxTokens) {
         String url = baseURL + "/v1/chat/completions";
         logger.trace(
@@ -154,6 +184,51 @@ public class LlmConnection {
      */
     private String callOpenAICompatibleStreaming(String model, String systemPrompt, Iterator<String> aiContext,
                                                    double temperature, int maxTokens) {
+        ResponseStreamAccumulator accumulator = runOpenAICompatibleStream(model, systemPrompt, aiContext, temperature, maxTokens);
+        String content = accumulator.getContent();
+        String reasoning = accumulator.getReasoning();
+        String finishReason = accumulator.getFinishReason();
+
+        if (isBlank(content)) {
+            if (isBlank(reasoning)) {
+                throw new IllegalStateException("OpenAI-compatible streaming response did not contain content");
+            }
+            // Streams that end with finish_reason="length" often contain only reasoning tokens
+            // (thinking) and no content yet. Surface the collected reasoning instead of failing
+            // so callers can still produce an answer.
+            if (!isBlank(finishReason) && "length".equalsIgnoreCase(finishReason.trim())) {
+                logger.trace("OpenAI-compatible streaming truncated by finish_reason='length', returning reasoning as result");
+            }
+            return reasoning;
+        }
+        logger.trace("OpenAI-compatible streaming completed: contentChars={}, reasoningChars={}",
+            content.length(), reasoning.length());
+        return content;
+    }
+
+    /**
+     * Call OpenAI-compatible API with streaming and return the full accumulated result
+     * (content, reasoning and finish reason) so callers can handle truncated streams.
+     */
+    private LlmStreamResult callOpenAICompatibleStreamingResult(String model, String systemPrompt, Iterator<String> aiContext,
+                                                                 double temperature, int maxTokens) {
+        ResponseStreamAccumulator accumulator = runOpenAICompatibleStream(model, systemPrompt, aiContext, temperature, maxTokens);
+        String content = accumulator.getContent();
+        String reasoning = accumulator.getReasoning();
+        String finishReason = accumulator.getFinishReason();
+        if (isBlank(content) && isBlank(reasoning)) {
+            throw new IllegalStateException("OpenAI-compatible streaming response did not contain content");
+        }
+        logger.trace("OpenAI-compatible streaming completed: contentChars={}, reasoningChars={}, finishReason='{}'",
+            content.length(), reasoning.length(), finishReason);
+        return new LlmStreamResult(content, reasoning, finishReason);
+    }
+
+    /**
+     * Executes the OpenAI-compatible streaming request and returns the accumulated stream result.
+     */
+    private ResponseStreamAccumulator runOpenAICompatibleStream(String model, String systemPrompt, Iterator<String> aiContext,
+                                                                 double temperature, int maxTokens) {
         String url = baseURL + "/v1/chat/completions";
 
         HttpHeaders headers = new HttpHeaders();
@@ -206,17 +281,7 @@ public class LlmConnection {
                 }
                 request.getBody().write(jsonBody.getBytes(java.nio.charset.StandardCharsets.UTF_8));
             }, extractor);
-
-            String result = accumulator.getContent();
-            if (isBlank(result)) {
-                result = accumulator.getReasoning();
-            }
-            if (isBlank(result)) {
-                throw new IllegalStateException("OpenAI-compatible streaming response did not contain content");
-            }
-            logger.trace("OpenAI-compatible streaming completed: contentChars={}, reasoningChars={}",
-                accumulator.getContent().length(), accumulator.getReasoning().length());
-            return result;
+            return accumulator;
         } catch (RestClientException e) {
             logger.trace("OpenAI-compatible streaming request failed: {}", e.getMessage(), e);
             throw new IllegalStateException("OpenAI-compatible streaming request failed: " + e.getMessage(), e);
@@ -231,6 +296,7 @@ public class LlmConnection {
         private final StringBuilder reasoningBuilder = new StringBuilder();
         private boolean contentStarted = false;
         private boolean inReasoningBlock = false;
+        private String finishReason = null;
 
         void processLine(String line) {
             if (isBlank(line) || !line.startsWith("data:")) {
@@ -249,13 +315,22 @@ public class LlmConnection {
                     return;
                 }
 
-                JsonNode delta = choices.get(0).path("delta");
+                JsonNode firstChoice = choices.get(0);
+                JsonNode finishReasonNode = firstChoice.path("finish_reason");
+                if (finishReasonNode.isTextual() && !isBlank(finishReasonNode.asText())) {
+                    finishReason = finishReasonNode.asText();
+                }
+
+                JsonNode delta = firstChoice.path("delta");
                 if (delta.isMissingNode()) {
                     return;
                 }
 
-                // Check for reasoning content
-                JsonNode reasoning = delta.path("reasoning");
+                // Check for reasoning content (DeepSeek sends reasoning_content while "thinking")
+                JsonNode reasoning = delta.path("reasoning_content");
+                if (reasoning.isMissingNode() || !reasoning.isTextual()) {
+                    reasoning = delta.path("reasoning");
+                }
                 if (!reasoning.isMissingNode() && reasoning.isTextual()) {
                     String reasoningText = reasoning.asText();
                     if (!isBlank(reasoningText)) {
@@ -289,6 +364,10 @@ public class LlmConnection {
 
         String getReasoning() {
             return reasoningBuilder.toString();
+        }
+
+        String getFinishReason() {
+            return finishReason;
         }
 
         private static boolean isBlank(String s) {
@@ -604,6 +683,34 @@ public class LlmConnection {
 
         public String getReasoningText() {
             return reasoningText;
+        }
+    }
+
+    /**
+     * Full result of an LLM streamed call: the accumulated content, the accumulated reasoning
+     * (from {@code reasoning_content} / {@code reasoning} deltas) and the terminal finish reason.
+     */
+    public static final class LlmStreamResult {
+        private final String content;
+        private final String reasoning;
+        private final String finishReason;
+
+        public LlmStreamResult(String content, String reasoning, String finishReason) {
+            this.content = content;
+            this.reasoning = reasoning;
+            this.finishReason = finishReason;
+        }
+
+        public String getContent() {
+            return content;
+        }
+
+        public String getReasoning() {
+            return reasoning;
+        }
+
+        public String getFinishReason() {
+            return finishReason;
         }
     }
 

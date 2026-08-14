@@ -67,6 +67,7 @@ public class BotAiService implements AiRequestCallback {
             String platform,
             String systemPrompt,
             Consumer<String> onSuccess,
+            Consumer<String> onReasoning,
             Consumer<String> onError,
             Iterator<JsonNode> aiContext) {
 
@@ -85,11 +86,15 @@ public class BotAiService implements AiRequestCallback {
         		"\n\nCurrent time is: "+(new java.util.Date());
 
         // Process in async way using CompletableFuture
-        llmService.processBotQuery(llmConnection, systemPrompt, aiContext)
-                .thenAccept(response -> {
+        llmService.processBotQueryWithReasoning(llmConnection, systemPrompt, aiContext)
+                .thenAccept(result -> {
                     logger.info("AI request {} completed, response length: {}",
-                            requestId, response.length());
-                    onSuccess.accept(response);
+                            requestId, result.getAnswer() == null ? 0 : result.getAnswer().length());
+                    if (result.getReasoning() != null && !result.getReasoning().isBlank()) {
+                        logger.info("AI request {} reasoning length: {}", requestId, result.getReasoning().length());
+                        onReasoning.accept(result.getReasoning());
+                    }
+                    onSuccess.accept(result.getAnswer());
                 })
                 .exceptionally(throwable -> {
                     logger.error("AI request {} failed", requestId, throwable);
