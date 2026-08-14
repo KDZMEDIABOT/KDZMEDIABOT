@@ -114,13 +114,13 @@ If you send a crypto ticker to the bot, it will query its price at CoinMarketCap
 
             # Call AI handler (sync method, run in executor)
             import asyncio
-            response = await asyncio.get_event_loop().run_in_executor(
+            response, reasoning = await asyncio.get_event_loop().run_in_executor(
                 None,
                 self.ai_handler.handle_ai_command,
-                query,
                 user_id,
                 chat_id,
-                'telegram'
+                'telegram',
+                [query]
             )
 
             # Delete thinking message
@@ -131,6 +131,13 @@ If you send a crypto ticker to the bot, it will query its price at CoinMarketCap
                 )
             except:
                 pass
+
+            # Send model reasoning (if present) before the answer
+            if reasoning:
+                await message.answer(
+                    f"<b>AI Reasoning:</b> {reasoning}",
+                    parse_mode=types.ParseMode.HTML,
+                )
 
             # Send response (Telegram supports longer messages than IRC)
             max_len = 4000

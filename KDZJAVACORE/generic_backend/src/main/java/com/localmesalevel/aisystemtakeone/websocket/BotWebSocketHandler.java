@@ -21,6 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import com.localmesalevel.aisystemtakeone.llm.service.AiTaskManager;
@@ -163,24 +164,26 @@ public class BotWebSocketHandler extends TextWebSocketHandler {
                 requestId, userId, platform);
 
         String taskId = aiTaskManager != null ? aiTaskManager.registerTask(userId, platform, channel) : null;
+        AtomicReference<String> reasoningRef = new AtomicReference<>(null);
+        Consumer<String> onReasoning = reasoning -> reasoningRef.set(reasoning);
         Consumer<String> onSuccess = response -> {
             if (aiTaskManager != null && taskId != null) {
                 aiTaskManager.completeTask(taskId, response);
             }
-            sendAiResponse(sessionId, requestId, response, null);
+            sendAiResponse(sessionId, requestId, response, reasoningRef.get(), null);
         };
         Consumer<String> onError = error -> {
             if (aiTaskManager != null && taskId != null) {
                 aiTaskManager.failTask(taskId, error);
             }
-            sendAiResponse(sessionId, requestId, null, error);
+            sendAiResponse(sessionId, requestId, null, null, error);
         };
 
         aiRequestCallback.onAiRequest(requestId, userId, channel, platform,
-                systemPrompt, onSuccess, onError, aiContext);
+                systemPrompt, onSuccess, onReasoning, onError, aiContext);
     }
 
-    private void sendAiResponse(String sessionId, String requestId, String response, String error) {
+    private void sendAiResponse(String sessionId, String requestId, String response, String reasoning, String error) {
         WebSocketSession session = sessions.get(sessionId);
         if (session == null || !session.isOpen()) {
             logger.warn("Session {} closed, cannot send response", sessionId);
@@ -199,6 +202,9 @@ public class BotWebSocketHandler extends TextWebSocketHandler {
             } else {
                 json.put("status", "success");
                 json.put("response", response);
+                if (reasoning != null && !reasoning.isBlank()) {
+                    json.put("reasoning", reasoning);
+                }
             }
 
             session.sendMessage(new TextMessage(json.toString()));

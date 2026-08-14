@@ -409,7 +409,10 @@ class ThreadSafeWebSocketClient:
             response = future.result(timeout=self.ws_config.get("timeout_seconds", 60*10))
 
             if response and response.get("status") == "success":
-                return response.get("response", "")
+                return {
+                    "response": response.get("response", ""),
+                    "reasoning": response.get("reasoning") or "",
+                }
             elif response:
                 error = response.get("error", "Unknown error")
                 logger.error(f"AI request failed: {error}")

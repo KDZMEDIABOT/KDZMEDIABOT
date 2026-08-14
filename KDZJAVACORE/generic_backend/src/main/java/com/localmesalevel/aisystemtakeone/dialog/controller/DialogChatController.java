@@ -173,6 +173,10 @@ public class DialogChatController {
                     );
 
                     String finalAnswer = result.getFinalAnswer();
+                    String reasoning = result.getReasoning();
+                    if (reasoning != null && !reasoning.isBlank()) {
+                        emitter.send(SseEmitter.event().name("reasoning").data(reasoning));
+                    }
                     int chunkSize = 200;
                     for (int i = 0; i < finalAnswer.length(); i += chunkSize) {
                         String chunk = finalAnswer.substring(i, Math.min(i + chunkSize, finalAnswer.length()));
