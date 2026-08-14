@@ -188,6 +188,7 @@ public class LlmConnection {
                     new InputStreamReader(response.getBody(), java.nio.charset.StandardCharsets.UTF_8))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
+                    logger.trace("ResponseExtractor: '"+line+"'");
                     accumulator.processLine(line);
                 }
             }
