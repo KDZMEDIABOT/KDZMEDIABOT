@@ -979,20 +979,22 @@ class IrcBich(BichBot):
                 ai_context=ai_context
             )
 
-            # Send model reasoning (if present) as separate AI Reasoning lines
-            reasoning = (reasoning or "").replace('\r', '\n')
-            for rline in reasoning.split('\n'):
-                rline = rline.strip()
-                if not rline:
-                    continue
-                while len(rline) > 230:
-                    print(f'sending AI reasoning: PRIVMSG {communicationsLineName} :AI Reasoning: {rline[:230]}', flush=True)
-                    self.send(f'PRIVMSG {communicationsLineName} :\x02AI Reasoning\x02: {rline[:230]}\r\n')
-                    rline = rline[230:]
-                if rline:
-                    print(f'sending AI reasoning: PRIVMSG {communicationsLineName} :AI Reasoning: {rline}', flush=True)
-                    self.send(f'PRIVMSG {communicationsLineName} :\x02AI Reasoning\x02: {rline}\r\n')
-                time.sleep(2)
+            if response!=None: response=response.strip()
+            if response==None or (len(response)==0):
+                # Send model reasoning (if present) as separate AI Reasoning lines
+                reasoning = (reasoning or "").replace('\r', '\n')
+                for rline in reasoning.split('\n'):
+                    rline = rline.strip()
+                    if not rline:
+                        continue
+                    while len(rline) > 230:
+                        print(f'sending AI reasoning: PRIVMSG {communicationsLineName} :AI Reasoning: {rline[:230]}', flush=True)
+                        self.send(f'PRIVMSG {communicationsLineName} :\x02AI Reasoning\x02: {rline[:230]}\r\n')
+                        rline = rline[230:]
+                    if rline:
+                        print(f'sending AI reasoning: PRIVMSG {communicationsLineName} :AI Reasoning: {rline}', flush=True)
+                        self.send(f'PRIVMSG {communicationsLineName} :\x02AI Reasoning\x02: {rline}\r\n')
+                    time.sleep(2)
 
             # Truncate for IRC (max ~400 chars to be safe)
             #if len(response) > 400:
