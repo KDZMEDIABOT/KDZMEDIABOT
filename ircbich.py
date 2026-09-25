@@ -992,7 +992,7 @@ class IrcBich(BichBot):
                 if rline:
                     print(f'sending AI reasoning: PRIVMSG {communicationsLineName} :AI Reasoning: {rline}', flush=True)
                     self.send(f'PRIVMSG {communicationsLineName} :\x02AI Reasoning\x02: {rline}\r\n')
-            time.sleep(2)
+                time.sleep(2)
 
             # Truncate for IRC (max ~400 chars to be safe)
             #if len(response) > 400:
