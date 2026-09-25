@@ -19,9 +19,9 @@ import java.util.concurrent.Future;
  * Tracks task state, allows querying and killing running requests.
  */
 @Service
-public class AiTaskManager {
+public class TaskManager {
 
-    private static final Logger logger = LoggerFactory.getLogger(AiTaskManager.class);
+    private static final Logger logger = LoggerFactory.getLogger(TaskManager.class);
 
     private final Map<String, AiTask> tasks = new ConcurrentHashMap<>();
 

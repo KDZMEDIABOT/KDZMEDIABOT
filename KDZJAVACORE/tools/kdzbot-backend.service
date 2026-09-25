@@ -1,0 +1,16 @@
+[Unit]
+Description=Redeploy kdzbot backend on system start
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=user
+Group=user
+ExecStart=/vs/LibreLifeBotTelegram/KDZJAVACORE/tools/redeploy.sh
+StandardOutput=journal
+StandardError=journal
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

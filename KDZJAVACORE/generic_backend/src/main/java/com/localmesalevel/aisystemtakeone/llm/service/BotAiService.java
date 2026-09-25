@@ -50,13 +50,13 @@ public class BotAiService implements AiRequestCallback {
     }
 
     @Autowired
-    private AiTaskManager aiTaskManager;
+    private TaskManager taskManager;
 
     @PostConstruct
     public void init() {
         webSocketHandler.setAiRequestCallback(this);
-        webSocketHandler.setAiTaskManager(aiTaskManager);
-        logger.info("BotAiService initialized and registered callback and AiTaskManager");
+        webSocketHandler.setAiTaskManager(taskManager);
+        logger.info("BotAiService initialized and registered callback and TaskManager");
     }
 
     @Override

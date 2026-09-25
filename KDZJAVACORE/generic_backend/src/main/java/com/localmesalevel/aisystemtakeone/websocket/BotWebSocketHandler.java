@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
-import com.localmesalevel.aisystemtakeone.llm.service.AiTaskManager;
+import com.localmesalevel.aisystemtakeone.llm.service.TaskManager;
 
 /**
  * WebSocket handler for bot connections from KDZMEDIABOT.
@@ -38,7 +38,7 @@ public class BotWebSocketHandler extends TextWebSocketHandler {
     private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
     private final Map<String, SessionInfo> sessionInfo = new ConcurrentHashMap<>();
     private AiRequestCallback aiRequestCallback;
-    private AiTaskManager aiTaskManager;
+    private TaskManager taskManager;
 
     private final ScheduledExecutorService heartbeatExecutor = Executors.newSingleThreadScheduledExecutor();
 
@@ -54,8 +54,8 @@ public class BotWebSocketHandler extends TextWebSocketHandler {
         this.aiRequestCallback = callback;
     }
 
-    public void setAiTaskManager(AiTaskManager aiTaskManager) {
-        this.aiTaskManager = aiTaskManager;
+    public void setAiTaskManager(TaskManager taskManager) {
+        this.taskManager = taskManager;
     }
 
     @Override
@@ -163,18 +163,18 @@ public class BotWebSocketHandler extends TextWebSocketHandler {
         logger.info("AI request {} from {} on {}",
                 requestId, userId, platform);
 
-        String taskId = aiTaskManager != null ? aiTaskManager.registerTask(userId, platform, channel) : null;
+        String taskId = taskManager != null ? taskManager.registerTask(userId, platform, channel) : null;
         AtomicReference<String> reasoningRef = new AtomicReference<>(null);
         Consumer<String> onReasoning = reasoning -> reasoningRef.set(reasoning);
         Consumer<String> onSuccess = response -> {
-            if (aiTaskManager != null && taskId != null) {
-                aiTaskManager.completeTask(taskId, response);
+            if (taskManager != null && taskId != null) {
+                taskManager.completeTask(taskId, response);
             }
             sendAiResponse(sessionId, requestId, response, reasoningRef.get(), null);
         };
         Consumer<String> onError = error -> {
-            if (aiTaskManager != null && taskId != null) {
-                aiTaskManager.failTask(taskId, error);
+            if (taskManager != null && taskId != null) {
+                taskManager.failTask(taskId, error);
             }
             sendAiResponse(sessionId, requestId, null, null, error);
         };
@@ -227,11 +227,11 @@ public class BotWebSocketHandler extends TextWebSocketHandler {
             if (requestId != null && !requestId.isEmpty()) {
                 response.put("request_id", requestId);
             }
-            if (aiTaskManager != null) {
-                var tasks = aiTaskManager.getTasks();
+            if (taskManager != null) {
+                var tasks = taskManager.getTasks();
                 logger.info("handleTaskList: returning {} tasks", tasks.size());
                 var taskList = new java.util.ArrayList<java.util.Map<String, String>>();
-                for (AiTaskManager.AiTask task : tasks) {
+                for (TaskManager.AiTask task : tasks) {
                     java.util.Map<String, String> taskMap = new java.util.HashMap<>();
                     taskMap.put("taskId", task.taskId);
                     taskMap.put("userId", task.userId);
@@ -246,8 +246,8 @@ public class BotWebSocketHandler extends TextWebSocketHandler {
                 }
                 response.set("tasks", objectMapper.valueToTree(taskList));
             } else {
-                logger.warn("handleTaskList: AiTaskManager not configured");
-                response.put("error", "AiTaskManager not configured");
+                logger.warn("handleTaskList: TaskManager not configured");
+                response.put("error", "TaskManager not configured");
             }
             String payload = response.toString();
             session.sendMessage(new TextMessage(payload));
@@ -269,17 +269,17 @@ public class BotWebSocketHandler extends TextWebSocketHandler {
             boolean success = false;
             String message;
             if ("*".equals(taskId)) {
-                int count = aiTaskManager != null ? aiTaskManager.killAllTasks() : 0;
+                int count = taskManager != null ? taskManager.killAllTasks() : 0;
                 success = count > 0;
                 message = "Killed " + count + " tasks";
                 logger.info("handleTaskKill: killAllTasks killed {} tasks", count);
-            } else if (aiTaskManager != null) {
-                success = aiTaskManager.killTask(taskId);
+            } else if (taskManager != null) {
+                success = taskManager.killTask(taskId);
                 message = success ? "Killed task " + taskId : "Task " + taskId + " not found or not running";
                 logger.info("handleTaskKill: killTask taskId='{}' success={}", taskId, success);
             } else {
-                logger.warn("handleTaskKill: AiTaskManager not configured");
-                message = "AiTaskManager not configured";
+                logger.warn("handleTaskKill: TaskManager not configured");
+                message = "TaskManager not configured";
             }
             ObjectNode response = objectMapper.createObjectNode();
             response.put("type", "task_kill_response");

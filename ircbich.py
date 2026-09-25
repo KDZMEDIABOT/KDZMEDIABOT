@@ -42,12 +42,6 @@ try:
 except ImportError:
     AiCommandHandler = None
 
-# AI command support
-try:
-    from ai_command import AiCommandHandler
-except ImportError:
-    AiCommandHandler = None
-
 from abstractbich import BichBot
 
 
@@ -1005,7 +999,7 @@ class IrcBich(BichBot):
 
         
             from random import random
-            SZ=230
+            SZ=150
             MAX=2500
             ACC=0
             lines = response.replace('\r', '\n').split('\n')
