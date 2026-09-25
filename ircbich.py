@@ -992,6 +992,7 @@ class IrcBich(BichBot):
                 if rline:
                     print(f'sending AI reasoning: PRIVMSG {communicationsLineName} :AI Reasoning: {rline}', flush=True)
                     self.send(f'PRIVMSG {communicationsLineName} :\x02AI Reasoning\x02: {rline}\r\n')
+                sleep(2000)
 
             # Truncate for IRC (max ~400 chars to be safe)
             #if len(response) > 400:
@@ -1012,6 +1013,7 @@ class IrcBich(BichBot):
 
             		# Send response (synchronous send from thread)
             		self.send(f'PRIVMSG {communicationsLineName} :\x02AI\x02: {line[:SZ]} {"(trimmed)" if ACC+SZ>MAX else ""} {str(random())}\r\n')
+                    sleep(2000)
             		if len(line)>=SZ:
             			line=line[SZ:]
             			ACC=ACC+SZ
